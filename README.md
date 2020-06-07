@@ -19,7 +19,7 @@ To install pycuda open a terminal and type
 To install scikit-cuda open a terminal and type 
 `$ pip install scikit-cuda
 
-### CuBLonD
+### GPU-BLonD
 
 Finally clone the repo and install it like the default BLonD with 
 `$ python blond/compile.py install` and the flags of your choice
