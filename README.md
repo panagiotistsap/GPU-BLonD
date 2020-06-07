@@ -3,7 +3,7 @@
 ## Requirments 
 1. Cuda
 2. PyCuda
-
+3. Scikit-Cuda 
 ## Installation Guide
 
 ### Cuda
@@ -14,7 +14,10 @@ Download and install cuda from the following link https://developer.nvidia.com/c
 
 To install pycuda open a terminal and type 
 
-`$ pip install pycuda`
+### Scikit-Cuda 
+
+To install scikit-cuda open a terminal and type 
+`$ pip install scikit-cuda
 
 ### CuBLonD
 
