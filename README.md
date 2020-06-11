@@ -40,7 +40,7 @@ my_tracker.use_gpu()
 my_profile.use_gpu()
 my_totalinducedvoltage().use_gpu()
 ```
-### More informations
+### More information
 - You do not need to call the use_gpu method for components you pass to your tracker as arguments.  
 - You can enable an optimization with ```gm.enable_gpucache()```
 - If you have multiple GPUs and you want to use a specific one you can choose which one by giving its id as an argument to the bm.use_gpu() like that ```bm.use_gpu(1)```. To view your GPUs you can type ```nvidia-smi``` in your terminal.
