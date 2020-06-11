@@ -419,41 +419,38 @@ tracker.use_gpu()
 phaseLoop.use_gpu()
 bm.enable_gpucache()
 
-import cuprof
-cuprof.enable()
-with cuprof.region_timer("loop","gpu") as rtn:
-    print("Loop started")
-    # for turn in range(ring.n_turns):
-    for turn in range(n_iterations):
 
-        profile.track()
-        inducedVoltage.induced_voltage_sum()    
+print("Loop started")
+# for turn in range(ring.n_turns):
+for turn in range(n_iterations):
 
-        if SPS_PHASELOOP is True:
-            phaseLoop.track()
-        tracker.track()
+    profile.track()
+    inducedVoltage.induced_voltage_sum()    
 
-        # if SPS_PHASELOOP is False:
-        #     if turn % PL_save_turns == 0 and turn > 0:
-            
-        #         # present beam position
-        #         beamPosFromPhase = (phaseLoop.phi_beam - rf_station.phi_rf[0, turn])\
-        #             / rf_station.omega_rf[0, turn] + t_batch_begin
-        #         # how much to shift the bin_centers
-        #         delta = beamPosPrev - beamPosFromPhase
-        #         beamPosPrev = beamPosFromPhase
+    if SPS_PHASELOOP is True:
+        phaseLoop.track()
+    tracker.track()
 
-        #         profile.bin_centers -= delta
-        #         profile.cut_left -= delta
-        #         profile.cut_right -= delta
-        #         profile.edges -= delta
+    # if SPS_PHASELOOP is False:
+    #     if turn % PL_save_turns == 0 and turn > 0:
+        
+    #         # present beam position
+    #         beamPosFromPhase = (phaseLoop.phi_beam - rf_station.phi_rf[0, turn])\
+    #             / rf_station.omega_rf[0, turn] + t_batch_begin
+    #         # how much to shift the bin_centers
+    #         delta = beamPosPrev - beamPosFromPhase
+    #         beamPosPrev = beamPosFromPhase
 
-        #         # shift time_offset of phase loop as well, so that it starts at correct
-        #         # bin_center corresponding to time_offset
-        #         if phaseLoop.alpha != 0:
-        #             phaseLoop.time_offset -= deltas
+    #         profile.bin_centers -= delta
+    #         profile.cut_left -= delta
+    #         profile.cut_right -= delta
+    #         profile.edges -= delta
 
-cuprof.report()
+    #         # shift time_offset of phase loop as well, so that it starts at correct
+    #         # bin_center corresponding to time_offset
+    #         if phaseLoop.alpha != 0:
+    #             phaseLoop.time_offset -= deltas
+
 
 
 

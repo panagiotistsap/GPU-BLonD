@@ -145,19 +145,12 @@ if (args.g):
     long_tracker.use_gpu()
     profile.use_gpu()
     totalInduced.use_gpu()
-    timing_kind = "gpu"
-else:
-    timing_kind = "cpu"
-import cuprof
-cuprof.enable()
-with cuprof.region_timer("main loop",timing_kind) as rtn:        
-    for i in range(1000):
-        for m in map_:
-            m.track()
-        if (args.u):
-            update_impedance(map_, i+1)
-        else:
-            pass
-cuprof.report()    
+for i in range(1000):
+    for m in map_:
+        m.track()
+    if (args.u):
+        update_impedance(map_, i+1)
+    else:
+        pass
 print(np.std(my_beam.dE))    
     

@@ -113,8 +113,6 @@ def gpu_track(self):
         self.rf_station.cpu_valid_dphi_rf = False
         self.rf_station.cpu_valid_phi_rf = False
 
-import cuprof
-@cuprof.time_decorator("sW","gpu")
 def gpu_beam_phase_sharpWindow(self):
         '''
         *Beam phase measured at the main RF frequency and phase. The beam is
@@ -142,46 +140,47 @@ def gpu_beam_phase_sharpWindow(self):
                 indexes = np.ones(self.profile.n_slices, dtype=bool)
                 needs_indexing = False  
         
+        # GPU VERSION CODE
 
         # Convolve with window function
-        if (needs_indexing):
-                gpu_indexing = gpuarray.to_gpu(indexing[0].astype(np.int32))
-                bin_centers_indexed = get_gpuarray((gpu_indexing.size, np.float64, 0, "bc"))
-                indexing_double(bin_centers_indexed, self.profile.dev_bin_centers, gpu_indexing)
-                n_macroparticles_indexed = get_gpuarray((gpu_indexing.size, np.float64, 0, "mc"))
-                indexing_int(n_macroparticles_indexed,self.profile.dev_n_macroparticles,gpu_indexing)
-        else:
-                bin_centers_indexed = self.profile.dev_bin_centers
-                n_macroparticles_indexed = self.profile.dev_n_macroparticles
+        # if (needs_indexing):
+        #         gpu_indexing = gpuarray.to_gpu(indexing[0].astype(np.int32))
+        #         bin_centers_indexed = get_gpuarray((gpu_indexing.size, np.float64, 0, "bc"))
+        #         indexing_double(bin_centers_indexed, self.profile.dev_bin_centers, gpu_indexing)
+        #         n_macroparticles_indexed = get_gpuarray((gpu_indexing.size, np.float64, 0, "mc"))
+        #         indexing_int(n_macroparticles_indexed,self.profile.dev_n_macroparticles,gpu_indexing)
+        # else:
+        #         bin_centers_indexed = self.profile.dev_bin_centers
+        #         n_macroparticles_indexed = self.profile.dev_n_macroparticles
 
         # np.testing.assert_allclose(n_macroparticles_indexed.get(), self.profile.n_macroparticles[indexes])
         # np.testing.assert_allclose(bin_centers_indexed.get(), self.profile.bin_centers[indexes])
 
-        # GPU VERSION CODE
         
-        sin_result = get_gpuarray((gpu_indexing.size,np.float64, 0, "sin")).fill(0)
-        cos_result = get_gpuarray((gpu_indexing.size,np.float64, 0, "cos")).fill(0)
+        
+        # sin_result = get_gpuarray((gpu_indexing.size,np.float64, 0, "sin")).fill(0)
+        # cos_result = get_gpuarray((gpu_indexing.size,np.float64, 0, "cos")).fill(0)
 
-        sincos_mul_add(bin_centers_indexed, omega_rf, phi_rf, sin_result, cos_result)
-        mul_d(sin_result, n_macroparticles_indexed)
-        mul_d(cos_result, n_macroparticles_indexed)
+        # sincos_mul_add(bin_centers_indexed, omega_rf, phi_rf, sin_result, cos_result)
+        # mul_d(sin_result, n_macroparticles_indexed)
+        # mul_d(cos_result, n_macroparticles_indexed)
 
         #np.testing.assert_allclose(sin_result.get(), np.sin(omega_rf*self.profile.bin_centers[indexes]+ phi_rf) * self.profile.n_macroparticles[indexes])
         #np.testing.assert_allclose(cos_result.get(), np.cos(omega_rf*self.profile.bin_centers[indexes]+ phi_rf) * self.profile.n_macroparticles[indexes])
 
         
 
-        #sin_cpu = np.sin(omega_rf*self.profile.bin_centers[indexes]+ phi_rf)* self.profile.n_macroparticles[indexes]
-        #cos_cpu = np.cos(omega_rf*self.profile.bin_centers[indexes] + phi_rf) * self.profile.n_macroparticles[indexes]
+        sin_cpu = np.sin(omega_rf*self.profile.bin_centers[indexes]+ phi_rf)* self.profile.n_macroparticles[indexes]
+        cos_cpu = np.cos(omega_rf*self.profile.bin_centers[indexes] + phi_rf) * self.profile.n_macroparticles[indexes]
         
-        #scoeff = np.trapz(sin_cpu, dx=self.profile.bin_size)
-        #ccoeff = np.trapz(cos_cpu, dx=self.profile.bin_size)
+        scoeff = np.trapz(sin_cpu, dx=self.profile.bin_size)
+        ccoeff = np.trapz(cos_cpu, dx=self.profile.bin_size)
 
         
-        gpu_scoeff = gpu_trapz_2(sin_result, self.profile.bin_size, sin_result.size)
-        gpu_ccoeff = gpu_trapz_2(cos_result, self.profile.bin_size, sin_result.size)
+        # gpu_scoeff = gpu_trapz_2(sin_result, self.profile.bin_size, sin_result.size)
+        # gpu_ccoeff = gpu_trapz_2(cos_result, self.profile.bin_size, sin_result.size)
         
-        gpu_phi_beam = np.arctan(gpu_scoeff/gpu_ccoeff) + np.pi
+        # gpu_phi_beam = np.arctan(gpu_scoeff/gpu_ccoeff) + np.pi
 
         #print(gpu_scoeff,scoeff)
 
@@ -190,11 +189,11 @@ def gpu_beam_phase_sharpWindow(self):
 
 
         # Project beam phase to (pi/2,3pi/2) range
-        # cpu_phi_beam = np.arctan(scoeff/ccoeff) + np.pi   
+        cpu_phi_beam = np.arctan(scoeff/ccoeff) + np.pi   
         
         #np.testing.assert_allclose(gpu_phi_beam, cpu_phi_beam)
 
-        self.phi_beam = gpu_phi_beam
+        self.phi_beam = cpu_phi_beam
 
         
 def LHC(self):
