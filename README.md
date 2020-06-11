@@ -27,7 +27,7 @@ Finally clone the repo and install it like the default BLonD with
 ## How to use your GPU
 To use the GPU version of BLonD you need to follow these 2 steps  
 1. You need to do that import ```import blond.utils.bmath as bm```
-2. Right before your main loop you need to add some the following line of code:
+2. Right before your main loop you need to add the following line of code:
 ```
 bm.use_gpu()
 ``` 
