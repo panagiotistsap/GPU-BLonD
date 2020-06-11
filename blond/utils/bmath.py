@@ -4,12 +4,11 @@ BLonD math and physics core functions
 @author Stefan Hegglin, Konstantinos Iliakis
 @date 20.10.2017
 '''
-# from functools import wraps
+
 import numpy as np
 from ..utils import butils_wrap
 from ..utils import bphysics_wrap
 from numpy import fft
-#try:
 gpu_num = 0
 
 def enable_gpucache():
@@ -137,6 +136,8 @@ def update_active_dict(new_dict):
 update_active_dict(_CPU_func_dict)
 ################################################################################
 def use_gpu(my_gpu_num=0):
+    import traceback
+    print("USING GPU")
     global __exec_mode,gpu_num
     from pycuda import driver as drv
     import atexit

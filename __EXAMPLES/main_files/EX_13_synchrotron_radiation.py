@@ -27,7 +27,7 @@ from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
 from blond.synchrotron_radiation.synchrotron_radiation import SynchrotronRadiation
 from scipy.constants import c, e, m_e
 from blond.beam.profile import CutOptions
-from blond.utils import bmath as bm
+
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 
@@ -45,8 +45,8 @@ except:
 
 # Beam parameters
 particle_type = Electron()
-n_particles = int(1e4)          
-n_macroparticles = int(1e4)
+n_particles = int(1.7e11)          
+n_macroparticles = int(1e5)
 sync_momentum = 175e9 # [eV]
 
 
@@ -60,7 +60,7 @@ gamma_transition = 377.96447
 C = 2 * np.pi * radius  # [m]        
       
 # Tracking details
-n_turns = int(10)
+n_turns = int(200)
 n_turns_between_two_plots = 100
  
 # Derived parameters
@@ -145,7 +145,7 @@ for i in range(n_turns):
 
     avg_dt[i] = np.mean(beam.dt)
     std_dt[i] = np.std(beam.dt)
-print("wassup") 
+        
 ## Fitting routines for synchrotron radiation damping
 from scipy.optimize import curve_fit
 def sine_exp_fit(x,y, **keywords):
@@ -212,7 +212,7 @@ plt.savefig(this_directory + '../output_files/EX_13_fig/pos_fit')
 plt.close()
 
 ## WITH QUANTUM EXCITATION
-n_turns = 10
+n_turns = 200
 # DEFINE RING------------------------------------------------------------------
 
 n_sections = 10
@@ -257,18 +257,13 @@ slice_beam.track()
 
 # Redefine Synchrotron radiation objects with quantum excitation
 SR = []
-print(n_sections)
 for i in range(n_sections):
     SR.append(SynchrotronRadiation(general_params, RF_sct_par[i], beam, rho, python=False, seed=7))
 
 # ACCELERATION MAP-------------------------------------------------------------
-bm.use_gpu()
 map_ = []
 for i in range(n_sections):
-    longitudinal_tracker[i].use_gpu()
-    SR[i].use_gpu()
     map_ += [longitudinal_tracker[i]] + [SR[i]]
-slice_beam.use_gpu()
 map_ += [slice_beam]
 
 # TRACKING + PLOTS-------------------------------------------------------------
@@ -279,28 +274,28 @@ std_dE = np.zeros(n_turns)
 for i in range(n_turns):
     for m in map_:
         m.track()
-    
-    #std_dt[i] = np.std(beam.dt)    
-    #std_dE[i] = np.std(beam.dE) 
 
-# plt.figure(figsize=[6,4.5])
-# plt.plot(1e-6*std_dE, lw=2)
-# plt.plot(np.arange(len(std_dE)), [1e-6*SR[0].sigma_dE*sync_momentum] * 
-#          len(std_dE), 'r--', lw=2)
-#print('Equilibrium energy spread = {0:1.3f} [MeV]'.format(1e-6 *
-#        std_dE[-10:].mean()))
-# plt.xlabel('Turns')
-# plt.ylabel('Energy spread [MeV]')
-# plt.savefig(this_directory + '../output_files/EX_13_fig/std_dE_QE.png')
-# plt.close()
+    std_dt[i] = np.std(beam.dt)    
+    std_dE[i] = np.std(beam.dE) 
 
-# plt.figure(figsize=[6,4.5])
-# plt.plot(1e12*4.0*std_dt, lw=2)
-#print('Equilibrium bunch length = {0:1.3f} [ps]'.format(4e12 *
-#        std_dt[-10:].mean()))
-# plt.xlabel('Turns')
-# plt.ylabel('Bunch length [ps]')
-# plt.savefig(this_directory + '../output_files/EX_13_fig/bl_QE.png')
-# plt.close()
+plt.figure(figsize=[6,4.5])
+plt.plot(1e-6*std_dE, lw=2)
+plt.plot(np.arange(len(std_dE)), [1e-6*SR[0].sigma_dE*sync_momentum] * 
+         len(std_dE), 'r--', lw=2)
+print('Equilibrium energy spread = {0:1.3f} [MeV]'.format(1e-6 *
+        std_dE[-10:].mean()))
+plt.xlabel('Turns')
+plt.ylabel('Energy spread [MeV]')
+plt.savefig(this_directory + '../output_files/EX_13_fig/std_dE_QE.png')
+plt.close()
 
-# print("Done!")
+plt.figure(figsize=[6,4.5])
+plt.plot(1e12*4.0*std_dt, lw=2)
+print('Equilibrium bunch length = {0:1.3f} [ps]'.format(4e12 *
+        std_dt[-10:].mean()))
+plt.xlabel('Turns')
+plt.ylabel('Bunch length [ps]')
+plt.savefig(this_directory + '../output_files/EX_13_fig/bl_QE.png')
+plt.close()
+
+print("Done!")

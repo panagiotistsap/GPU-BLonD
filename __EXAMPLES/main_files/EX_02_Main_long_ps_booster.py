@@ -1,4 +1,3 @@
-#!/home/panos/anaconda3/envs/myenv/bin/python
 # coding: utf8
 # Copyright 2014-2017 CERN. This software is distributed under the
 # terms of the GNU General Public Licence version 3 (GPL Version 3), 
@@ -29,33 +28,9 @@ from blond.plots.plot_impedance import plot_impedance_vs_frequency, plot_induced
 from blond.impedances.impedance_sources import InputTable
 from blond.impedances.impedance import InductiveImpedance, InducedVoltageFreq, TotalInducedVoltage
 from scipy.constants import m_p, e, c
-from blond.utils.bmath import use_gpu,get_exec_mode
-
 import os
-from time import sleep,time
-import sys
-try:
-    from cuprof import report,enable
-    from blond.utils.gpu_physics_wrap import get_stats
-    import pycuda.autoinit
-    import pycuda.driver as drv
-    import numpy as np
-    from pycuda import gpuarray
-    from pycuda.compiler import SourceModule
-    drv.init()
-except:
-    pass
-print(sys.argv)
 
-if (len(sys.argv) < 2):
-    print("/example.py <num_of_particles> <gpu>")
-    exit(0)
-if (len(sys.argv)==3):
-    use_gpu()
-    print(get_exec_mode())
-    print("Using Gpu")
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
-
 
 
 try:
@@ -71,7 +46,7 @@ except:
 
 # Beam parameters
 n_particles = 1e11
-n_macroparticles = int(sys.argv[1])
+n_macroparticles = 5e5
 sigma_dt = 180e-9 / 4 # [s]     
 kin_beam_energy = 1.4e9 # [eV]
 
@@ -81,8 +56,8 @@ gamma_transition = 4.4  # [1]
 C = 2 * np.pi * radius  # [m]       
       
 # Tracking details
-n_turns = 2000
-n_turns_between_two_plots = 10000
+n_turns = 2         
+n_turns_between_two_plots = 1          
 
 # Derived parameters
 E_0 = m_p*c**2/e    # [eV]
@@ -114,7 +89,7 @@ bigaussian(general_params, RF_sct_par, my_beam, sigma_dt, seed=1)
 
 # DEFINE SLICES----------------------------------------------------------------
 slice_beam = Profile(my_beam, CutOptions(cut_left= -5.72984173562e-7, 
-                    cut_right=5.72984173562e-7, n_slices=n_macroparticles//1000))       
+                    cut_right=5.72984173562e-7, n_slices=100))       
 
 # MONITOR----------------------------------------------------------------------
 
@@ -175,7 +150,6 @@ ind_volt_freq = InducedVoltageFreq(my_beam, slice_beam, imp_list,
                      
 total_induced_voltage = TotalInducedVoltage(my_beam, slice_beam,
                                       [ind_volt_freq, steps, dir_space_charge])
-                                      
 
 # PLOTS
 
@@ -185,44 +159,41 @@ plots = Plot(general_params, RF_sct_par, my_beam, 1, n_turns, 0,
              separatrix_plot= True, Profile = slice_beam, h5file = this_directory + '../output_files/EX_02_output_data', 
              histograms_plot = True, format_options = format_options)
  
+# For testing purposes
+test_string = ''
+test_string += '{:<17}\t{:<17}\t{:<17}\t{:<17}\n'.format(
+    'mean_dE', 'std_dE', 'mean_dt', 'std_dt')
+test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
+    np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))
+
 
 # ACCELERATION MAP-------------------------------------------------------------
 
-map_ = [total_induced_voltage] + [ring_RF_section] + [slice_beam] #+ [bunchmonitor]  #+ [plots]
-#map_ = [ring_RF_section] #+ [slice_beam] #+ [bunchmonitor]  #+ [plots]
-if (len(sys.argv)==3):
-    total_induced_voltage.use_gpu()
-    ring_RF_section.use_gpu()
-    #slice_beam.use_gpu()
-for m in map_:
-    m.track()
+map_ = [total_induced_voltage] + [ring_RF_section] + [slice_beam] + [bunchmonitor] + [plots]
 
-start = time()
-#enable()
 # TRACKING + PLOTS-------------------------------------------------------------
-print("Loop is starting...")
-for i in range(2, n_turns+1):
-    
-    if (i % 100 == 0):
-        print(i)
-        print(np.mean(my_beam.dE))
-        print(np.mean(my_beam.dt))
 
+for i in range(1, n_turns+1):
+    
+    print(i)
+    
     for m in map_:
         m.track()
     
-    #Plots
-    # if (i% n_turns_between_two_plots) == 0:
-    #     plots.track()
-    #     plot_impedance_vs_frequency(i, general_params, ind_volt_freq, 
-    #       option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum", dirname = this_directory + '../output_files/EX_02_fig')
+    # Plots
+    if (i% n_turns_between_two_plots) == 0:
+        
+        plot_impedance_vs_frequency(i, general_params, ind_volt_freq, 
+          option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum", dirname = this_directory + '../output_files/EX_02_fig')
          
-    #     plot_induced_voltage_vs_bin_centers(i, general_params, total_induced_voltage, style = '.', dirname = this_directory + '../output_files/EX_02_fig')
+        plot_induced_voltage_vs_bin_centers(i, general_params, total_induced_voltage, style = '.', dirname = this_directory + '../output_files/EX_02_fig')
+
+# For testing purposes
+test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
+    np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))
+with open(this_directory + '../output_files/EX_02_test_data.txt', 'w') as f:
+    f.write(test_string)
     
+
+         
 print("Done!")
-end = time()
-print(end - start)
-print("Done!")
-report()
-print(np.mean(my_beam.dE))
-print(np.mean(my_beam.dt))

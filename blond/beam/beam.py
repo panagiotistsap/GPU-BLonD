@@ -326,7 +326,7 @@ class Beam(object):
 
         if itemindex.size != 0:
             self.id[itemindex] = 0
-
+            self.gpu_valid = False
 
     def losses_longitudinal_cut(self, dt_min, dt_max):
         '''Beam losses based on longitudinal cuts.

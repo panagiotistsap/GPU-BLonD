@@ -23,7 +23,7 @@ import ctypes
 from ..toolbox import filters_and_fitting as ffroutines
 from ..utils import bmath as bm
 from blond.utils.bmath import get_exec_mode
-
+from blond.gpu.cpu_gpu_array import my_cpuarray as cga
 
 
 class CutOptions(object):
@@ -384,10 +384,15 @@ class Profile(object):
         # Import (reference) Beam
         self.Beam = Beam
 
+        ## new bin_centers
         self._bin_centers = None
+        self.bin_centers_obj = None
         self._dev_bin_centers = None
-        self.bin_centers_cpu_valid = True
-        self.bin_centers_gpu_valid = False
+
+        # self._bin_centers = None
+        # self._dev_bin_centers = None
+        # self.bin_centers_cpu_valid = True
+        # self.bin_centers_gpu_valid = False
 
         # Get all computed parameters from CutOptions
         self.set_slices_parameters()
@@ -438,7 +443,6 @@ class Profile(object):
         global gpuarray,drv
         from blond.gpu.gpu_profile import funcs_update
         from pycuda import gpuarray, driver as drv, tools
-        import atexit      
         from blond.utils.bmath import gpu_num
 
         drv.init()
@@ -446,6 +450,9 @@ class Profile(object):
         
         self.dev_n_macroparticles
         funcs_update(self)
+
+        self.bin_centers_obj = cga(self._bin_centers)
+        self._dev_bin_centers = self.bin_centers_obj.dev_array
         
     def gpu_validate(self,argument):
         if (argument=="n_macroparticles"):
@@ -499,17 +506,20 @@ class Profile(object):
     
     @property
     def bin_centers(self):
-        self.cpu_validate("bin_centers")
-        return self._bin_centers
+        if (not bm.get_exec_mode()=="GPU"):
+            return self._bin_centers
+        else:
+            self.bin_centers_obj.cpu_validate()
+            return self.bin_centers_obj
     
 
     @bin_centers.setter
     def bin_centers(self,value):
-        #print("Setting bin_centers")
-        self._bin_centers = value
-
-        self.bin_centers_cpu_valid = True
-        self.bin_centers_gpu_valid = False
+        if (bm.get_exec_mode()=="GPU"):
+            self.bin_centers_obj[:] = value
+        else:
+            self._bin_centers = value
+            
 
     @property
     def beam_spectrum(self):
@@ -543,14 +553,14 @@ class Profile(object):
 
     @property
     def dev_bin_centers(self):
-        self.gpu_validate("bin_centers")
-        return self._dev_bin_centers
+        self.bin_centers_obj.gpu_validate()
+        return self.bin_centers_obj.dev_array
     
     @dev_bin_centers.setter
     def dev_bin_centers(self,value):
-        self._dev_bin_centers = value
-        self.bin_centers_cpu_valid = False
-        self.bin_centers_gpu_valid = True
+        self.bin_centers_obj.gpu_validate()
+        self._dev_bin_centers[:] = value[:]
+        self.bin_centers_obj.cpu_valid = False
 
 
     @property

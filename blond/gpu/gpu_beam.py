@@ -25,6 +25,7 @@ import pycuda.reduction as reduce
 from pycuda import gpuarray, driver as drv, tools
 from blond.utils.bmath import gpu_num
 from types import MethodType
+from blond.gpu.gpu_butils_wrap import stdKernel
 
 drv.init()
 dev = drv.Device(gpu_num)
@@ -81,7 +82,7 @@ def funcs_update(obj):
         obj.losses_energy_cut = MethodType(gpu_losses_energy_cut,obj)
         obj.losses_below_energy = MethodType(gpu_losses_below_energy,obj)
         obj.statistics = MethodType(gpu_statistics,obj)
-        
+    obj.dev_id = gpuarray.to_gpu(obj.id.astype(np.float64))
 
 def gpu_losses_longitudinal_cut(self, dt_min, dt_max):
 
@@ -157,8 +158,8 @@ def gpu_statistics(self):
     self.mean_dt = np.float64(gpuarray.dot(self.dev_beam_dt, self.dev_id).get()/ones_sum)
     self.mean_dE = np.float64(gpuarray.dot(self.dev_dE, self.dev_id).get()/ones_sum)
     
-    self.sigma_dt = np.float64(np.sqrt(self.stdKernel(self.dev_dt, self.dev_id, self.mean_dt).get()/ones_sum))
-    self.sigma_dE = np.float64(np.sqrt(self.stdKernel(self.dev_dE, self.dev_id, self.mean_dE).get()/ones_sum))
+    self.sigma_dt = np.float64(np.sqrt(stdKernel(self.dev_dt, self.dev_id, self.mean_dt).get()/ones_sum))
+    self.sigma_dE = np.float64(np.sqrt(stdKernel(self.dev_dE, self.dev_id, self.mean_dE).get()/ones_sum))
 
     self.epsn_rms_l = np.pi*self.sigma_dE*self.sigma_dt  # in eVs
 

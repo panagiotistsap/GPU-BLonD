@@ -2,6 +2,7 @@ import numpy as np
 
 import numpy as np
 from pycuda.elementwise import ElementwiseKernel
+from pycuda.reduction import ReductionKernel
 from pycuda.compiler import SourceModule
 import traceback
 from blond.utils.cucache import get_gpuarray
@@ -205,8 +206,14 @@ ker = SourceModule("""
             idx++;
         }
     }
+    """)
 
-""")
+## gpu_beam
+
+stdKernel = ReductionKernel(np.float64, neutral="0",
+        reduce_expr="a+b", map_expr="y[i]*(x[i]-m)*(x[i]*y[i]-m)",
+        arguments="double *x, double *y, double m")
+
 
 ## gpu_profile
 cugradient = ker.get_function("cugradient")
@@ -273,13 +280,17 @@ indexing_double = ElementwiseKernel(
 
 indexing_int = ElementwiseKernel(
         "double *out, int *in, int *ind",
-        "out[i] = (double) in[ind[i]]",
+        "out[i] = in[ind[i]]",
         "indexing_double")
 
 sincos_mul_add = ElementwiseKernel(
         "double *ar, double a, double b, double *s, double *c",
         "sincos(a*ar[i]+b, &s[i], &c[i])",
         "sincos_mul_add")
+sincos_mul_add_2 = ElementwiseKernel(
+        "double *ar, double a, double b, double *s, double *c",
+        "s[i] = cos(a*ar[i]+b -3.141592653589793238462643383279502884197169399375105820974944592307816406286/2); c[i] = cos(a*ar[i]+b)",
+        "sincos_mul_add_2")
 
 gpu_trapz = reduce.ReductionKernel(np.float64, neutral="0",reduce_expr="a+b",
         arguments = "double *y, double x, int sz",
@@ -347,12 +358,10 @@ def find_plan(my_size):
         plans_dict[my_size] = fft.Plan(my_size, np.float64, np.complex128)
     return plans_dict[my_size]
 
-
 def inverse_find_plan(size):
     if (size not in inverse_plans_dict):
         inverse_plans_dict[size] = fft.Plan(size, in_dtype=np.complex128, out_dtype=np.float64)
     return inverse_plans_dict[size]
-
 
 def gpu_rfft(dev_a , n=0, result=None, caller_id = None):
     if (n == 0) and (result == None):
