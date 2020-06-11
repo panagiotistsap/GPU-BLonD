@@ -17,9 +17,30 @@ To install pycuda open a terminal and type
 ### Scikit-Cuda 
 
 To install scikit-cuda open a terminal and type 
-`$ pip install scikit-cuda
+`$ pip install scikit-cuda`
 
 ### GPU-BLonD
 
 Finally clone the repo and install it like the default BLonD with 
 `$ python blond/compile.py install` and the flags of your choice
+
+## How to use your GPU
+To use the GPU version of BLonD you need to follow these 2 steps  
+1. You need to do that import ```import blond.utils.bmath as bm```
+2. Right before your main loop you need to add some the following line of code:
+```
+bm.use_gpu()
+``` 
+and call the ```use_gpu()``` method of all your basic components. For example if you have a profile, a tracker and a TotalInducedVoltage object you need to write these lines before your main loop
+```
+bm.use_gpu()
+my_tracker.use_gpu()
+my_profile.use_gpu()
+my_totalinducedvoltage().use_gpu()
+```
+### More informations
+- You do not need to call the use_gpu method for components you pass to your tracker as arguments.  
+- You can enable an optimization with ```gm.enable_gpucache()```
+- If you have multiple GPUs and you want to use a specific one you can choose which one by giving its id as an argument to the bm.use_gpu() like that ```bm.use_gpu(1)```. To view your GPUs you can type ```nvidia-smi``` in your terminal.
+
+
