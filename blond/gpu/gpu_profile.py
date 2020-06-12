@@ -32,9 +32,7 @@ def gpu_beam_profile_derivative(self, mode='gradient', caller_id=None):
         dist_centers = x[1] - x[0]
         
         if mode == 'filter1d':
-            print("mode filter1d is not supported for gpu")
-            print("Exiting....")
-            exit(0)
+            raise RuntimeError('filted1d mode is not supported in GPU.')
         elif mode == 'gradient':
             if (caller_id):
                 derivative = get_gpuarray((x.size,np.float64, caller_id,'der'), True)
