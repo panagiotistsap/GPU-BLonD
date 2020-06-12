@@ -453,6 +453,8 @@ class Profile(object):
 
         self.bin_centers_obj = cga(self._bin_centers)
         self._dev_bin_centers = self.bin_centers_obj.dev_array
+        self.bin_centers_obj.cpu_valid = True
+        self.bin_centers_obj.gpu_valid = False
         
     def gpu_validate(self,argument):
         if (argument=="n_macroparticles"):
