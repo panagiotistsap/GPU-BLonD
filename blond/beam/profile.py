@@ -22,8 +22,8 @@ from scipy import ndimage
 import ctypes
 from ..toolbox import filters_and_fitting as ffroutines
 from ..utils import bmath as bm
-from blond.utils.bmath import get_exec_mode
-from blond.gpu.cpu_gpu_array import my_cpuarray as cga
+from ..utils.bmath import get_exec_mode
+from ..gpu.cpu_gpu_array import my_cpuarray as cga
 
 
 class CutOptions(object):
@@ -441,9 +441,9 @@ class Profile(object):
 
     def use_gpu(self):
         global gpuarray,drv
-        from blond.gpu.gpu_profile import funcs_update
+        from ..gpu.gpu_profile import funcs_update
         from pycuda import gpuarray, driver as drv, tools
-        from blond.utils.bmath import gpu_num
+        from ..utils.bmath import gpu_num
 
         drv.init()
         dev = drv.Device(gpu_num)

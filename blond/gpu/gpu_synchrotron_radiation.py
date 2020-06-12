@@ -1,5 +1,5 @@
 from pycuda import gpuarray, driver as drv, tools
-import blond.utils.bmath as bm
+from ..utils.bmath as bm
 from types import MethodType
 
 drv.init()

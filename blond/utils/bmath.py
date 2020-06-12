@@ -12,10 +12,10 @@ from numpy import fft
 gpu_num = 0
 
 def enable_gpucache():
-    import blond.utils.cucache as cc
+    from ..utils import cucache as cc
     cc.enable_cache()
 def disable_gpucache():
-    import blond.utils.cucache as cc
+    from  ..utils import cucache as cc
     cc.disable_cache()
 #except:
 #    pass
@@ -148,8 +148,8 @@ def use_gpu(my_gpu_num=0):
     ctx = dev.make_context()
     atexit.register(ctx.pop)
 
-    from blond.gpu import gpu_physics_wrap
-    from blond.gpu import gpu_butils_wrap
+    from ..gpu import gpu_physics_wrap
+    from ..gpu import gpu_butils_wrap
    
     
     _GPU_func_dict = {

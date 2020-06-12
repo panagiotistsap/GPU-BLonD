@@ -5,11 +5,11 @@ from pycuda.elementwise import ElementwiseKernel
 from pycuda.reduction import ReductionKernel
 from pycuda.compiler import SourceModule
 import traceback
-from blond.utils.cucache import get_gpuarray
+from ..utils.cucache import get_gpuarray
 import pycuda.reduction as reduce
 from pycuda import gpuarray, driver as drv, tools
 import atexit      
-from blond.utils.bmath import gpu_num
+from ..utils.bmath import gpu_num
 drv.init()
 #assert ( driver.Device.count() >= 1)
 dev = drv.Device(gpu_num)
@@ -72,19 +72,59 @@ gpu_complex_copy = ElementwiseKernel(
         "copy",
         preamble = "#include <pycuda-complex.hpp>")
 
+try:
+    ker_with_atomicAdd = SourceModule("""
+        __device__ double atomicAdd(double* address, double val)
+        {
+            unsigned long long int* address_as_ull = (unsigned long long int*)address;
+            unsigned long long int old = *address_as_ull, assumed;
+            do {
+                assumed = old;
+                old = atomicCAS(address_as_ull, assumed,
+                        __double_as_longlong(val + __longlong_as_double(assumed)));
+            } while (assumed != old);
+            return __longlong_as_double(old);
+        }
+        __global__ void gpu_trapz_custom(
+                double *y,
+                double x,
+                int sz,
+                double *res)
+        {   
+            int tid = threadIdx.x + blockDim.x * blockIdx.x;
+            double my_sum = 0;
+            for (int i = tid; i<sz-1; i+=gridDim.x*blockDim.x)
+                my_sum += (y[i]+y[i+1])*x/2.0;
+
+            atomicAdd(&(res[0]),my_sum);
+        }
+        """)
+
+except:
+    pass
+try:
+    ker_without_atomicAdd = SourceModule("""
+        
+        __global__ void gpu_trapz_custom(
+                double *y,
+                double x,
+                int sz,
+                double *res)
+        {   
+            int tid = threadIdx.x + blockDim.x * blockIdx.x;
+            double my_sum = 0;
+            for (int i = tid; i<sz-1; i+=gridDim.x*blockDim.x)
+                my_sum += (y[i]+y[i+1])*x/2.0;
+
+            atomicAdd(&(res[0]),my_sum);
+        }
+        """)
+except:
+    pass
+
 ker = SourceModule("""
 
-    __device__ double atomicAdd(double* address, double val)
-    {
-        unsigned long long int* address_as_ull = (unsigned long long int*)address;
-        unsigned long long int old = *address_as_ull, assumed;
-        do {
-            assumed = old;
-            old = atomicCAS(address_as_ull, assumed,
-                    __double_as_longlong(val + __longlong_as_double(assumed)));
-        } while (assumed != old);
-        return __longlong_as_double(old);
-    }
+    
     
 
     __global__ void cuinterp(double *x,
@@ -152,20 +192,7 @@ ker = SourceModule("""
             g[size-1] = (y[size-1]-y[size-2])/x;
     }
 
-    __global__ void gpu_trapz_custom(
-            double *y,
-            double x,
-            int sz,
-            double *res)
-    {   
-        int tid = threadIdx.x + blockDim.x * blockIdx.x;
-        double my_sum = 0;
-        for (int i = tid; i<sz-1; i+=gridDim.x*blockDim.x)
-            my_sum += (y[i]+y[i+1])*x/2.0;
-
-        atomicAdd(&(res[0]),my_sum);
-    }
-
+    
     __global__ void gpu_beam_fb_track_other(double *omega_rf,
                                             double *harmonic,
                                             double *dphi_rf,
@@ -188,7 +215,7 @@ ker = SourceModule("""
         }
     }
 
-     __global__ void gpu_rf_voltage_calc_mem_ops(double *new_voltages,
+    __global__ void gpu_rf_voltage_calc_mem_ops(double *new_voltages,
                                             double *new_omega_rf,
                                             double *new_phi_rf,
                                             double *voltages,
@@ -217,7 +244,10 @@ stdKernel = ReductionKernel(np.float64, neutral="0",
 
 ## gpu_profile
 cugradient = ker.get_function("cugradient")
-custom_gpu_trapz = ker.get_function("gpu_trapz_custom")
+try:
+    custom_gpu_trapz = ker_with_atomicAdd.get_function("gpu_trapz_custom")
+except:
+    custom_gpu_trapz = ker_without_atomicAdd.get_function("gpu_trapz_custom")
 
 gpu_diff = ElementwiseKernel("int *a, double *b, double c",
                                             "b[i] = (a[i+1]-a[i])/c","gpu_diff")

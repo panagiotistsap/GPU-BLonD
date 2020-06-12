@@ -334,11 +334,11 @@ class RingAndRFTracker(object):
     
 
     def use_gpu(self):
-        from blond.gpu.gpu_tracker import tracker_funcs_update
+        from ..gpu.gpu_tracker import tracker_funcs_update
         from pycuda.compiler import SourceModule
         from pycuda import gpuarray, driver as drv, tools
         import atexit      
-        from blond.utils.bmath import gpu_num
+        from ..utils.bmath import gpu_num
 
         drv.init()
         #assert ( driver.Device.count() >= 1)

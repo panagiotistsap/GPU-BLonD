@@ -78,10 +78,10 @@ class TotalInducedVoltage(object):
 
     def use_gpu(self):
         global tiv_update_funcs, iv_update_funcs, ii_update_funcs,drv,gpuarray
-        from blond.gpu.gpu_impedance import tiv_update_funcs, iv_update_funcs, ii_update_funcs
+        from ..gpu.gpu_impedance import tiv_update_funcs, iv_update_funcs, ii_update_funcs
         from pycuda import gpuarray, driver as drv, tools
         import atexit      
-        from blond.utils.bmath import gpu_num
+        from ..utils.bmath import gpu_num
 
         drv.init()
         #assert ( driver.Device.count() >= 1)

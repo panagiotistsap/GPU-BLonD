@@ -397,7 +397,7 @@ class RFStation(object):
         from pycuda.compiler import SourceModule
         from pycuda import gpuarray, driver as drv, tools
         import atexit      
-        from blond.utils.bmath import gpu_num
+        from ..utils.bmath import gpu_num
 
         drv.init()
         dev = drv.Device(gpu_num)

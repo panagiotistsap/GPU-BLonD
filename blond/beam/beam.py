@@ -164,10 +164,10 @@ class Beam(object):
 
     def use_gpu(self):
         global drv,gpuarray,gb
-        import blond.gpu.gpu_beam as gb
+        from ..gpu import gpu_beam as gb
         from pycuda import gpuarray, driver as drv, tools
         import atexit      
-        from blond.utils.bmath import gpu_num
+        from ..utils.bmath import gpu_num
 
         drv.init()
         drv.Device(gpu_num)

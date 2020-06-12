@@ -15,31 +15,107 @@ import pycuda.cumath as cm
 import traceback
 from pycuda.reduction import ReductionKernel
 from skcuda.misc import diff as cuda_diff
-from blond.utils.cucache import get_gpuarray
-from blond.gpu.gpu_butils_wrap import ElementwiseKernel
+from ..utils.cucache import get_gpuarray
+from ..gpu.gpu_butils_wrap import ElementwiseKernel
 from pycuda import gpuarray, driver as drv, tools
 import atexit      
-from blond.utils.bmath import gpu_num as gpu_num
-from blond.utils.butils_wrap import trapz
+from ..utils.bmath import gpu_num as gpu_num
+from ..utils.butils_wrap import trapz
 
 drv.init()
 my_gpu = drv.Device(gpu_num)
 
+try:
 
+    ker_with_atomicAdd = SourceModule("""
+            __device__ double atomicAdd(double* address, double val)
+        {
+            unsigned long long int* address_as_ull = (unsigned long long int*)address;
+            unsigned long long int old = *address_as_ull, assumed;
+            do {
+                assumed = old;
+                old = atomicCAS(address_as_ull, assumed,
+                        __double_as_longlong(val + __longlong_as_double(assumed)));
+            } while (assumed != old);
+            return __longlong_as_double(old);
+        }
+
+        __global__ void beam_phase_sum(
+            const double *ar1,
+            const double *ar2,
+            double *scoeff,
+            double *coeff,
+            int n_bins)
+        {   
+            int tid = threadIdx.x + blockDim.x * blockIdx.x;
+
+            if (tid==0){
+                scoeff[0]=0;
+                coeff[0] =0;
+            }
+            double my_sum_1 = 0;
+            double my_sum_2 = 0;
+            if (tid==0){
+                my_sum_1 += ar1[0]/2+ar1[n_bins-1]/2;
+                my_sum_2 += ar2[0]/2+ar2[n_bins-1]/2;
+            }
+            for (int i = tid+1; i<n_bins-1; i+=gridDim.x*blockDim.x){
+                my_sum_1 += ar1[i];
+                my_sum_2 += ar2[i];
+            }
+            atomicAdd(&(scoeff[0]),my_sum_1);
+            atomicAdd(&(coeff[0]),my_sum_2);
+            __syncthreads();
+            if (tid==0)
+                scoeff[0]=scoeff[0]/coeff[0];
+            
+        }
+
+        """)
+except:
+    pass
+
+try:
+
+    ker_without_atomicAdd = SourceModule("""
+        __global__ void beam_phase_sum(
+            const double *ar1,
+            const double *ar2,
+            double *scoeff,
+            double *coeff,
+            int n_bins)
+        {   
+            int tid = threadIdx.x + blockDim.x * blockIdx.x;
+
+            if (tid==0){
+                scoeff[0]=0;
+                coeff[0] =0;
+            }
+            double my_sum_1 = 0;
+            double my_sum_2 = 0;
+            if (tid==0){
+                my_sum_1 += ar1[0]/2+ar1[n_bins-1]/2;
+                my_sum_2 += ar2[0]/2+ar2[n_bins-1]/2;
+            }
+            for (int i = tid+1; i<n_bins-1; i+=gridDim.x*blockDim.x){
+                my_sum_1 += ar1[i];
+                my_sum_2 += ar2[i];
+            }
+            atomicAdd(&(scoeff[0]),my_sum_1);
+            atomicAdd(&(coeff[0]),my_sum_2);
+            __syncthreads();
+            if (tid==0)
+                scoeff[0]=scoeff[0]/coeff[0];
+            
+        }
+
+        """)
+except:
+    pass
 
 ker = SourceModule("""
 
-    __device__ double atomicAdd(double* address, double val)
-    {
-        unsigned long long int* address_as_ull = (unsigned long long int*)address;
-        unsigned long long int old = *address_as_ull, assumed;
-        do {
-            assumed = old;
-            old = atomicCAS(address_as_ull, assumed,
-                    __double_as_longlong(val + __longlong_as_double(assumed)));
-        } while (assumed != old);
-        return __longlong_as_double(old);
-    }
+    
 
     __global__ void halve_edges(double *my_array, int size){
         //__shared__ my_sum;
@@ -333,36 +409,7 @@ ker = SourceModule("""
         }
     }
 
-    __global__ void beam_phase_sum(
-            const double *ar1,
-            const double *ar2,
-            double *scoeff,
-            double *coeff,
-            int n_bins)
-    {   
-        int tid = threadIdx.x + blockDim.x * blockIdx.x;
-
-        if (tid==0){
-            scoeff[0]=0;
-            coeff[0] =0;
-        }
-        double my_sum_1 = 0;
-        double my_sum_2 = 0;
-        if (tid==0){
-            my_sum_1 += ar1[0]/2+ar1[n_bins-1]/2;
-            my_sum_2 += ar2[0]/2+ar2[n_bins-1]/2;
-        }
-        for (int i = tid+1; i<n_bins-1; i+=gridDim.x*blockDim.x){
-            my_sum_1 += ar1[i];
-            my_sum_2 += ar2[i];
-        }
-        atomicAdd(&(scoeff[0]),my_sum_1);
-        atomicAdd(&(coeff[0]),my_sum_2);
-        __syncthreads();
-        if (tid==0)
-            scoeff[0]=scoeff[0]/coeff[0];
-        
-    }
+    
 
 """)
 
@@ -426,7 +473,10 @@ gm_linear_interp_kick_help = ker.get_function("lik_only_gm_copy")
 gm_linear_interp_kick_comp = ker.get_function("lik_only_gm_comp")
 halve_edges = ker.get_function("halve_edges")
 beam_phase_v2 = ker.get_function("beam_phase_v2")
-beam_phase_sum = ker.get_function("beam_phase_sum")
+try:
+    beam_phase_sum = ker_with_atomicAdd.get_function("beam_phase_sum")
+except:
+    beam_phase_sum = ker_without_atomicAdd.get_function("beam_phase_sum")
 
 synch_rad = synch_rad_ker.get_function("synchrotron_radiation")
 synch_rad_full = synch_rad_ker.get_function("synchrotron_radiation_full")

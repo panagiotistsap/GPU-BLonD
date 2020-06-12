@@ -2,15 +2,15 @@ from __future__ import division
 from builtins import object
 import numpy as np
 from types import MethodType
-import blond.utils.bmath as bm
-from blond.utils.cucache import get_gpuarray
+from  ..utils import bmath as bm
+from ..utils.cucache import get_gpuarray
 from pycuda.compiler import SourceModule
 import pycuda.reduction as reduce
 from pycuda.elementwise import ElementwiseKernel
-from blond.gpu.gpu_butils_wrap import gpu_diff,cugradient
+from ..gpu.gpu_butils_wrap import gpu_diff,cugradient
 
 from pycuda import gpuarray, driver as drv, tools
-from blond.utils.bmath import gpu_num
+from ..utils.bmath import gpu_num
 
 drv.init()
 dev = drv.Device(gpu_num)

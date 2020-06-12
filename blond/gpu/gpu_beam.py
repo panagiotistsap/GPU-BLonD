@@ -19,13 +19,13 @@ from builtins import object
 import numpy as np
 from time import sleep
 import traceback
-import blond.utils.bmath as bm
+from ..utils import bmath as bm
 from pycuda.compiler import SourceModule
 import pycuda.reduction as reduce
 from pycuda import gpuarray, driver as drv, tools
-from blond.utils.bmath import gpu_num
+from ..utils.bmath import gpu_num
 from types import MethodType
-from blond.gpu.gpu_butils_wrap import stdKernel
+from ..gpu.gpu_butils_wrap import stdKernel
 
 drv.init()
 dev = drv.Device(gpu_num)

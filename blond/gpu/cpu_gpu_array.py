@@ -3,7 +3,7 @@ try:
     global gpuarray,drv
     import pycuda
     from pycuda import gpuarray, driver as drv
-    import blond.utils.bmath as bm
+    from  ..utils import bmath as bm
     #bm.use_gpu()
     #drv.init()
     #my_gpu = drv.Device(bm.gpu_num)

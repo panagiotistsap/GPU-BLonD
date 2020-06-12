@@ -202,7 +202,7 @@ class BeamFeedback(object):
 
 
     def use_gpu(self):
-        from blond.gpu.gpu_beam_feedback import bf_funcs_update
+        from ..gpu.gpu_beam_feedback import bf_funcs_update
         bf_funcs_update(self)
 
     def track(self):

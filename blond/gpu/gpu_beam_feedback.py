@@ -4,13 +4,13 @@ import numpy as np
 from ..toolbox.next_regular import next_regular
 from ..utils import bmath as bm
 from types import MethodType
-from blond.gpu.gpu_butils_wrap import gpu_copy_one,set_zero,triple_kernel,\
+from ..gpu.gpu_butils_wrap import gpu_copy_one,set_zero,triple_kernel,\
                 first_kernel_x, second_kernel_x, third_kernel_x,indexing_double, indexing_int, sincos_mul_add,mul_d,gpu_trapz_2,sincos_mul_add_2
-from blond.utils.cucache import get_gpuarray
-from blond.utils.bphysics_wrap import beam_phase as cpu_beamphase
+from ..utils.cucache import get_gpuarray
+from ..utils.bphysics_wrap import beam_phase as cpu_beamphase
 import pycuda.cumath as cm
 from pycuda import gpuarray, driver as drv, tools
-from blond.utils.bmath import gpu_num
+from ..utils.bmath import gpu_num
 
 
 drv.init()

@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 import numpy.random as rand
 
 #BLonD imports
-import blond.utils.exceptions as blExcept
+from ..utils import exceptions as blExcept
 
 
 
