@@ -19,6 +19,15 @@ To install pycuda open a terminal and type
 To install scikit-cuda open a terminal and type 
 `$ pip install scikit-cuda`
 
+### Verification
+To verify your installation, in a python terminal type the following:
+```
+import pycuda.autoinit
+from pycuda import gpuarray
+import numpy as np
+a = gpuarray.to_gpu(np.zeros(1000,np.float64))
+```
+
 ### GPU-BLonD
 
 Finally after cloning the repo and adding it to your pythonpath, install it like the default BLonD with 
@@ -42,7 +51,7 @@ my_totalinducedvoltage().use_gpu()
 ```
 ### More information
 - You do not need to call the use_gpu method for components you pass to your tracker as arguments.  
-- You can enable an optimization with ```gm.enable_gpucache()```
+- You can enable an optimization with ```bm.enable_gpucache()```
 - If you have multiple GPUs and you want to use a specific one you can choose which one by giving its id as an argument to the bm.use_gpu() like that ```bm.use_gpu(1)```. To view your GPUs you can type ```nvidia-smi``` in your terminal.
 
 ## For lxplus Users
