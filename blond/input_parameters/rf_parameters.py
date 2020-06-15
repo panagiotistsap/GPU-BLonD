@@ -304,13 +304,9 @@ class RFStation(object):
                 self.n_rf,
                 Ring.cycle_time,
                 Ring.RingOptions.t_start)
-            try:
-                self.dev_phi_noise = gpuarray.to_gpu(self.phi_noise)
-            except:
-                self.dev_phi_noise = None
+            
         else:
             self.phi_noise = None
-            self.dev_phi_noise = None
             
         if phi_modulation is not None:
             
@@ -349,10 +345,7 @@ class RFStation(object):
                 
             
             self.phi_modulation = (dPhi, dOmega)
-            try:
-                self.dev_phi_modulation = (gpuarray.to_gpu(dPhi),gpuarray.to_gpu(dOmega))
-            except:
-                self.dev_phi_modulation = None
+            
         else:
             
             self.phi_modulation = None
@@ -401,6 +394,13 @@ class RFStation(object):
 
         drv.init()
         dev = drv.Device(gpu_num)
+        try:
+            self.dev_phi_modulation = (gpuarray.to_gpu(dPhi),gpuarray.to_gpu(dOmega))
+        except:
+            self.dev_phi_modulation = None
+            
+        if (self.phi_noise != None):
+            self.dev_phi_noise = gpuarray.to_gpu(self.phi_noise.flatten())
 
 
     def cpu_validate(self, argument):

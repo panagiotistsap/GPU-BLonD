@@ -256,7 +256,6 @@ class RingAndRFTracker(object):
         self.harmonic = RFStation.harmonic
        
         self.phi_noise = RFStation.phi_noise
-        self.dev_phi_noise = RFStation.dev_phi_noise
         
         self.phi_modulation = RFStation.phi_modulation
         self.dev_phi_modulation = RFStation.dev_phi_modulation
@@ -339,7 +338,6 @@ class RingAndRFTracker(object):
         from pycuda import gpuarray, driver as drv, tools
         import atexit      
         from ..utils.bmath import gpu_num
-
         drv.init()
         #assert ( driver.Device.count() >= 1)
         dev = drv.Device(gpu_num)
@@ -466,6 +464,7 @@ class RingAndRFTracker(object):
             else:
                 self.phi_rf[:, turn] += \
                     self.phi_noise[:, turn]
+                pass
 
         # Add phase modulation directly to the cavity RF phase
         if self.phi_modulation is not None:

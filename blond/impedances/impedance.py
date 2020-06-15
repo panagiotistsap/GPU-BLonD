@@ -80,14 +80,11 @@ class TotalInducedVoltage(object):
         global tiv_update_funcs, iv_update_funcs, ii_update_funcs,drv,gpuarray
         from ..gpu.gpu_impedance import tiv_update_funcs, iv_update_funcs, ii_update_funcs
         from pycuda import gpuarray, driver as drv, tools
-        import atexit      
         from ..utils.bmath import gpu_num
 
         drv.init()
-        #assert ( driver.Device.count() >= 1)
         dev = drv.Device(gpu_num)
-        # ctx = dev.make_context()
-        # atexit.register(ctx.pop)
+
         tiv_update_funcs(self)
         for obj in self.induced_voltage_list:
             obj.use_gpu()
@@ -302,10 +299,11 @@ class _InducedVoltage(object):
         from pycuda import gpuarray
         iv_update_funcs(self,is_ii=is_ii)
         
-        try:
-            self.dev_time_mtw = gpuarray.to_gpu(self.time_mtw)
-        except:
-            pass
+        #try:
+        #    self.time_mtw
+        #    self.dev_time_mtw = gpuarray.to_gpu(self.time_mtw)
+        #except:
+        #    pass
 
 
     def process(self):
@@ -732,8 +730,10 @@ class InductiveImpedance(_InducedVoltage):
         _InducedVoltage.__init__(self, Beam, Profile, RFParams=RFParams)
         
     def use_gpu(self):
-        ii_update_funcs(self)
+        #ii_update_funcs(self)
         super().use_gpu(is_ii = True)
+        
+        
     
     
     def induced_voltage_1turn(self, beam_spectrum_dict={}):
@@ -799,6 +799,9 @@ class InducedVoltageResonator(_InducedVoltage):
         Computed induced voltage [V]
     """
 
+    def use_gpu(self):
+        pass
+        
     def __init__(self, Beam, Profile, Resonators, timeArray=None):
 
         # Test if one or more quality factors is smaller than 0.5.

@@ -50,6 +50,10 @@ def gpu_induced_voltage_sum(self):
         for induced_voltage_object in self.induced_voltage_list:
                 induced_voltage_object.induced_voltage_generation(
                         beam_spectrum_dict)
+                try:
+                        induced_voltage_object.dev_induced_voltage
+                except:
+                        induced_voltage_object.dev_induced_voltage = gpuarray.to_gpu(induced_voltage_object.induced_voltage)
                 add_array(self.dev_induced_voltage,induced_voltage_object.dev_induced_voltage, slice = slice(0,self.profile.n_slices))
 
         

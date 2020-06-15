@@ -36,7 +36,7 @@ def gpu_beam_profile_derivative(self, mode='gradient', caller_id=None):
                 derivative = get_gpuarray((x.size,np.float64, caller_id, 'der'), True)
             else:
                 derivative = gpuarray.zeros(x.size, dtype=np.float64)
-            cugradient(np.float64(dist_centers), self.dev_n_macroparticles, derivative, block=(1024,1,1), grid=(16,1,1))
+            cugradient(np.float64(dist_centers), self.dev_n_macroparticles, derivative, np.int32(x.size), block=(1024,1,1), grid=(16,1,1))
         elif mode == 'diff':
             if (caller_id):
                 derivative = get_gpuarray((x.size,np.float64, caller_id,'der'), True)
