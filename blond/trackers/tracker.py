@@ -339,10 +339,7 @@ class RingAndRFTracker(object):
         import atexit      
         from ..utils.bmath import gpu_num
         drv.init()
-        #assert ( driver.Device.count() >= 1)
         dev = drv.Device(gpu_num)
-        # ctx = dev.make_context()
-        # atexit.register(ctx.pop)
         
         if (self.profile):
             self.profile.use_gpu()
@@ -464,7 +461,6 @@ class RingAndRFTracker(object):
             else:
                 self.phi_rf[:, turn] += \
                     self.phi_noise[:, turn]
-                pass
 
         # Add phase modulation directly to the cavity RF phase
         if self.phi_modulation is not None:

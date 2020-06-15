@@ -101,6 +101,7 @@ try:
         """)
 
 except:
+    ## atomicAdd for doubles already specified
     pass
 try:
     ker_without_atomicAdd = SourceModule("""
@@ -120,6 +121,7 @@ try:
         }
         """)
 except:
+    ## atomicAdd already exists
     pass
 
 ker = SourceModule("""

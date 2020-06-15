@@ -389,19 +389,19 @@ class RFStation(object):
         global gpuarray,drv
         from pycuda.compiler import SourceModule
         from pycuda import gpuarray, driver as drv, tools
-        import atexit      
         from ..utils.bmath import gpu_num
 
         drv.init()
         dev = drv.Device(gpu_num)
-        try:
+        if (self.phi_modulation!=None):
             self.dev_phi_modulation = (gpuarray.to_gpu(dPhi),gpuarray.to_gpu(dOmega))
-        except:
+        else:
             self.dev_phi_modulation = None
             
         if (self.phi_noise != None):
             self.dev_phi_noise = gpuarray.to_gpu(self.phi_noise.flatten())
-
+        else:
+            self.dev_phi_noise = None
 
     def cpu_validate(self, argument):
         if (argument=="voltage"):

@@ -298,13 +298,12 @@ class _InducedVoltage(object):
         global gpuarray
         from pycuda import gpuarray
         iv_update_funcs(self,is_ii=is_ii)
-        
-        #try:
-        #    self.time_mtw
-        #    self.dev_time_mtw = gpuarray.to_gpu(self.time_mtw)
-        #except:
-        #    pass
-
+                
+        if (hasattr(self, "time_mtw")):
+            if (self.time_mtw!=None):
+                self.dev_time_mtw = gpuarray.to_gpu(self.time_mtw)
+            else:
+                self.dev_time_mtw = None
 
     def process(self):
         """
@@ -733,8 +732,6 @@ class InductiveImpedance(_InducedVoltage):
         #ii_update_funcs(self)
         super().use_gpu(is_ii = True)
         
-        
-    
     
     def induced_voltage_1turn(self, beam_spectrum_dict={}):
         """
