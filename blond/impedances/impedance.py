@@ -21,7 +21,7 @@ from ctypes import c_uint, c_double, c_void_p
 from scipy.constants import e
 from ..toolbox.next_regular import next_regular
 from ..utils import bmath as bm
-
+from ..gpu.cpu_gpu_array import my_cpuarray as cga
 
 
 class TotalInducedVoltage(object):
@@ -55,6 +55,35 @@ class TotalInducedVoltage(object):
     Time array corresponding to induced_voltage [s]
     """
 
+    @property
+    def induced_voltage(self):
+        if (not bm.get_exec_mode()=="GPU"):
+            return self._induced_voltage
+        else:
+            self.induced_voltage_obj.cpu_validate()
+            return self.induced_voltage_obj
+    
+
+    @induced_voltage.setter
+    def induced_voltage(self,value):
+        if (bm.get_exec_mode()=="GPU"):
+            self.induced_voltage_obj[:] = value
+        else:
+            self._induced_voltage = value
+    
+    @property
+    def dev_induced_voltage(self):
+        self.induced_voltage_obj.gpu_validate()
+        return self.induced_voltage_obj.dev_array
+    
+    @dev_induced_voltage.setter
+    def dev_induced_voltage(self,value):
+        self.induced_voltage_obj.gpu_validate()
+        self._dev_induced_voltage[:] = value[:]
+        self.induced_voltage_obj.cpu_valid = False
+
+
+
 
     def __init__(self, Beam, Profile, induced_voltage_list):
         """
@@ -70,7 +99,7 @@ class TotalInducedVoltage(object):
         self.induced_voltage_list = induced_voltage_list
 
         # Induced voltage from the sum of the wake sources in V
-        self.induced_voltage = np.zeros(int(self.profile.n_slices))
+        self._induced_voltage = np.zeros(int(self.profile.n_slices))
         # Time array of the wake in s
         
         self.time_array = self.profile.bin_centers
@@ -85,10 +114,18 @@ class TotalInducedVoltage(object):
         drv.init()
         dev = drv.Device(gpu_num)
 
+        self.induced_voltage_obj = cga(self._induced_voltage)
+        self._dev_induced_voltage = self.induced_voltage_obj.dev_array
+        self.induced_voltage_obj.cpu_valid = True
+        self.induced_voltage_obj.gpu_valid = False
+
+
         tiv_update_funcs(self)
         for obj in self.induced_voltage_list:
             obj.use_gpu()
             #print(obj)
+        
+
 
 
     def reprocess(self):
