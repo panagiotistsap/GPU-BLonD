@@ -23,7 +23,7 @@ import ctypes
 from ..toolbox import filters_and_fitting as ffroutines
 from ..utils import bmath as bm
 from ..utils.bmath import get_exec_mode
-from ..gpu.cpu_gpu_array import my_cpuarray as cga
+from ..gpu.cpu_gpu_array import CGA
 
 
 class CutOptions(object):
@@ -387,12 +387,6 @@ class Profile(object):
         ## new bin_centers
         self._bin_centers = None
         self.bin_centers_obj = None
-        self._dev_bin_centers = None
-
-        # self._bin_centers = None
-        # self._dev_bin_centers = None
-        # self.bin_centers_cpu_valid = True
-        # self.bin_centers_gpu_valid = False
 
         # Get all computed parameters from CutOptions
         self.set_slices_parameters()
@@ -451,11 +445,8 @@ class Profile(object):
         self.dev_n_macroparticles
         funcs_update(self)
 
-        self.bin_centers_obj = cga(self._bin_centers)
-        self._dev_bin_centers = self.bin_centers_obj.dev_array
-        self.bin_centers_obj.cpu_valid = True
-        self.bin_centers_obj.gpu_valid = False
-        
+        self.bin_centers_obj = CGA(self._bin_centers)
+
     def gpu_validate(self,argument):
         if (argument=="n_macroparticles"):
             if (not self.n_macroparticles_gpu_valid):
@@ -511,16 +502,15 @@ class Profile(object):
         if (not bm.get_exec_mode()=="GPU"):
             return self._bin_centers
         else:
-            self.bin_centers_obj.cpu_validate()
-            return self.bin_centers_obj
+            return self.bin_centers_obj.my_array
     
 
     @bin_centers.setter
     def bin_centers(self,value):
-        if (bm.get_exec_mode()=="GPU"):
-            self.bin_centers_obj[:] = value
-        else:
+        if (not bm.get_exec_mode()=="GPU"):
             self._bin_centers = value
+        else:
+            self.bin_centers_obj.my_array = value
             
 
     @property
@@ -555,14 +545,11 @@ class Profile(object):
 
     @property
     def dev_bin_centers(self):
-        self.bin_centers_obj.gpu_validate()
-        return self.bin_centers_obj.dev_array
+        return self.bin_centers_obj.dev_my_array
     
     @dev_bin_centers.setter
     def dev_bin_centers(self,value):
-        self.bin_centers_obj.gpu_validate()
-        self._dev_bin_centers[:] = value[:]
-        self.bin_centers_obj.cpu_valid = False
+        self.bin_centers_obj.dev_my_array = value
 
 
     @property

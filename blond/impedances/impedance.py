@@ -21,7 +21,7 @@ from ctypes import c_uint, c_double, c_void_p
 from scipy.constants import e
 from ..toolbox.next_regular import next_regular
 from ..utils import bmath as bm
-from ..gpu.cpu_gpu_array import my_cpuarray as cga
+from ..gpu.cpu_gpu_array import CGA
 
 
 class TotalInducedVoltage(object):
@@ -60,27 +60,23 @@ class TotalInducedVoltage(object):
         if (not bm.get_exec_mode()=="GPU"):
             return self._induced_voltage
         else:
-            self.induced_voltage_obj.cpu_validate()
-            return self.induced_voltage_obj
+            return self.induced_voltage_obj.my_array
     
 
     @induced_voltage.setter
     def induced_voltage(self,value):
-        if (bm.get_exec_mode()=="GPU"):
-            self.induced_voltage_obj[:] = value
-        else:
+        if (not bm.get_exec_mode()=="GPU"):
             self._induced_voltage = value
+        else:
+            self.induced_voltage_obj.my_array = value
     
     @property
     def dev_induced_voltage(self):
-        self.induced_voltage_obj.gpu_validate()
         return self.induced_voltage_obj.dev_array
     
     @dev_induced_voltage.setter
     def dev_induced_voltage(self,value):
-        self.induced_voltage_obj.gpu_validate()
-        self._dev_induced_voltage[:] = value[:]
-        self.induced_voltage_obj.cpu_valid = False
+        self.induced_voltage_obj.dev_array = value
 
 
 
@@ -114,11 +110,7 @@ class TotalInducedVoltage(object):
         drv.init()
         dev = drv.Device(gpu_num)
 
-        self.induced_voltage_obj = cga(self._induced_voltage)
-        self._dev_induced_voltage = self.induced_voltage_obj.dev_array
-        self.induced_voltage_obj.cpu_valid = True
-        self.induced_voltage_obj.gpu_valid = False
-
+        self.induced_voltage_obj = CGA(self._induced_voltage)
 
         tiv_update_funcs(self)
         for obj in self.induced_voltage_list:

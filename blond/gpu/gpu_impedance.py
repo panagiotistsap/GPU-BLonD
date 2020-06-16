@@ -50,12 +50,9 @@ def gpu_induced_voltage_sum(self):
         for induced_voltage_object in self.induced_voltage_list:
                 induced_voltage_object.induced_voltage_generation(
                         beam_spectrum_dict)
-                try:
-                        induced_voltage_object.dev_induced_voltage
-                except:
+                if (not hasattr(induced_voltage_object, 'dev_induced_voltage')):
                         induced_voltage_object.dev_induced_voltage = gpuarray.to_gpu(induced_voltage_object.induced_voltage)
                 add_array(self.dev_induced_voltage,induced_voltage_object.dev_induced_voltage, slice = slice(0,self.profile.n_slices))
-
         
 def tiv_update_funcs(obj):
         if (bm.get_exec_mode()=='GPU'):
@@ -167,7 +164,6 @@ def gpu_induced_voltage_mtw(self, beam_spectrum_dict={}):
         gpu_copy_d2d(self.dev_induced_voltage, self.dev_mtw_memory, slice = slice(0,self.n_induced_voltage))
 
 
-
 def gpu_shift_trev_freq(self):
         """
         Method to shift the induced voltage by a revolution period in the
@@ -182,7 +178,6 @@ def gpu_shift_trev_freq(self):
         dummy = bm.irfft(dev_induced_voltage_f, caller_id = self(id))
         gpu_copy_d2d( self.dev_mtw_memory, dummy, range = range(0,self.n_mtw_memory))
         set_zero(self.dev_mtw_memory, slice = slice(-int(self.buffer_size),None,None))
-
 
 
 def gpu_shift_trev_time(self):
