@@ -24,7 +24,7 @@ class my_gpuarray(pycuda.gpuarray.GPUArray):
     
     def __getitem__(self, key):
         if (not self.parent.gpu_valid):
-            self = gpuarray.to_gpu(self.parent)
+            self.set(gpuarray.to_gpu(self.parent))
             self.parent.gpu_valid = True
         return super(my_gpuarray, self).__getitem__(key)
 
@@ -53,6 +53,7 @@ class my_cpuarray(np.ndarray):
     def gpu_validate(self):
         if (not self.gpu_valid):
             self.dev_array.set(gpuarray.to_gpu(self.flatten()))
+
         self.gpu_valid = True
             
     def __setitem__(self, key, value):
@@ -84,7 +85,9 @@ class CGA():
     
     @my_array.setter
     def my_array(self, value):
-        self.array_obj[:] = value
+        super(my_cpuarray, self.array_obj).__setitem__(slice(None, None, None), value)
+        self.array_obj.gpu_valid = False
+        self.array_obj.cpu_valid = True
 
     @property
     def dev_my_array(self):
@@ -93,9 +96,9 @@ class CGA():
     
     @dev_my_array.setter
     def dev_my_array(self, value):
-        self.array_obj.gpu_validate()
-        self._dev_array[:] = value[:]
+        super(my_gpuarray, self._dev_array).__setitem__(slice(None, None, None), value)
         self.array_obj.cpu_valid = False
+        self.array_obj.gpu_valid = True
         
 
 class ExampleClass():
