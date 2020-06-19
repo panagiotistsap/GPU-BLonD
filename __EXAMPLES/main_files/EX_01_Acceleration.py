@@ -20,16 +20,16 @@ import numpy as np
 import sys
 import time
 
-#  BLonD Imports
-from blond.input_parameters.ring import Ring
-from blond.input_parameters.rf_parameters import RFStation
-from blond.trackers.tracker import RingAndRFTracker
-from blond.beam.beam import Beam, Proton
-from blond.beam.distributions import bigaussian
-from blond.beam.profile import CutOptions, FitOptions, Profile
-from blond.monitors.monitors import BunchMonitor
-from blond.plots.plot import Plot
-from blond.utils.bmath import use_gpu
+#  gpublond Imports
+from gpublond.input_parameters.ring import Ring
+from gpublond.input_parameters.rf_parameters import RFStation
+from gpublond.trackers.tracker import RingAndRFTracker
+from gpublond.beam.beam import Beam, Proton
+from gpublond.beam.distributions import bigaussian
+from gpublond.beam.profile import CutOptions, FitOptions, Profile
+from gpublond.monitors.monitors import BunchMonitor
+from gpublond.plots.plot import Plot
+from gpublond.utils.bmath import use_gpu
 import os
 print(sys.argv)
 if (len(sys.argv)<3):

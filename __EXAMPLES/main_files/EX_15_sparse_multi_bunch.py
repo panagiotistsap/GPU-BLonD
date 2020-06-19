@@ -18,12 +18,12 @@ Example for the FCC-ee at 175 GeV.
 from __future__ import division
 import matplotlib.pyplot as plt
 import numpy as np
-from blond.input_parameters.ring import Ring
-from blond.beam.beam import Beam, Electron
-from blond.beam.distributions import matched_from_distribution_function
-from blond.input_parameters.rf_parameters import RFStation
-from blond.beam.sparse_slices import SparseSlices
-from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from gpublond.input_parameters.ring import Ring
+from gpublond.beam.beam import Beam, Electron
+from gpublond.beam.distributions import matched_from_distribution_function
+from gpublond.input_parameters.rf_parameters import RFStation
+from gpublond.beam.sparse_slices import SparseSlices
+from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
 from scipy.constants import c, e, m_e
 import os
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'

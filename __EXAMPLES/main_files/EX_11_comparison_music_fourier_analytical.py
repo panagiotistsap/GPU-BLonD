@@ -18,14 +18,14 @@ FFT, time domain with MuSiC, time domain with analytical formula.
 from __future__ import division
 import matplotlib.pyplot as plt
 import numpy as np
-import blond.input_parameters.ring as genparClass
-import blond.beam.beam as beamClass
-import blond.input_parameters.rf_parameters as rfparClass
-import blond.beam.profile as slicesClass
-import blond.impedances.impedance as impClass
-import blond.impedances.impedance_sources as impSClass
-import blond.impedances.induced_voltage_analytical as indVoltAn
-import blond.impedances.music as musClass
+import gpublond.input_parameters.ring as genparClass
+import gpublond.beam.beam as beamClass
+import gpublond.input_parameters.rf_parameters as rfparClass
+import gpublond.beam.profile as slicesClass
+import gpublond.impedances.impedance as impClass
+import gpublond.impedances.impedance_sources as impSClass
+import gpublond.impedances.induced_voltage_analytical as indVoltAn
+import gpublond.impedances.music as musClass
 from scipy.constants import m_p, e, c
 import os
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'

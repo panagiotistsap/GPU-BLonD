@@ -16,17 +16,17 @@ Example script to take into account intensity effects from impedance tables
 from __future__ import division, print_function
 from builtins import str, range, bytes
 import numpy as np
-from blond.input_parameters.ring import Ring
-from blond.input_parameters.rf_parameters import RFStation
-from blond.trackers.tracker import RingAndRFTracker
-from blond.beam.beam import Beam, Proton
-from blond.beam.distributions import bigaussian
-from blond.beam.profile import CutOptions, Profile
-from blond.monitors.monitors import BunchMonitor
-from blond.plots.plot import Plot
-from blond.plots.plot_impedance import plot_impedance_vs_frequency, plot_induced_voltage_vs_bin_centers
-from blond.impedances.impedance_sources import InputTable
-from blond.impedances.impedance import InductiveImpedance, InducedVoltageFreq, TotalInducedVoltage
+from gpublond.input_parameters.ring import Ring
+from gpublond.input_parameters.rf_parameters import RFStation
+from gpublond.trackers.tracker import RingAndRFTracker
+from gpublond.beam.beam import Beam, Proton
+from gpublond.beam.distributions import bigaussian
+from gpublond.beam.profile import CutOptions, Profile
+from gpublond.monitors.monitors import BunchMonitor
+from gpublond.plots.plot import Plot
+from gpublond.plots.plot_impedance import plot_impedance_vs_frequency, plot_induced_voltage_vs_bin_centers
+from gpublond.impedances.impedance_sources import InputTable
+from gpublond.impedances.impedance import InductiveImpedance, InducedVoltageFreq, TotalInducedVoltage
 from scipy.constants import m_p, e, c
 import os
 

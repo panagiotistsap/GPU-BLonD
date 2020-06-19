@@ -409,8 +409,6 @@ ker = SourceModule("""
         }
     }
 
-    
-
 """)
 
 synch_rad_ker = SourceModule("""
@@ -501,6 +499,11 @@ d_multiply = ElementwiseKernel(
                             "a[i] *= b[i]",
                             "bm_phase_4")
 
+d_multscalar = ElementwiseKernel(
+                            "double *a, double *b, double c",
+                            "a[i] = c*b[i]",
+                            "bm_phase_4")
+
 cuda_sum = ReductionKernel(np.float64, neutral="0",
         reduce_expr="a+b", map_expr="x[i]",
         arguments="double *x")
@@ -518,9 +521,10 @@ def gpu_rf_volt_comp(dev_voltage, dev_omega_rf, dev_phi_rf, dev_bin_centers, dev
 
 def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_kick, beam):
     #print("I am using gpu kick....")
+    dev_voltage_kick = get_gpuarray((dev_voltage.size, np.float64, 0, 'vK'))
     
-    dev_voltage_kick  = np.float64(charge)*dev_voltage
-    
+    #dev_voltage_kick  = np.float64(charge)*dev_voltage
+    d_multscalar(dev_voltage_kick, dev_voltage, charge)
     if (not beam.gpu_valid):
         beam.gpu_validate()
         
@@ -534,7 +538,6 @@ def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_k
                 np.float64(acceleration_kick),
                 block = (1024,1,1), grid = (2*my_gpu.MULTIPROCESSOR_COUNT,1,1), time_kernel=True)
     beam.cpu_valid = False
-    #beam.dE = beam.dev_dE.get()
 
 
 def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,

@@ -31,7 +31,6 @@ def gpu_track(self):
     # Add phase noise directly to the cavity RF phase
     if self.phi_noise is not None:
         if self.noiseFB is not None:
-
             
             first_kernel_tracker(self.rf_station.dev_phi_rf, self.noiseFB.x, self.dev_phi_noise,
                 self.rf_station.dev_phi_rf.shape[0], turn, slice = slice(0,self.rf_station.n_rf))
