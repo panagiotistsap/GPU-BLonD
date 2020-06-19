@@ -8,20 +8,20 @@ import os
 from scipy.constants import c
 
 
-# BLonD imports
-#from blond.beams.distributions import matched_from_line_density
-from blond.beam.beam import Proton, Beam
-from blond.input_parameters.ring import Ring, RingOptions
-from blond.input_parameters.rf_parameters import RFStation
-from blond.beam.profile import Profile, CutOptions
-from blond.beam.distributions_multibunch import match_beam_from_distribution
-from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
-from blond.impedances.impedance import InducedVoltageTime, InducedVoltageFreq, TotalInducedVoltage, InductiveImpedance
-from blond.impedances.impedance_sources import Resonators
-from blond.monitors.monitors import SlicesMonitor
-from blond.utils.bmath import use_gpu,get_exec_mode
+# gpublond imports
+#from gpublond.beams.distributions import matched_from_line_density
+from gpublond.beam.beam import Proton, Beam
+from gpublond.input_parameters.ring import Ring, RingOptions
+from gpublond.input_parameters.rf_parameters import RFStation
+from gpublond.beam.profile import Profile, CutOptions
+from gpublond.beam.distributions_multibunch import match_beam_from_distribution
+from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from gpublond.impedances.impedance import InducedVoltageTime, InducedVoltageFreq, TotalInducedVoltage, InductiveImpedance
+from gpublond.impedances.impedance_sources import Resonators
+from gpublond.monitors.monitors import SlicesMonitor
+from gpublond.utils.bmath import use_gpu,get_exec_mode
 try:
-    from blond.utils.bmath import enable_gpucache
+    from gpublond.utils.bmath import enable_gpucache
 except:
     pass
 import sys
@@ -270,8 +270,8 @@ space_charge_z_over_n = impedanceRestOfMachine.importSpaceCharge(
 space_charge_z_over_n = np.interp(
     ring.cycle_time, ring.cycle_time[turns_SC], space_charge_z_over_n)
 
-imp10MHzToBLonD = impedance10MHzCavities.export2BLonD()
-impRestToBLonD = impedanceRestOfMachine.export2BLonD()
+imp10MHzTogpublond = impedance10MHzCavities.export2gpublond()
+impRestTogpublond = impedanceRestOfMachine.export2gpublond()
 
 
 # Program for the 10 MHz caivties
@@ -312,17 +312,17 @@ gap_prog_group_4 = generate_gap_prog(close_group_4)
 gap_prog_group_2 = generate_gap_prog(close_group_2)
 gap_prog_group_1 = generate_gap_prog(close_group_1)
 
-R_S_10MHz_save = np.array(imp10MHzToBLonD.wakeList[0].R_S)
+R_S_10MHz_save = np.array(imp10MHzTogpublond.wakeList[0].R_S)
 R_S_program_10MHz = (gap_prog_group_3+gap_prog_group_4 +
                      gap_prog_group_2+gap_prog_group_1)/10.
 
 
-# Building up BLonD objects
-ResonatorsList10MHz = imp10MHzToBLonD.wakeList
-ImpedanceTableList10MHz = imp10MHzToBLonD.impedanceList
+# Building up gpublond objects
+ResonatorsList10MHz = imp10MHzTogpublond.wakeList
+ImpedanceTableList10MHz = imp10MHzTogpublond.impedanceList
 
-ResonatorsListRest = impRestToBLonD.wakeList
-ImpedanceTableListRest = impRestToBLonD.impedanceList
+ResonatorsListRest = impRestTogpublond.wakeList
+ImpedanceTableListRest = impRestTogpublond.impedanceList
 
 
 frequency_step = 1/(ring.t_rev[0]*n_turns_memory)  # [Hz]
