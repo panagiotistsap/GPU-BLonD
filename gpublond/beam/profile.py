@@ -488,11 +488,12 @@ class Profile(object):
         """
         
         if (get_exec_mode()!='GPU'):
-           bm.slice(self.Beam.dt, self.n_macroparticles, self.cut_left,
+            bm.slice(self.Beam.dt, self.n_macroparticles, self.cut_left,
                 self.cut_right, self.Beam)
-           
+            
         else:
             bm.slice(self.cut_left,self.cut_right, self.Beam, self)   
+            self.n_macroparticles_obj.invalidate_cpu()
             self.n_macroparticles
            
     def reduce_histo(self):
