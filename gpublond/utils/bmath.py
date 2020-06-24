@@ -135,19 +135,26 @@ def update_active_dict(new_dict):
 ################################################################################
 update_active_dict(_CPU_func_dict)
 ################################################################################
+
+def stop_gpu():
+    global __exec_mode
+    update_active_dict(_CPU_func_dict)
+    __exec_mode = 'single_node'
+
 def use_gpu(my_gpu_num=0):
     import traceback
     print("USING GPU")
     global __exec_mode,gpu_num
     from pycuda import driver as drv
     import atexit
+
     gpu_num = my_gpu_num
     __exec_mode = 'GPU'
-    drv.init()
-    dev = drv.Device(gpu_num)
-    ctx = dev.make_context()
-    atexit.register(ctx.pop)
-
+    #drv.init()
+    #dev = drv.Device(gpu_num)
+    #ctx = dev.make_context()
+    #atexit.register(ctx.pop)
+    import pycuda.autoinit
     from ..gpu import gpu_physics_wrap
     from ..gpu import gpu_butils_wrap
    

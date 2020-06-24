@@ -31,28 +31,39 @@ class my_gpuarray(pycuda.gpuarray.GPUArray):
 
 class my_cpuarray(np.ndarray):
 
-    def __new__(cls, inputarr):
+    def __new__(cls, inputarr, dtype1=None, dtype2=None):
+        
+
         obj = np.asarray(inputarr).view(cls)
+        if (dtype1==None):
+            obj.dtype1=inputarr.dtype
+        else:
+            obj.dtype1 = dtype1
+        if (dtype2==None):
+            obj.dtype2=inputarr.dtype
+        else:
+            obj.dtype2 = dtype2
         obj.__class__ = my_cpuarray
         obj.cpu_valid = True
         obj.gpu_valid = False
         obj.sp = inputarr.shape
-        obj.dev_array = gpuarray.to_gpu(inputarr.flatten())
+        obj.dev_array = gpuarray.to_gpu(inputarr.flatten().astype(obj.dtype2))
         obj.dev_array.__class__ = my_gpuarray
         obj.dev_array.set_parent(obj)
         obj.gpu_valid = True
+
         return obj
   
     def cpu_validate(self):
         if (not self.cpu_valid):
             self.cpu_valid = True
-            dummy = self.dev_array.get().reshape(self.sp)
+            dummy = self.dev_array.get().reshape(self.sp).astype(self.dtype1)
             super().__setitem__(slice(None, None, None), dummy)
         self.cpu_valid = True
             
     def gpu_validate(self):
         if (not self.gpu_valid):
-            self.dev_array.set(gpuarray.to_gpu(self.flatten()))
+            self.dev_array.set(gpuarray.to_gpu(self.flatten().astype(self.dtype2)))
 
         self.gpu_valid = True
             
@@ -68,8 +79,8 @@ class my_cpuarray(np.ndarray):
     
 ## example
 class CGA():
-    def __init__(self, inputarr):
-        self.array_obj = my_cpuarray(inputarr)
+    def __init__(self, inputarr, dtype1=None, dtype2=None):
+        self.array_obj = my_cpuarray(inputarr, dtype1=dtype1, dtype2=dtype2)
         self._dev_array = self.array_obj.dev_array
 
     def invalidate_cpu(self):
@@ -96,7 +107,15 @@ class CGA():
     
     @dev_my_array.setter
     def dev_my_array(self, value):
-        super(my_gpuarray, self._dev_array).__setitem__(slice(None, None, None), value)
+        if (self.array_obj.dev_array.size!=0):
+            #super(my_gpuarray, self._dev_array).__setitem__(slice(None, None, None), value)
+            self.array_obj.dev_array[:] = value
+        else:
+            self.array_obj.dev_array = value
+            self.array_obj.dev_array.__class__ = my_gpuarray
+            self.array_obj.dev_array.set_parent(self.array_obj)
+            self.array_obj.gpu_valid = True
+
         self.array_obj.cpu_valid = False
         self.array_obj.gpu_valid = True
         

@@ -385,28 +385,19 @@ class Profile(object):
         self.Beam = Beam
 
         ## new bin_centers
-        self._bin_centers = None
-        self.bin_centers_obj = None
+        self.bin_centers = None
 
         # Get all computed parameters from CutOptions
         self.set_slices_parameters()
 
         # Initialize profile array as zero array
-        self._n_macroparticles = np.zeros(self.n_slices, dtype=float)
-        self._dev_n_macroparticles = None
-        self.n_macroparticles_cpu_valid = True
-        self.n_macroparticles_gpu_valid = False
+        self.n_macroparticles = np.zeros(self.n_slices, dtype=float)
         
         # Initialize beam_spectrum and beam_spectrum_freq as empty arrays
-        self._beam_spectrum = np.array([], dtype=float)
-        self._dev_beam_spectrum = None
-        self.beam_spectrum_cpu_valid = True
-        self.beam_spectrum_gpu_valid = False
+        self.beam_spectrum = np.array([], dtype=float)
+        
 
-        self._beam_spectrum_freq = np.array([], dtype=float)
-        self._dev_beam_spectrum_freq = None
-        self.beam_spectrum_freq_cpu_valid = True
-        self.beam_spectrum_freq_gpu_valid = False
+        self.beam_spectrum_freq = np.array([], dtype=float)
 
         self.total_transfers = 0
         
@@ -442,160 +433,47 @@ class Profile(object):
         drv.init()
         dev = drv.Device(gpu_num)
         
+        # bin_centers to gpu
+        from ..gpu.gpu_properties.properties_generator import bin_centers,dev_bin_centers
+        self.bin_centers_obj = CGA(self.bin_centers)
+        setattr(Profile, "bin_centers", bin_centers)
+        setattr(Profile, "dev_bin_centers", dev_bin_centers)
+
+        # n_macroparticles to gpu
+        from ..gpu.gpu_properties.properties_generator import n_macroparticles,dev_n_macroparticles
+        self.n_macroparticles_obj = CGA(self.n_macroparticles, dtype2=np.int32)
+        setattr(Profile, "n_macroparticles", n_macroparticles)
+        setattr(Profile, "dev_n_macroparticles", dev_n_macroparticles)
+
+        # beam_spectrum to gpu
+        from ..gpu.gpu_properties.properties_generator import beam_spectrum,dev_beam_spectrum
+        self.beam_spectrum_obj = CGA(self.beam_spectrum, dtype2=np.int32)
+        setattr(Profile, "beam_spectrum", beam_spectrum)
+        setattr(Profile, "dev_beam_spectrum", dev_beam_spectrum)
+
+        # beam_spectrum_freq to gpu
+        from ..gpu.gpu_properties.properties_generator import beam_spectrum_freq,dev_beam_spectrum_freq
+        self.beam_spectrum_freq_obj = CGA(self.beam_spectrum_freq, dtype2=np.int32)
+        setattr(Profile, "beam_spectrum_freq", beam_spectrum_freq)
+        setattr(Profile, "dev_beam_spectrum_freq", dev_beam_spectrum_freq)
+
         self.dev_n_macroparticles
         funcs_update(self)
 
-        self.bin_centers_obj = CGA(self._bin_centers)
-
-    def gpu_validate(self,argument):
-        if (argument=="n_macroparticles"):
-            if (not self.n_macroparticles_gpu_valid):
-                self._dev_n_macroparticles = gpuarray.to_gpu(self.n_macroparticles.astype(np.int32))
-                self.n_macroparticles_gpu_valid = True
-        elif (argument=="beam_spectrum"):
-            if (not self.beam_spectrum_gpu_valid):
-                self._dev_beam_spectrum = gpuarray.to_gpu(self._beam_spectrum)
-                self.beam_spectrum_gpu_valid = True
-        elif (argument=="beam_spectrum_freq"):
-            if (not self.beam_spectrum_freq_gpu_valid):
-                self._dev_beam_spectrum_freq = gpuarray.to_gpu(self._beam_spectrum_freq)
-                self.beam_spectrum_freq_gpu_valid = True
-        elif (argument=="bin_centers"):
-            if (not self.bin_centers_gpu_valid):
-                self._dev_bin_centers = gpuarray.to_gpu(self._bin_centers)
-                self.bin_centers_gpu_valid = True
-
-
-    def cpu_validate(self,argument):
-        if (argument=="n_macroparticles"):
-            if (not self.n_macroparticles_cpu_valid):
-                self._n_macroparticles = self.dev_n_macroparticles.get().astype(np.float64)
-                self.n_macroparticles_cpu_valid = True
-        elif (argument=="beam_spectrum"):
-            if (not self.beam_spectrum_cpu_valid):
-                self._beam_spectrum = self.dev_beam_spectrum.get()
-                self.beam_spectrum_cpu_valid = True
-        elif (argument=="bin_centers"):
-            if (not self.bin_centers_cpu_valid):
-                print("validating")
-                self._bin_centers = self.dev_bin_centers.get()
-                self.bin_centers_cpu_valid = True
-    
-    ######################
-    ### CPU PROPERTIES ###
-    ######################
-
-    @property
-    def n_macroparticles(self):
-        self.cpu_validate("n_macroparticles")
-        return self._n_macroparticles
-    
-
-    @n_macroparticles.setter
-    def n_macroparticles(self,value):
-        self._n_macroparticles = value
-        self.n_macroparticles_cpu_valid = True
-        self.n_macroparticles_gpu_valid = False
-    
-    @property
-    def bin_centers(self):
-        if (not bm.get_exec_mode()=="GPU"):
-            return self._bin_centers
-        else:
-            return self.bin_centers_obj.my_array
-    
-
-    @bin_centers.setter
-    def bin_centers(self,value):
-        if (not bm.get_exec_mode()=="GPU"):
-            self._bin_centers = value
-        else:
-            self.bin_centers_obj.my_array = value
-            
-
-    @property
-    def beam_spectrum(self):
-        self.cpu_validate("beam_spectrum")
-        return self._beam_spectrum
-    
-
-    @beam_spectrum.setter
-    def beam_spectrum(self,value):
-        self._beam_spectrum = value
-        self.beam_spectrum_cpu_valid = True
-        self.beam_spectrum_gpu_valid = False
-
-
-    @property
-    def beam_spectrum_freq(self):
-        self.cpu_validate("beam_spectrum_freq")
-        return self._beam_spectrum_freq
-    
-
-    @beam_spectrum_freq.setter
-    def beam_spectrum_freq(self,value):
-        self._beam_spectrum_freq = value
-        self.beam_spectrum_freq_cpu_valid = True
-        self.beam_spectrum_freq_gpu_valid = False
-
-    ######################
-    ### GPU PROPERTIES ###
-    ######################
-
-
-    @property
-    def dev_bin_centers(self):
-        return self.bin_centers_obj.dev_my_array
-    
-    @dev_bin_centers.setter
-    def dev_bin_centers(self,value):
-        self.bin_centers_obj.dev_my_array = value
-
-
-    @property
-    def dev_n_macroparticles(self):
-        self.gpu_validate("n_macroparticles")
-        return self._dev_n_macroparticles
-    
-
-    @dev_n_macroparticles.setter
-    def dev_n_macroparticles(self,value):
-        self._dev_n_macroparticles = value
-        self.n_macroparticles_cpu_valid = False
-        self.n_macroparticles_gpu_valid = True
-    
-
-    @property
-    def dev_beam_spectrum(self):
-        self.gpu_validate("beam_spectrum")
-        return self._dev_beam_spectrum
-    
-
-    @dev_beam_spectrum.setter
-    def dev_beam_spectrum(self,value):
-        self._dev_beam_spectrum = value
-        self.beam_spectrum_cpu_valid = False
-        self.beam_spectrum_gpu_valid = True
-
-
-    @property
-    def dev_beam_spectrum_freq(self):
-        self.gpu_validate("beam_spectrum_freq")
-        return self._dev_beam_spectrum_freq
-    
-    
-    @dev_beam_spectrum_freq.setter
-    def dev_beam_spectrum_freq(self,value):
-        self._dev_beam_spectrum_freq = value
-        self.beam_spectrum_freq_cpu_valid = False
-        self.beam_spectrum_freq_gpu_valid = True
-
+    def stop_gpu(self):
+        delattr(Profile, "bin_centers") 
+        delattr(Profile, "n_macroparticles") 
+        delattr(Profile, "beam_spectrum") 
+        delattr(Profile, "beam_spectrum_freq") 
+        delattr(Profile, "dev_bin_centers") 
+        delattr(Profile, "dev_n_macroparticles") 
+        delattr(Profile, "dev_beam_spectrum") 
+        delattr(Profile, "dev_beam_spectrum_freq") 
 
     def set_slices_parameters(self):
         self.n_slices, self.cut_left, self.cut_right, self.n_sigma, \
             self.edges, self.bin_centers, self.bin_size = \
             self.cut_options.get_slices_parameters()
-
 
     def track(self):
         """
@@ -603,7 +481,6 @@ class Profile(object):
         """
         for op in self.operations:
             op()
-
     
     def _slice(self, reduce=True):
         """
@@ -734,7 +611,7 @@ class Profile(object):
 
         self.beam_spectrum_freq = bm.rfftfreq(n_sampling_fft, self.bin_size)
         
-    
+
     def beam_spectrum_generation(self, n_sampling_fft):
         """
         Beam spectrum calculation
