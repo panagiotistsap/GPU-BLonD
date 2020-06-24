@@ -329,11 +329,8 @@ class _InducedVoltage(object):
         iv_update_funcs(self,is_ii=is_ii)
                 
         if (hasattr(self, "time_mtw")):
-            if (self.time_mtw!=None):
-                self.dev_time_mtw = gpuarray.to_gpu(self.time_mtw)
-            else:
-                self.dev_time_mtw = None
-
+            self.dev_time_mtw = gpuarray.to_gpu(self.time_mtw)
+            
     def process(self):
         """
         Reprocess the impedance contributions. To be run when profile changes
