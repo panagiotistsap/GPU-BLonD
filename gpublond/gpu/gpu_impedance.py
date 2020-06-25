@@ -89,30 +89,6 @@ def iv_update_funcs(obj, is_ii=False):
                 
 
 
-@property
-def dev_mtw_memory(self):
-        self.gpu_validate("mtw_memory")
-        return self._dev_mtw_memory
-
-
-@dev_mtw_memory.setter
-def dev_mtw_memory(self, value):
-        self._dev_mtw_memory = value
-        self.mtw_memory_cpu_valid = False
-
-
-@property
-def dev_total_impedance(self):
-        self.gpu_validate("total_impedance")
-        return self._dev_total_impedance
-
-
-@dev_total_impedance.setter
-def dev_total_impedance(self, value):
-        self._dev_total_impedance = value
-        self.total_impedance_cpu_valid = False
-
-
 def gpu_induced_voltage_1turn(self, beam_spectrum_dict={}):
         """
         Method to calculate the induced voltage at the current turn. DFTs are

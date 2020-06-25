@@ -394,7 +394,7 @@ class Profile(object):
         self.n_macroparticles = np.zeros(self.n_slices, dtype=float)
         
         # Initialize beam_spectrum and beam_spectrum_freq as empty arrays
-        self.beam_spectrum = np.array([], dtype=float)
+        self.beam_spectrum = np.array([], dtype=np.complex128)
         
 
         self.beam_spectrum_freq = np.array([], dtype=float)
@@ -433,6 +433,8 @@ class Profile(object):
         drv.init()
         dev = drv.Device(gpu_num)
         
+        funcs_update(self)
+
         # bin_centers to gpu
         from ..gpu.gpu_properties.properties_generator import bin_centers,dev_bin_centers
         self.bin_centers_obj = CGA(self.bin_centers)
@@ -447,19 +449,18 @@ class Profile(object):
 
         # beam_spectrum to gpu
         from ..gpu.gpu_properties.properties_generator import beam_spectrum,dev_beam_spectrum
-        self.beam_spectrum_obj = CGA(self.beam_spectrum, dtype2=np.int32)
+        self.beam_spectrum_obj = CGA(self.beam_spectrum)
         setattr(Profile, "beam_spectrum", beam_spectrum)
         setattr(Profile, "dev_beam_spectrum", dev_beam_spectrum)
 
         # beam_spectrum_freq to gpu
         from ..gpu.gpu_properties.properties_generator import beam_spectrum_freq,dev_beam_spectrum_freq
-        self.beam_spectrum_freq_obj = CGA(self.beam_spectrum_freq, dtype2=np.int32)
+        self.beam_spectrum_freq_obj = CGA(self.beam_spectrum_freq)
         setattr(Profile, "beam_spectrum_freq", beam_spectrum_freq)
         setattr(Profile, "dev_beam_spectrum_freq", dev_beam_spectrum_freq)
 
         self.dev_n_macroparticles
-        funcs_update(self)
-
+        
     def stop_gpu(self):
         delattr(Profile, "bin_centers") 
         delattr(Profile, "n_macroparticles") 
@@ -479,6 +480,7 @@ class Profile(object):
         """
         Track method in order to update the slicing along with the tracker.
         """
+        
         for op in self.operations:
             op()
     
@@ -486,16 +488,10 @@ class Profile(object):
         """
         Constant space slicing with a constant frame.
         """
-        
-        if (get_exec_mode()!='GPU'):
-            bm.slice(self.Beam.dt, self.n_macroparticles, self.cut_left,
+        bm.slice(self.Beam.dt, self.n_macroparticles, self.cut_left,
                 self.cut_right, self.Beam)
-            
-        else:
-            bm.slice(self.cut_left,self.cut_right, self.Beam, self)   
-            self.n_macroparticles_obj.invalidate_cpu()
-            self.n_macroparticles
-           
+         
+         
     def reduce_histo(self):
         from ..utils.mpi_config import worker
 
@@ -506,8 +502,6 @@ class Profile(object):
 
         self.n_macroparticles = self.n_macroparticles.astype(
                     np.float64, order='C')
-
-
 
     def reduce_histo(self, dtype=np.uint32):
         if not bm.mpiMode():
@@ -612,7 +606,6 @@ class Profile(object):
 
         self.beam_spectrum_freq = bm.rfftfreq(n_sampling_fft, self.bin_size)
         
-
     def beam_spectrum_generation(self, n_sampling_fft):
         """
         Beam spectrum calculation

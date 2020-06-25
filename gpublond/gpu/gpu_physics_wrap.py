@@ -520,13 +520,11 @@ def gpu_rf_volt_comp(dev_voltage, dev_omega_rf, dev_phi_rf, dev_bin_centers, dev
 
 
 def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_kick, beam):
-    #print("I am using gpu kick....")
     dev_voltage_kick = get_gpuarray((dev_voltage.size, np.float64, 0, 'vK'))
     
     #dev_voltage_kick  = np.float64(charge)*dev_voltage
     d_multscalar(dev_voltage_kick, dev_voltage, charge)
-    if (not beam.gpu_valid):
-        beam.gpu_validate()
+    
         
     kick_kernel(beam.dev_dt,
                 beam.dev_dE,
@@ -537,7 +535,7 @@ def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_k
                 np.int32(beam.dev_dt.size),
                 np.float64(acceleration_kick),
                 block = (1024,1,1), grid = (2*my_gpu.MULTIPROCESSOR_COUNT,1,1), time_kernel=True)
-    beam.cpu_valid = False
+    beam.dt_obj.invalidate_cpu()
 
 
 def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
@@ -589,8 +587,8 @@ def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
             np.float64(alpha_2),np.float64(energy),
             np.int32(n_macroparticles),
             block = (1024, 1, 1) , grid = (2*my_gpu.MULTIPROCESSOR_COUNT,1,1), time_kernel=True)
-
-    beam.cpu_valid = False
+    beam.dE_obj.invalidate_cpu()
+    
 
 
 def gpu_linear_interp_kick(dev_voltage,
@@ -598,13 +596,10 @@ def gpu_linear_interp_kick(dev_voltage,
                        acceleration_kick, beam=None):
     macros = beam.dev_dt.size
     slices = dev_bin_centers.size
-    #bc = dev_bin_centers.get()
-    #inv_bin_width = (slices - 1)/(bc[-1]-bc[0])
-    ## host to device
+
     dev_voltageKick = get_gpuarray((slices-1, np.float64, 0, 'vK'))
     dev_factor = get_gpuarray((slices-1, np.float64, 0 , 'dF'))
-    # dev_voltageKick = charge*cuda_diff(dev_voltage)*inv_bin_width
-    # dev_factor = (charge*dev_voltage - dev_bin_centers*dev_voltageKick) + acceleration_kick
+
     gm_linear_interp_kick_help( beam.dev_dt,
                                 beam.dev_dE,
                                 dev_voltage,
@@ -629,14 +624,11 @@ def gpu_linear_interp_kick(dev_voltage,
                                 dev_factor,
                                 grid = (2*my_gpu.MULTIPROCESSOR_COUNT,1,1), block = (1024,1,1),
                                 time_kernel=True)
-    beam.cpu_valid = False
-
+    beam.dE_obj.invalidate_cpu()
 
 def gpu_slice(cut_left, cut_right, beam, profile):
-    if (not beam.gpu_valid):
-        beam.gpu_validate()
+    
     n_slices = profile.dev_n_macroparticles.size
-    #profile.dev_n_macroparticles
     profile.dev_n_macroparticles.fill(0)
     ## find optimal block and grid parameters
     # max_num_of_blocks_per_sm = my_gpu.MAX_SHARED_MEMORY_PER_MULTIPROCESSOR // min(4*n_slices, my_gpu.MAX_SHARED_MEMORY_PER_BLOCK)
@@ -663,7 +655,7 @@ def gpu_slice(cut_left, cut_right, beam, profile):
         np.float64(cut_right), np.uint32(n_slices),
         np.uint32(beam.dev_dt.size), np.int32(my_gpu.MAX_SHARED_MEMORY_PER_BLOCK/4),
         grid = (2*my_gpu.MULTIPROCESSOR_COUNT,1,1), block = (1024,1,1), shared = my_gpu.MAX_SHARED_MEMORY_PER_BLOCK, time_kernel=True)
-    profile.n_macroparticles_cpu_valid = False
+    profile.n_macroparticles_obj.invalidate_cpu()
     return profile.dev_n_macroparticles
 
 

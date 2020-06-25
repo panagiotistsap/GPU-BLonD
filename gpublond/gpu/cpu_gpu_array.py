@@ -32,7 +32,8 @@ class my_gpuarray(pycuda.gpuarray.GPUArray):
 class my_cpuarray(np.ndarray):
 
     def __new__(cls, inputarr, dtype1=None, dtype2=None):
-        
+        if (inputarr is None):
+            inputarr = np.array([],dtype=np.float64)
 
         obj = np.asarray(inputarr).view(cls)
         if (dtype1==None):
@@ -47,6 +48,7 @@ class my_cpuarray(np.ndarray):
         obj.cpu_valid = True
         obj.gpu_valid = False
         obj.sp = inputarr.shape
+
         obj.dev_array = gpuarray.to_gpu(inputarr.flatten().astype(obj.dtype2))
         obj.dev_array.__class__ = my_gpuarray
         obj.dev_array.set_parent(obj)
@@ -96,7 +98,11 @@ class CGA():
     
     @my_array.setter
     def my_array(self, value):
-        super(my_cpuarray, self.array_obj).__setitem__(slice(None, None, None), value)
+        if (self.array_obj.size!=0):
+           super(my_cpuarray, self.array_obj).__setitem__(slice(None, None, None), value)
+        else:
+            self.array_obj = my_cpuarray(value)
+        
         self.array_obj.gpu_valid = False
         self.array_obj.cpu_valid = True
 
@@ -107,7 +113,7 @@ class CGA():
     
     @dev_my_array.setter
     def dev_my_array(self, value):
-        if (self.array_obj.dev_array.size!=0):
+        if (self.array_obj.dev_array.size!=0 and value.dtype==self.array_obj.dtype2):
             #super(my_gpuarray, self._dev_array).__setitem__(slice(None, None, None), value)
             self.array_obj.dev_array[:] = value
         else:

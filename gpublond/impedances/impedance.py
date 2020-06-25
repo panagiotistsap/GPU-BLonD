@@ -55,31 +55,6 @@ class TotalInducedVoltage(object):
     Time array corresponding to induced_voltage [s]
     """
 
-    @property
-    def induced_voltage(self):
-        if (not bm.get_exec_mode()=="GPU"):
-            return self._induced_voltage
-        else:
-            return self.induced_voltage_obj.my_array
-    
-
-    @induced_voltage.setter
-    def induced_voltage(self,value):
-        if (not bm.get_exec_mode()=="GPU"):
-            self._induced_voltage = value
-        else:
-            self.induced_voltage_obj.my_array = value
-    
-    @property
-    def dev_induced_voltage(self):
-        return self.induced_voltage_obj.dev_array
-    
-    @dev_induced_voltage.setter
-    def dev_induced_voltage(self,value):
-        self.induced_voltage_obj.dev_array = value
-
-
-
 
     def __init__(self, Beam, Profile, induced_voltage_list):
         """
@@ -95,7 +70,7 @@ class TotalInducedVoltage(object):
         self.induced_voltage_list = induced_voltage_list
 
         # Induced voltage from the sum of the wake sources in V
-        self._induced_voltage = np.zeros(int(self.profile.n_slices))
+        self.induced_voltage = np.zeros(int(self.profile.n_slices))
         # Time array of the wake in s
         
         self.time_array = self.profile.bin_centers
@@ -110,14 +85,21 @@ class TotalInducedVoltage(object):
         drv.init()
         dev = drv.Device(gpu_num)
 
-        self.induced_voltage_obj = CGA(self._induced_voltage)
+
+        # induced_voltage to gpu
+        from ..gpu.gpu_properties.properties_generator import induced_voltage,dev_induced_voltage
+        self.induced_voltage_obj = CGA(self.induced_voltage)
+        setattr(TotalInducedVoltage, "induced_voltage", induced_voltage)
+        setattr(TotalInducedVoltage, "dev_induced_voltage", dev_induced_voltage)
 
         tiv_update_funcs(self)
         for obj in self.induced_voltage_list:
+            obj.mtw_memory_obj = CGA(obj.mtw_memory)
+            obj.total_impedance_obj = CGA(obj.total_impedance)
+            
+        for obj in self.induced_voltage_list:
             obj.use_gpu()
             #print(obj)
-        
-
 
 
     def reprocess(self):
@@ -268,69 +250,40 @@ class _InducedVoltage(object):
         # is used, each turn the induced voltage of previous turns is shifted
         # in the frequency domain. For 'time', a linear interpolation is used.
         self.mtw_mode = mtw_mode
-        self._dev_total_impedance = None
-        self.total_impedance_cpu_valid = True
-        self.total_impedance_gpu_valid = False
-        self._total_impedance = None
+        
+        self.total_impedance = None
 
-        self._dev_mtw_memory = None
-        self.mtw_memory_cpu_valid = True
-        self.mtw_memory_gpu_valid = False
-        self._mtw_memory = None
+        self.mtw_memory = None
 
         self.process()
         self.total_transfers = 0
    
-    @property
-    def mtw_memory(self):
-            self.cpu_validate("mtw_memory")
-            return self._mtw_memory
-    
-    @mtw_memory.setter
-    def mtw_memory(self, value):
-            self._mtw_memory = value
-            self.mtw_memory_gpu_valid = False
-        
-    @property
-    def total_impedance(self):
-            self.cpu_validate("total_impedance")
-            return self._total_impedance
-    
-    @total_impedance.setter
-    def total_impedance(self, value):
-            self._total_impedance = value
-            self.total_impedance_gpu_valid = False
-
-
-    @property
-    def dev_mtw_memory(self):
-            self.gpu_validate("mtw_memory")
-            return self._dev_mtw_memory
-    
-    @dev_mtw_memory.setter
-    def dev_mtw_memory(self, value):
-            self._dev_mtw_memory = value
-            self.mtw_memory_cpu_valid = False
-        
-    @property
-    def dev_total_impedance(self):
-            self.gpu_validate("total_impedance")
-            return self._dev_total_impedance
-    
-    @dev_total_impedance.setter
-    def dev_total_impedance(self, value):
-            self._dev_total_impedance = value
-            self.total_impedance_cpu_valid = False
 
 
     def use_gpu(self, is_ii=False):
         global gpuarray
         from pycuda import gpuarray
         iv_update_funcs(self,is_ii=is_ii)
-                
+        
+        # mtw_memory to gpu
+        from ..gpu.gpu_properties.properties_generator import mtw_memory,dev_mtw_memory
+        
+        
+        #self.mtw_memory_obj = CGA(self.mtw_memory)
+        setattr(_InducedVoltage, "mtw_memory", mtw_memory)
+        setattr(_InducedVoltage, "dev_mtw_memory", dev_mtw_memory)
+
+        # total_impedance to gpu
+        from ..gpu.gpu_properties.properties_generator import total_impedance,dev_total_impedance
+        #self.total_impedance_obj = CGA(self.total_impedance)
+        setattr(_InducedVoltage, "total_impedance", total_impedance)
+        setattr(_InducedVoltage, "dev_total_impedance", dev_total_impedance)
+
+
         if (hasattr(self, "time_mtw")):
             self.dev_time_mtw = gpuarray.to_gpu(self.time_mtw)
-            
+
+
     def process(self):
         """
         Reprocess the impedance contributions. To be run when profile changes
@@ -406,45 +359,6 @@ class _InducedVoltage(object):
             self.induced_voltage_generation = self.induced_voltage_mtw
         else:
             self.induced_voltage_generation = self.induced_voltage_1turn
-       
-
-
-    def gpu_validate(self,argument):
-        if (argument=="total_impedance"):
-            if (not self.total_impedance_gpu_valid):
-                self._dev_total_impedance = gpuarray.to_gpu(self.total_impedance)
-                self.total_impedance_gpu_valid = True
-        elif (argument=="beam_spectrum"):
-            if (not self.beam_spectrum_gpu_valid):
-                self._dev_beam_spectrum = gpuarray.to_gpu(self._beam_spectrum)
-                self.beam_spectrum_gpu_valid = True
-        elif (argument=="beam_spectrum_freq"):
-            if (not self.beam_spectrum_freq_gpu_valid):
-                self._dev_beam_spectrum_freq = gpuarray.to_gpu(self._beam_spectrum_freq)
-                self.beam_spectrum_freq_gpu_valid = True
-        elif (argument=="mtw_memory"):
-            if (not self.mtw_memory_gpu_valid):
-                self._dev_mtw_memory = gpuarray.to_gpu(self.mtw_memory)
-                self.mtw_memory_gpu_valid = True
-              
-
-    def cpu_validate(self,argument):
-        if (argument=="total_impedance"):
-            if (not self.total_impedance_cpu_valid):
-                self._total_impedance = self.dev_total_impedance.get()
-                self.total_impedance_cpu_valid = True
-        elif (argument=="beam_spectrum"):
-            if (not self.beam_spectrum_cpu_valid):
-                self._beam_spectrum = self.dev_beam_spectrum.get()
-                self.beam_spectrum_cpu_valid = True
-        elif (argument=="beam_spectrum_freq"):
-            if (not self.beam_spectrum_freq_cpu_valid):
-                self._beam_spectrum_freq = self.dev_beam_spectrum_freq.get()
-                self.beam_spectrum_freq_cpu_valid = True 
-        elif (argument=="mtw_memory"):
-            if (not self.mtw_memory_cpu_valid):
-                self._mtw_memory = self.dev_mtw_memory.get()
-                self.mtw_memory_cpu_valid = True
 
 
     def induced_voltage_1turn(self, beam_spectrum_dict={}):

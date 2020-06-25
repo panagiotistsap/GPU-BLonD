@@ -23,6 +23,7 @@ from ..trackers.utilities import is_in_separatrix
 from ..utils import exceptions as blExcept
 from ..utils import bmath as bm
 from time import sleep
+from ..gpu.cpu_gpu_array import CGA
 
 class Particle(object):
 
@@ -138,8 +139,8 @@ class Beam(object):
         self.gamma = Ring.gamma[0][0]
         self.energy = Ring.energy[0][0]
         self.momentum = Ring.momentum[0][0]
-        self._dt = np.zeros([int(n_macroparticles)])
-        self._dE = np.zeros([int(n_macroparticles)])
+        self.dt = np.zeros([int(n_macroparticles)])
+        self.dE = np.zeros([int(n_macroparticles)])
         self.mean_dt = 0.
         self.mean_dE = 0.
         self.sigma_dt = 0.
@@ -151,13 +152,6 @@ class Beam(object):
         # For MPI
         self.n_total_macroparticles_lost = 0
 
-        self.dev_beam_dt = None
-        self.dev_beam_dE = None
-        self.dev_id     = None
-
-
-        self.gpu_valid = False
-        self.cpu_valid = True
 
         self.total_transfers = 0
 
@@ -174,75 +168,26 @@ class Beam(object):
 
         gb.funcs_update(self)
 
+        # dE to gpu
+        from ..gpu.gpu_properties.properties_generator import dE,dev_dE
+        self.dE_obj = CGA(self.dE)
+        setattr(Beam, "dE", dE)
+        setattr(Beam, "dev_dE", dev_dE)
 
-    def cpu_validate(self):
-        if (not self.cpu_valid):
-            self._dt = self.dev_beam_dt.get()
-            self._dE = self.dev_beam_dE.get()
-            #self.id = self.dev_id.get()*self.id
-            self.cpu_valid = True
-            self.total_transfers += 1
+        # dt to gpu
+        from ..gpu.gpu_properties.properties_generator import dt,dev_dt
+        self.dt_obj = CGA(self.dt)
+        setattr(Beam, "dt", dt)
+        setattr(Beam, "dev_dt", dev_dt)
 
-
-    def gpu_validate(self):
-        if (not self.gpu_valid):
-            self.dev_beam_dE = gpuarray.to_gpu(self._dE)
-            self.dev_beam_dt = gpuarray.to_gpu(self._dt)
-            self.dev_id    = gpuarray.to_gpu((self.id !=0).astype(np.float64))
-            self.gpu_valid = True
-
-
-    @property
-    def dt(self):
-        self.cpu_validate()
-        return self._dt
+         # id to gpu
+        from ..gpu.gpu_properties.properties_generator import id,dev_id
+        self.id_obj = CGA(self.id, dtype2=np.float64)
+        setattr(Beam, "id", id)
+        setattr(Beam, "dev_id", dev_id)
 
 
-    @dt.setter
-    def dt(self, value):
-        self.cpu_valid = True
-        self.gpu_valid = False
-        self._dt = value
-
-
-    @property
-    def dE(self):
-        self.cpu_validate()
-        return self._dE
-
-
-    @dE.setter
-    def dE(self, value):
-        self.cpu_valid = True
-        self.gpu_valid = False
-        self._dE = value
-
-
-    @property
-    def dev_dE(self):
-        self.gpu_validate()
-        return self.dev_beam_dE
-
-
-    @dev_dE.setter
-    def dev_dE(self, value):
-        self.gpu_validate()
-        self.cpu_valid = False
-        self.dev_beam_dE = value
-
-
-    @property
-    def dev_dt(self):
-        self.gpu_validate()
-        return self.dev_beam_dt
-
-
-    @dev_dt.setter
-    def dev_dt(self, value):
-        self.gpu_validate()
-        self.cpu_valid = False
-        self.dev_beam_dt = value
-
+   
     @property
     def n_macroparticles_lost(self):
         '''Number of lost macro-particles, defined as @property.
@@ -327,6 +272,7 @@ class Beam(object):
         if itemindex.size != 0:
             self.id[itemindex] = 0
             self.gpu_valid = False
+
 
     def losses_longitudinal_cut(self, dt_min, dt_max):
         '''Beam losses based on longitudinal cuts.

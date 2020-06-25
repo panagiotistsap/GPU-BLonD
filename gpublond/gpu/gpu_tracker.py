@@ -2,7 +2,7 @@ from __future__ import division, print_function
 from builtins import range, object
 import numpy as np
 from ..utils import bmath as bm
-
+from types import MethodType
 from ..utils.cucache import get_gpuarray
 from ..gpu.gpu_butils_wrap import gpu_copy_d2d,first_kernel_tracker,second_kernel_tracker,\
         copy_column, rf_voltage_calculation_kernel, cavityFB_case, add_kernel, gpu_rf_voltage_calc_mem_ops
@@ -121,7 +121,7 @@ def gpu_track(self):
                         beam=self.beam)
             else:
                 self.kick(turn)
-        self.drift(None, None, turn + 1)
+        self.drift(turn + 1)
         
     # Updating the beam synchronous momentum etc.
     self.beam.beta = self.rf_params.beta[turn+1]
@@ -131,6 +131,7 @@ def gpu_track(self):
 
     # Increment by one the turn counter
     self.counter[0] += 1
+
 
 def gpu_rf_voltage_calculation(self):
     """Function calculating the total, discretised RF voltage seen by the
@@ -196,10 +197,20 @@ def gpu_kick(self, index):
 
     bm.kick(dev_voltage, dev_omega_rf, dev_phi_rf,
         self.charge, self.n_rf, self.acceleration_kick[index], self.beam)
+    self.beam.dE.invalidate_cpu()
+    
 
+def gpu_drift(self, index):
+        bm.drift(self.solver, self.t_rev[index],
+                self.length_ratio, self.alpha_order, self.eta_0[index],
+                self.eta_1[index], self.eta_2[index], self.alpha_0[index],
+                self.alpha_1[index], self.alpha_2[index],
+                self.rf_params.beta[index], self.rf_params.energy[index], self.beam)
+        self.beam.dt_obj.invalidate_cpu()
 
 def tracker_funcs_update(obj):
     if (bm.get_exec_mode()=='GPU'):
-        obj.track = gpu_track
-        obj.rf_voltage_calculation = gpu_rf_voltage_calculation
-        obj.kick = gpu_kick
+        obj.track = MethodType(gpu_track, obj)
+        obj.rf_voltage_calculation = MethodType(gpu_rf_voltage_calculation,obj)
+        obj.kick = MethodType(gpu_kick,obj)
+        obj.drift = MethodType(gpu_drift,obj)

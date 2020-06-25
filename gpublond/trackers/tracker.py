@@ -258,7 +258,6 @@ class RingAndRFTracker(object):
         self.phi_noise = RFStation.phi_noise
         
         self.phi_modulation = RFStation.phi_modulation
-        self.dev_phi_modulation = RFStation.dev_phi_modulation
 
         self.phi_rf = RFStation.phi_rf
         self.phi_s = RFStation.phi_s
@@ -343,7 +342,7 @@ class RingAndRFTracker(object):
         
         if (self.profile):
             self.profile.use_gpu()
-        tracker_funcs_update(RingAndRFTracker)
+        tracker_funcs_update(self)
         if (self.totalInducedVoltage != None):
             self.totalInducedVoltage.use_gpu()
         if (self.profile!=None):
@@ -354,6 +353,7 @@ class RingAndRFTracker(object):
             self.beamFB.use_gpu()
         if (self.rf_station!=None):
             self.rf_station.use_gpu()
+        self.dev_phi_modulation  = self.rf_station.dev_phi_modulation
 
    
     def kick(self, beam_dt, beam_dE, index):

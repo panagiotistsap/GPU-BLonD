@@ -15,12 +15,33 @@ from ..utils.bmath import gpu_num
 drv.init()
 dev = drv.Device(gpu_num)
 
-def funcs_update(prof):
-    if (bm.get_exec_mode()=='GPU'):
-        prof.beam_profile_derivative = MethodType(gpu_beam_profile_derivative,prof)
 
- 
-                
+def gpu_slice(self, reduce=True):
+        """
+        Constant space slicing with a constant frame.
+        """
+        
+        bm.slice(self.cut_left,self.cut_right, self.Beam, self)   
+        self.n_macroparticles_obj.invalidate_cpu()
+
+def funcs_update(prof):
+    prof.beam_profile_derivative = MethodType(gpu_beam_profile_derivative, prof)
+    old_slice = prof._slice
+    prof._slice = MethodType(gpu_slice, prof)
+    prof.beam_spectrum_generation = MethodType(gpu_beam_spectrum_generation, prof)
+
+    for i in range(len(prof.operations)):
+        if (prof.operations[i] == old_slice):
+            prof.operations[i] = prof._slice
+
+
+
+def gpu_beam_spectrum_generation(self, n_sampling_fft):
+        """
+        Beam spectrum calculation
+        """
+        self.dev_beam_spectrum = bm.rfft(self.dev_n_macroparticles, n_sampling_fft)
+
 def gpu_beam_profile_derivative(self, mode='gradient', caller_id=None):
         """
         The input is one of the three available methods for differentiating

@@ -109,9 +109,9 @@ def gpu_track(self):
         # self.rf_station.phi_rf[:, counter] += self.rf_station.dphi_rf  
 
 
-        self.rf_station.cpu_valid_omega_rf = False
-        self.rf_station.cpu_valid_dphi_rf = False
-        self.rf_station.cpu_valid_phi_rf = False
+        self.rf_station.omega_rf_obj.invalidate_cpu()
+        self.rf_station.dphi_rf_obj.invalidate_cpu()
+        self.rf_station.phi_rf_obj.invalidate_cpu()
 
 def gpu_beam_phase_sharpWindow(self):
         '''

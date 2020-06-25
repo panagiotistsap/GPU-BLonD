@@ -20,7 +20,7 @@ from scipy.constants import c
 from scipy.integrate import cumtrapz
 from ..beam.beam import Proton
 from ..input_parameters.rf_parameters_options import RFStationOptions
-
+from ..gpu.cpu_gpu_array import CGA
 
 class RFStation(object):
     r""" Class containing all the RF parameters for all the RF systems in one
@@ -259,20 +259,20 @@ class RFStation(object):
 
         # Reshape input rf programs
         # Reshape design harmonic
-        self._harmonic = RFStationOptions.reshape_data(harmonic,
+        self.harmonic = RFStationOptions.reshape_data(harmonic,
                                                       self.n_turns,
                                                       self.n_rf,
                                                       Ring.cycle_time,
                                                       Ring.RingOptions.t_start)
         # Reshape design voltage
-        self._voltage = RFStationOptions.reshape_data(voltage,
+        self.voltage = RFStationOptions.reshape_data(voltage,
                                                      self.n_turns,
                                                      self.n_rf,
                                                      Ring.cycle_time,
                                                      Ring.RingOptions.t_start)
-        self._voltage = self._voltage.astype(np.float64)
+        self.voltage = self.voltage.astype(np.float64)
         # Checking if the RFStation is empty
-        if np.sum(self._voltage) == 0:
+        if np.sum(self.voltage) == 0:
             self.empty = True
         else:
             self.empty = False
@@ -286,10 +286,10 @@ class RFStation(object):
 
         # Calculating design rf angular frequency
         if omega_rf is None:
-            self._omega_rf_d = 2.*np.pi*self.beta*c*self._harmonic / \
+            self.omega_rf_d = 2.*np.pi*self.beta*c*self.harmonic / \
                 (self.ring_circumference)
         else:
-            self._omega_rf_d = RFStationOptions.reshape_data(
+            self.omega_rf_d = RFStationOptions.reshape_data(
                 omega_rf,
                 self.n_turns,
                 self.n_rf,
@@ -354,37 +354,18 @@ class RFStation(object):
 
         # Copy of the desing rf programs in the one used for tracking
         # and that can be changed by feedbacks
-        self._phi_rf = np.array(self.phi_rf_d).astype(np.float64)
-        self._dphi_rf = np.zeros(self.n_rf).astype(np.float64)
-        self._omega_rf = np.array(self._omega_rf_d).astype(np.float64)
-        self.t_rf = 2*np.pi / self._omega_rf
+        self.phi_rf = np.array(self.phi_rf_d).astype(np.float64)
+        self.dphi_rf = np.zeros(self.n_rf).astype(np.float64)
+        self.omega_rf = np.array(self.omega_rf_d).astype(np.float64)
+        self.t_rf = 2*np.pi / self.omega_rf
 
         # From helper functions
         self.phi_s = calculate_phi_s(self, self.Particle)
         self.Q_s = calculate_Q_s(self, self.Particle)
         self.omega_s0 = self.Q_s*Ring.omega_rev
 
-        ### gpu properties
        
-        self._dev_voltage = None
-        self.cpu_valid_voltage = True
-        self.gpu_valid_voltage = False
-        self._dev_omega_rf = None 
-        self.cpu_valid_omega_rf = True
-        self.gpu_valid_omega_rf = False
-        self._dev_omega_rf_d = None 
-        self.cpu_valid_omega_rf_d = True
-        self.gpu_valid_omega_rf_d = False
-        self._dev_harmonic = None
-        self.cpu_valid_harmonic = True
-        self.gpu_valid_harmonic = False
-        self._dev_dphi_rf = None 
-        self.cpu_valid_dphi_rf = True
-        self.gpu_valid_dphi_rf = False
-        self._dev_phi_rf = None
-        self.cpu_valid_phi_rf = True
-        self.gpu_valid_phi_rf = False
-    
+        
     def use_gpu(self):
         global gpuarray,drv
         from pycuda.compiler import SourceModule
@@ -403,217 +384,44 @@ class RFStation(object):
         else:
             self.dev_phi_noise = None
 
-    def cpu_validate(self, argument):
-        if (argument=="voltage"):
-            if (not self.cpu_valid_voltage):    
-                self._voltage = self._dev_voltage.get().reshape((self.n_rf,self.n_turns+1))
-                self.cpu_valid_voltage = True
-        elif (argument=="omega_rf"):
-            if (not self.cpu_valid_omega_rf):   
-                self._omega_rf = self._dev_omega_rf.get().reshape((self.n_rf,self.n_turns+1))
-                self.cpu_valid_omega_rf = True
-        elif (argument=="omega_rf_d"):
-            if (not self.cpu_valid_omega_rf_d):    
-                self._omega_rf_d = self._dev_omega_rf_d.get().reshape((self.n_rf,self.n_turns+1))
-                self.cpu_valid_omega_rf_d = True
-        elif (argument=="harmonic"):
-            if (not self.cpu_valid_harmonic):    
-                self._harmonic = self._dev_harmonic.get().reshape((self.n_rf,self.n_turns+1))
-                self.cpu_valid_harmonic = True
-        elif (argument=="dphi_rf"):
-            if (not self.cpu_valid_dphi_rf):    
-                self._dphi_rf = self._dev_dphi_rf.get()
-                self.cpu_valid_dphi_rf = True
-        elif (argument=="phi_rf"):
-            if (not self.cpu_valid_phi_rf):    
-                self._phi_rf = self._dev_phi_rf.get().reshape((self.n_rf,self.n_turns+1))
-                self.cpu_valid_phi_rf = True
+        ## gpu properties    
+
+        # voltage to gpu
+        from ..gpu.gpu_properties.properties_generator import voltage,dev_voltage
+        self.voltage_obj = CGA(self.voltage)
+        setattr(RFStation, "voltage", voltage)
+        setattr(RFStation, "dev_voltage", dev_voltage)
+        
+        # omega_rf to gpu
+        from ..gpu.gpu_properties.properties_generator import omega_rf,dev_omega_rf
+        self.omega_rf_obj = CGA(self.omega_rf)
+        setattr(RFStation, "omega_rf", omega_rf)
+        setattr(RFStation, "dev_omega_rf", dev_omega_rf)
+
+        # phi_rf to gpu
+        from ..gpu.gpu_properties.properties_generator import phi_rf,dev_phi_rf
+        self.phi_rf_obj = CGA(self.phi_rf)
+        setattr(RFStation, "phi_rf", phi_rf)
+        setattr(RFStation, "dev_phi_rf", dev_phi_rf)
+
+        # omega_rf_d to gpu
+        from ..gpu.gpu_properties.properties_generator import omega_rf_d,dev_omega_rf_d
+        self.omega_rf_d_obj = CGA(self.omega_rf_d)
+        setattr(RFStation, "omega_rf_d", omega_rf_d)
+        setattr(RFStation, "dev_omega_rf_d", dev_omega_rf_d)
 
 
-    def gpu_validate(self, argument):
-        if (argument=="voltage"):
-            if (not self.gpu_valid_voltage):    
-                self._dev_voltage = gpuarray.to_gpu(self._voltage.flatten().astype(np.float64))
-                self.gpu_valid_voltage = True
-        elif (argument=="omega_rf"):
-            if (not self.gpu_valid_omega_rf):   
-                self._dev_omega_rf = gpuarray.to_gpu(self._omega_rf.flatten().astype(np.float64))
-                self.gpu_valid_omega_rf = True
-        elif (argument=="omega_rf_d"):
-            if (not self.gpu_valid_omega_rf_d):    
-                self._dev_omega_rf_d = gpuarray.to_gpu(self._omega_rf_d.flatten().astype(np.float64))
-                self.gpu_valid_omega_rf_d = True
-        elif (argument=="harmonic"):
-            if (not self.gpu_valid_harmonic):    
-                self._dev_harmonic = gpuarray.to_gpu(self._harmonic.flatten().astype(np.float64))
-                self.gpu_valid_harmonic = True
-        elif (argument=="dphi_rf"):
-            if (not self.gpu_valid_dphi_rf):    
-                self._dev_dphi_rf = gpuarray.to_gpu(self._dphi_rf.flatten())
-                self.gpu_valid_dphi_rf = True
-        elif (argument=="phi_rf"):
-            if (not self.gpu_valid_phi_rf):    
-                self._dev_phi_rf = gpuarray.to_gpu(self._phi_rf.flatten())
-                self.gpu_valid_phi_rf = True
+        # harmonic to gpu
+        from ..gpu.gpu_properties.properties_generator import harmonic,dev_harmonic
+        self.harmonic_obj = CGA(self.harmonic)
+        setattr(RFStation, "harmonic", harmonic)
+        setattr(RFStation, "dev_harmonic", dev_harmonic)
 
-    ######################
-    ### CPU PROPERTIES ###
-    ######################
-
-
-    
-    @property
-    def voltage(self):
-        self.cpu_validate("voltage")
-        return self._voltage
-
-    @voltage.setter
-    def voltage(self, value):
-        self.gpu_valid_voltage = False
-        self._voltage = value
-
-    @property
-    def omega_rf(self):
-        self.cpu_validate("omega_rf")
-        return self._omega_rf
-
-    @omega_rf.setter
-    def omega_rf(self, value):
-        self.gpu_valid_omega_rf = False
-        self._omega_rf = value
-
-    @property
-    def phi_rf(self):
-        self.cpu_validate("phi_rf")
-        return self._phi_rf
-
-    @phi_rf.setter
-    def phi_rf(self, value):
-        self.gpu_valid_phi_rf = False
-        self._phi_rf = value
-
-    @property
-    def omega_rf_d(self):
-        self.cpu_validate("omega_rf_d")
-        return self._omega_rf_d
-
-    @omega_rf_d.setter
-    def omega_rf_d(self, value):
-        self.gpu_valid_omega_rf_d = False
-        self._omega_rf_d = value
-    
-    @property
-    def harmonic(self):
-        self.cpu_validate("harmonic")
-        return self._harmonic
-
-    @harmonic.setter
-    def harmonic(self, value):
-        self.gpu_valid_harmonic = False
-        self._harmonic = value
-
-    @property
-    def dphi_rf(self):
-        self.cpu_validate("dphi_rf")
-        return self._dphi_rf
-
-    @dphi_rf.setter
-    def dphi_rf(self, value):
-        self.gpu_valid_dphi_rf = False
-        self._dphi_rf = value
-    
-
-    ######################
-    ### GPU PROPERTIES ###
-    ######################
-
-
-
-    @property
-    def dev_voltage(self):
-        self.gpu_validate("voltage")
-        return self._dev_voltage
-
-    @dev_voltage.setter
-    def dev_voltage(self, value):
-        self.cpu_valid_voltage = False
-        self._dev_voltage = value
-
-    @property
-    def dev_omega_rf(self):
-        self.gpu_validate("omega_rf")
-        return self._dev_omega_rf
-
-    @dev_omega_rf.setter
-    def dev_omega_rf(self, value):
-        self.cpu_valid_omega_rf = False
-        self._dev_omega_rf = value
-
-    @property
-    def dev_phi_rf(self):
-        self.gpu_validate("phi_rf")
-        return self._dev_phi_rf
-
-    @dev_phi_rf.setter
-    def dev_phi_rf(self, value):
-        self.cpu_valid_phi_rf = False
-        self._dev_phi_rf = value
-
-    @property
-    def dev_omega_rf_d(self):
-        self.gpu_validate("omega_rf_d")
-        return self._dev_omega_rf_d
-
-    @dev_omega_rf_d.setter
-    def dev_omega_rf_d(self, value):
-        self.cpu_valid_omega_rf_d = False
-        self._dev_omega_rf_d = value
-    
-    @property
-    def dev_harmonic(self):
-        self.gpu_validate("harmonic")
-        return self._dev_harmonic
-
-    @dev_harmonic.setter
-    def dev_harmonic(self, value):
-        self.cpu_valid_harmonic = False
-        self._dev_harmonic = value
-
-    @property
-    def dev_dphi_rf(self):
-        self.gpu_validate("dphi_rf")
-        return self._dev_dphi_rf
-
-    @dev_dphi_rf.setter
-    def dev_dphi_rf(self, value):
-        self.cpu_valid_dphi_rf = False
-        self._dev_dphi_rf = value
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        # dphi_rf to gpu
+        from ..gpu.gpu_properties.properties_generator import dphi_rf,dev_dphi_rf
+        self.dphi_rf_obj = CGA(self.dphi_rf)
+        setattr(RFStation, "dphi_rf", dphi_rf)
+        setattr(RFStation, "dev_dphi_rf", dev_dphi_rf)
 
 
 
