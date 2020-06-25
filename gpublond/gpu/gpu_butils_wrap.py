@@ -240,8 +240,16 @@ ker = SourceModule("""
 ## gpu_beam
 
 stdKernel = ReductionKernel(np.float64, neutral="0",
-        reduce_expr="a+b", map_expr="y[i]*(x[i]-m)*(x[i]*y[i]-m)",
+        reduce_expr="a+b", map_expr="(y[i]!=0)*(x[i]-m)*(x[i]-m)",
         arguments="double *x, double *y, double m")
+    
+sum_non_zeros = ReductionKernel(np.float64, neutral="0",
+        reduce_expr="a+b", map_expr="(x[i]!=0)",
+        arguments="double *x")
+    
+mean_non_zeros = ReductionKernel(np.float64, neutral="0",
+        reduce_expr="a+b", map_expr="(id[i]!=0)*x[i]",
+        arguments="double *x, double *id")
 
 
 ## gpu_profile

@@ -153,9 +153,6 @@ class Beam(object):
         self.n_total_macroparticles_lost = 0
 
 
-        self.total_transfers = 0
-
-
     def use_gpu(self):
         global drv,gpuarray,gb
         from ..gpu import gpu_beam as gb
@@ -198,10 +195,8 @@ class Beam(object):
             number of macroparticles lost.
 
         '''
-        if (bm.get_exec_mode()=='GPU'):
-            return self.n_macroparticles - int(gpuarray.sum(self.dev_id).get())
-        else:
-            return len(np.where(self.id == 0)[0])
+       
+        return len(np.where(self.id == 0)[0])
 
     @property
     def n_macroparticles_alive(self):

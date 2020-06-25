@@ -197,7 +197,7 @@ def gpu_kick(self, index):
 
     bm.kick(dev_voltage, dev_omega_rf, dev_phi_rf,
         self.charge, self.n_rf, self.acceleration_kick[index], self.beam)
-    self.beam.dE.invalidate_cpu()
+    self.beam.dE_obj.invalidate_cpu()
     
 
 def gpu_drift(self, index):

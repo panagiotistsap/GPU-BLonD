@@ -25,14 +25,14 @@ import pycuda.reduction as reduce
 from pycuda import gpuarray, driver as drv, tools
 from ..utils.bmath import gpu_num
 from types import MethodType
-from ..gpu.gpu_butils_wrap import stdKernel
+from ..gpu.gpu_butils_wrap import stdKernel,sum_non_zeros,mean_non_zeros
 
 drv.init()
 dev = drv.Device(gpu_num)
 
-#@property
-# def gpu_n_macroparticles_lost(self):
-#     return self.n_macroparticles - int(gpuarray.sum(self.dev_id).get())
+@property
+def gpu_n_macroparticles_lost(self):
+    return self.n_macroparticles - int(gpuarray.sum(self.dev_id).get())
 
 #@property
 # def gpu_n_macroparticles_alive(self):
@@ -49,7 +49,9 @@ def funcs_update(obj):
         obj.losses_energy_cut = MethodType(gpu_losses_energy_cut,obj)
         obj.losses_below_energy = MethodType(gpu_losses_below_energy,obj)
         obj.statistics = MethodType(gpu_statistics,obj)
+        setattr(type(obj), "n_macroparticles_lost", gpu_n_macroparticles_lost)
     obj.dev_id = gpuarray.to_gpu(obj.id.astype(np.float64))
+
 
 def gpu_losses_longitudinal_cut(self, dt_min, dt_max):
 
@@ -121,9 +123,11 @@ def gpu_losses_below_energy(self, dE_min):
 
 
 def gpu_statistics(self):
-    ones_sum = np.float64(gpuarray.sum(self.dev_id).get())
-    self.mean_dt = np.float64(gpuarray.dot(self.dev_beam_dt, self.dev_id).get()/ones_sum)
-    self.mean_dE = np.float64(gpuarray.dot(self.dev_dE, self.dev_id).get()/ones_sum)
+    ones_sum = sum_non_zeros(self.dev_id).get()
+    print(self.dev_id.dtype)
+    self.ones_sum = ones_sum
+    self.mean_dt = np.float64(mean_non_zeros(self.dev_dt, self.dev_id).get()/ones_sum)
+    self.mean_dE = np.float64(mean_non_zeros(self.dev_dE, self.dev_id).get()/ones_sum)
     
     self.sigma_dt = np.float64(np.sqrt(stdKernel(self.dev_dt, self.dev_id, self.mean_dt).get()/ones_sum))
     self.sigma_dE = np.float64(np.sqrt(stdKernel(self.dev_dE, self.dev_id, self.mean_dE).get()/ones_sum))
