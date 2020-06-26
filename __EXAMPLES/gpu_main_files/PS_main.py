@@ -6,6 +6,7 @@ import numpy as np
 import time
 import os
 from scipy.constants import c
+import sys
 
 
 # gpublond imports
@@ -19,12 +20,12 @@ from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
 from gpublond.impedances.impedance import InducedVoltageTime, InducedVoltageFreq, TotalInducedVoltage, InductiveImpedance
 from gpublond.impedances.impedance_sources import Resonators
 from gpublond.monitors.monitors import SlicesMonitor
-from gpublond.utils.bmath import use_gpu,get_exec_mode
+# from gpublond.utils.bmath import use_gpu,get_exec_mode
+from gpublond.utils import bmath as bm
 try:
     from gpublond.utils.bmath import enable_gpucache
 except:
     pass
-import sys
 
 # Other imports
 from colormap import colormap
@@ -382,7 +383,7 @@ print("Tracking starts")
 
 # if you want to use gpu 
 # print("using gpu")
-# use_gpu()
+# bm.use_gpu()
 # PS_longitudinal_intensity.use_gpu()
 # tracker.use_gpu()
 # enable_gpucache()

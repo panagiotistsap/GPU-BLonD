@@ -8,7 +8,7 @@ import socket
 
 try:
     from pyprof import timing
-    from pyprof import mpiprof
+    # from pyprof import mpiprof
 except ImportError:
     from ..utils import profile_mock as timing
     mpiprof = timing
@@ -18,42 +18,38 @@ from ..utils import bmath as bm
 worker = None
 
 
-def c_add_uint32(xmem, ymem, dt):
-    x = np.frombuffer(xmem, dtype=np.uint32)
-    y = np.frombuffer(ymem, dtype=np.uint32)
-    bm.add(y, x, inplace=True)
+def mpiprint(*args, all=False):
+    if worker.isMaster or all:
+        print('[{}]'.format(worker.rank), *args)
 
 
-add_op_uint32 = MPI.Op.Create(c_add_uint32, commute=True)
-
-
-def c_add_uint16(xmem, ymem, dt):
-    x = np.frombuffer(xmem, dtype=np.uint16)
-    y = np.frombuffer(ymem, dtype=np.uint16)
-    bm.add(y, x, inplace=True)
-
-
-add_op_uint16 = MPI.Op.Create(c_add_uint16, commute=True)
-
-
-def print_wrap(f):
+def master_wrap(f):
     @wraps(f)
-    def wrap(*args):
-        msg = '[{}] '.format(worker.rank) + ' '.join([str(a) for a in args])
+    def wrap(*args, **kwargs):
         if worker.isMaster:
-            worker.logger.debug(msg)
-            return f('[{}]'.format(worker.rank), *args)
+            return f(*args, **kwargs)
         else:
-            return worker.logger.debug(msg)
+            return None
     return wrap
 
 
-mpiprint = print_wrap(print)
+def sequential_wrap(f, beam, split_args={}, gather_args={}):
+    @wraps(f)
+    def wrap(*args, **kw):
+        beam.gather(**gather_args)
+        if worker.isMaster:
+            result = f(*args, **kw)
+        else:
+            result = None
+        beam.split(**split_args)
+        return result
+    return wrap
+
 
 
 class Worker:
     @timing.timeit(key='serial:init')
-    @mpiprof.traceit(key='serial:init')
+    # @mpiprof.traceit(key='serial:init')
     def __init__(self):
         self.start_turn = 100
         self.start_interval = 500
@@ -83,10 +79,10 @@ class Worker:
         tempcomm.Free()
         self.log = False
         self.trace = False
-        self.logger = MPILog(rank=self.rank)
 
     def initLog(self, log, logdir):
         self.log = log
+        self.logger = MPILog(rank=self.rank, log_dir=logdir)
         if not self.log:
             self.logger.disable()
 
@@ -114,103 +110,231 @@ class Worker:
 
     # Define the begin and size numbers in order to split a variable of length size
 
-    @timing.timeit(key='serial:split')
-    @mpiprof.traceit(key='serial:split')
-    def split(self, size):
-        self.logger.debug('split')
-        counts = [size // self.workers + 1 if i < size % self.workers
-                  else size // self.workers for i in range(self.workers)]
-        displs = np.append([0], np.cumsum(counts[:-1])).astype(int)
-
-        return displs[self.rank], counts[self.rank]
-
-    # args are the buffers to fill with the gathered values
-    # e.g. (comm, beam.dt, beam.dE)
-
     @timing.timeit(key='comm:gather')
-    @mpiprof.traceit(key='comm:gather')
-    def gather(self, var, size):
-        self.logger.debug('gather')
+    # @mpiprof.traceit(key='comm:gather')
+    def gather(self, var):
+        if self.log:
+            self.logger.debug('gather')
+
+        # First I need to know the total size
+        counts = np.zeros(self.workers, dtype=int)
+        sendbuf = np.array([len(var)], dtype=int)
+        self.intercomm.Gather(sendbuf, counts, root=0)
+        total_size = np.sum(counts)
+
         if self.isMaster:
-            counts = np.empty(self.workers, int)
-            sendbuf = np.array(len(var), int)
-            self.intercomm.Gather(sendbuf, counts, root=0)
+            # counts = [size // self.workers + 1 if i < size % self.workers
+            #           else size // self.workers for i in range(self.workers)]
             displs = np.append([0], np.cumsum(counts[:-1]))
             sendbuf = np.copy(var)
-            recvbuf = np.resize(var, np.sum(counts))
+            recvbuf = np.resize(var, total_size)
 
             self.intercomm.Gatherv(sendbuf,
                                    [recvbuf, counts, displs, recvbuf.dtype.char], root=0)
             return recvbuf
         else:
             recvbuf = None
-            sendbuf = np.array(len(var), int)
-            self.intercomm.Gather(sendbuf, recvbuf, root=0)
             self.intercomm.Gatherv(var, recvbuf, root=0)
             return var
 
+
+    # All workers gather the variable var (from all workers)
+    @timing.timeit(key='comm:allgather')
+    def allgather(self, var):
+        if self.log:
+            self.logger.debug('allgather')
+
+        # One first gather to collect all the sizes
+        counts = np.zeros(self.workers, dtype=int)
+        sendbuf = np.array([len(var)], dtype=int)
+        self.intercomm.Allgather(sendbuf, counts)
+
+        total_size = np.sum(counts)
+        # counts = [size // self.workers + 1 if i < size % self.workers
+        #           else size // self.workers for i in range(self.workers)]
+        displs = np.append([0], np.cumsum(counts[:-1]))
+        sendbuf = np.copy(var)
+        recvbuf = np.resize(var, total_size)
+
+        self.intercomm.Allgatherv(sendbuf,
+                                  [recvbuf, counts, displs, recvbuf.dtype.char])
+        return recvbuf
+
     @timing.timeit(key='comm:scatter')
-    @mpiprof.traceit(key='comm:scatter')
-    def scatter(self, var, size):
-        self.logger.debug('scatter')
+    # @mpiprof.traceit(key='comm:scatter')
+    def scatter(self, var):
+        if self.log:
+            self.logger.debug('scatter')
+        # First broadcast the total_size from the master
+        total_size = int(self.intercomm.bcast(len(var), root=0))
+
+        # Then calculate the counts (size for each worker)
+        counts = [total_size // self.workers + 1 if i < total_size % self.workers
+                  else total_size // self.workers for i in range(self.workers)]
+
         if self.isMaster:
-            counts = [size // self.workers + 1 if i < size % self.workers
-                      else size // self.workers for i in range(self.workers)]
             displs = np.append([0], np.cumsum(counts[:-1]))
-            # sendbuf = np.copy(var)
             recvbuf = np.empty(counts[worker.rank], dtype=var.dtype.char)
             self.intercomm.Scatterv([var, counts, displs, var.dtype.char],
                                     recvbuf, root=0)
         else:
-            counts = [size // self.workers + 1 if i < size % self.workers
-                      else size // self.workers for i in range(self.workers)]
             sendbuf = None
             recvbuf = np.empty(counts[worker.rank], dtype=var.dtype.char)
             self.intercomm.Scatterv(sendbuf, recvbuf, root=0)
 
         return recvbuf
 
-    @timing.timeit(key='comm:allreduce')
-    @mpiprof.traceit(key='comm:allreduce')
-    def allreduce(self, sendbuf, recvbuf=None, dtype=np.uint32):
-        self.logger.debug('allreduce')
+    @timing.timeit(key='comm:reduce')
+    # @mpiprof.traceit(key='comm:reduce')
+    def reduce(self, sendbuf, recvbuf=None, dtype=np.uint32, operator='custom_sum'):
+        # supported ops:
+        # sum, mean, std, max, min, prod, custom_sum
+        if self.log:
+            self.logger.debug('reduce')
+        operator = operator.lower()
+        if operator == 'custom_sum':
+            dtype = sendbuf.dtype.name
+            if dtype == 'int16':
+                op = add_op_int16
+            elif dtype == 'int32':
+                op = add_op_int32
+            elif dtype == 'int64':
+                op = add_op_int64
+            elif dtype == 'uint16':
+                op = add_op_uint16
+            elif dtype == 'uint32':
+                op = add_op_uint32
+            elif dtype == 'uint64':
+                op = add_op_uint64
+            elif dtype == 'float32':
+                op = add_op_float32
+            elif dtype == 'float64':
+                op = add_op_float64
+            else:
+                print('Error: Not recognized dtype:{}'.format(dtype))
+                exit(-1)
+        elif operator == 'sum':
+            op = MPI.SUM
+        elif operator == 'max':
+            op = MPI.MAX
+        elif operator == 'min':
+            op = MPI.MIN
+        elif operator == 'prod':
+            op = MPI.PROD
+        elif operator in ['mean', 'avg']:
+            op = MPI.SUM
+        elif operator == 'std':
+            recvbuf = self.gather(sendbuf)
+            if worker.isMaster:
+                assert len(recvbuf) == 3 * self.workers
+                totals = np.sum((recvbuf[2::3] - 1) * recvbuf[1::3]**2 +
+                                recvbuf[2::3] * (recvbuf[1::3] - bm.mean(recvbuf[0::3]))**2)
+                return np.array([np.sqrt(totals / (np.sum(recvbuf[2::3]) - 1))])
+            else:
+                return np.array([sendbuf[1]])
 
-        if dtype == np.uint32:
-            op = add_op_uint32
-        elif dtype == np.uint16:
-            op = add_op_uint16
+        if worker.isMaster:
+            if (recvbuf is None) or (sendbuf is recvbuf):
+                self.intercomm.Reduce(MPI.IN_PLACE, sendbuf, op=op, root=0)
+                recvbuf = sendbuf
+            else:
+                self.intercomm.Reduce(sendbuf, recvbuf, op=op, root=0)
+
+            if operator in ['mean', 'avg']:
+                return recvbuf / self.workers
+            else:
+                return recvbuf
         else:
-            print('Error: Not recognized dtype:{}'.format(dtype))
-            exit(-1)
+            recvbuf = None
+            self.intercomm.Reduce(sendbuf, recvbuf, op=op, root=0)
+            return sendbuf
+
+
+    @timing.timeit(key='comm:allreduce')
+    # @mpiprof.traceit(key='comm:allreduce')
+    def allreduce(self, sendbuf, recvbuf=None, dtype=np.uint32, operator='custom_sum'):
+        # supported ops:
+        # sum, mean, std, max, min, prod, custom_sum
+        if self.log:
+            self.logger.debug('allreduce')
+        operator = operator.lower()
+        if operator == 'custom_sum':
+            dtype = sendbuf.dtype.name
+            if dtype == 'int16':
+                op = add_op_int16
+            elif dtype == 'int32':
+                op = add_op_int32
+            elif dtype == 'int64':
+                op = add_op_int64
+            elif dtype == 'uint16':
+                op = add_op_uint16
+            elif dtype == 'uint32':
+                op = add_op_uint32
+            elif dtype == 'uint64':
+                op = add_op_uint64
+            elif dtype == 'float32':
+                op = add_op_float32
+            elif dtype == 'float64':
+                op = add_op_float64
+            else:
+                print('Error: Not recognized dtype:{}'.format(dtype))
+                exit(-1)
+        elif operator == 'sum':
+            op = MPI.SUM
+        elif operator == 'max':
+            op = MPI.MAX
+        elif operator == 'min':
+            op = MPI.MIN
+        elif operator == 'prod':
+            op = MPI.PROD
+        elif operator in ['mean', 'avg']:
+            op = MPI.SUM
+        elif operator == 'std':
+            recvbuf = self.allgather(sendbuf)
+            assert len(recvbuf) == 3 * self.workers
+            totals = np.sum((recvbuf[2::3] - 1) * recvbuf[1::3]**2 +
+                            recvbuf[2::3] * (recvbuf[1::3] - bm.mean(recvbuf[::3]))**2)
+            return np.array([np.sqrt(totals / (np.sum(recvbuf[2::3]) - 1))])
 
         if (recvbuf is None) or (sendbuf is recvbuf):
             self.intercomm.Allreduce(MPI.IN_PLACE, sendbuf, op=op)
+            recvbuf = sendbuf
         else:
             self.intercomm.Allreduce(sendbuf, recvbuf, op=op)
 
+        if operator in ['mean', 'avg']:
+
+            return recvbuf / self.workers
+        else:
+            return recvbuf
+
     @timing.timeit(key='serial:sync')
-    @mpiprof.traceit(key='serial:sync')
+    # @mpiprof.traceit(key='serial:sync')
     def sync(self):
-        self.logger.debug('sync')
+        if self.log:
+            self.logger.debug('sync')
         self.intercomm.Barrier()
 
     @timing.timeit(key='serial:intraSync')
-    @mpiprof.traceit(key='serial:intraSync')
+    # @mpiprof.traceit(key='serial:intraSync')
     def intraSync(self):
-        self.logger.debug('intraSync')
+        if self.log:
+            self.logger.debug('intraSync')
         self.intracomm.Barrier()
 
     @timing.timeit(key='serial:finalize')
-    @mpiprof.traceit(key='serial:finalize')
+    # @mpiprof.traceit(key='serial:finalize')
     def finalize(self):
-        self.logger.debug('finalize')
+        if self.log:
+            self.logger.debug('finalize')
         if not self.isMaster:
             sys.exit(0)
 
     @timing.timeit(key='comm:sendrecv')
-    @mpiprof.traceit(key='comm:sendrecv')
+    # @mpiprof.traceit(key='comm:sendrecv')
     def sendrecv(self, sendbuf, recvbuf):
-        self.logger.debug('sendrecv')
+        if self.log:
+            self.logger.debug('sendrecv')
         if self.isFirst and not self.isLast:
             self.intracomm.Sendrecv(sendbuf, dest=self.intraworkers-1, sendtag=0,
                                     recvbuf=recvbuf, source=self.intraworkers-1,
@@ -220,159 +344,146 @@ class Worker:
                                     recvbuf=sendbuf, source=0, recvtag=0)
 
     @timing.timeit(key='comm:redistribute')
-    @mpiprof.traceit(key='comm:redistribute')
+    # @mpiprof.traceit(key='comm:redistribute')
     def redistribute(self, turn, beam, tcomp, tconst):
         self.coefficients['particles'].append(beam.n_macroparticles)
         self.coefficients['times'].append(tcomp)
 
-        if len(self.coefficients['times']) < 2:
-            # If it is the first time the function is called,
-            # I need to do something different, I don't have enough data
-            # to caluclate the coefficients.
-            if self.intraworkers != 2:
-                exit('Only support two workers per node for now!')
-            # we exchange with the neighbour only the time it took us to compute
-            recvbuf = np.empty(2 * self.intraworkers, dtype=float)
-            self.intraworkers.Allgather(
-                np.array([beam.n_macroparticles, tcomp]), recvbuf)
-            req = None
-            # let's say 1% of the particles
-            P = np.sum(recvbuf[::2])
-            size = int(1. * P/100)
-            # There are only two values in the array, if more than the mean,
-            # its the slow worker
-            buf = np.empty(3*size, dtype=float)
-            if tcomp > np.mean(recvbuf[1::2]):
-                # if I am slower, I need to send
-                i = beam.n_macroparticles - size
-                buf[0:size] = beam.dE[i:i+size]
-                buf[size:2*size] = beam.dt[i:i+size]
-                buf[2*size:3*size] = beam.id[i:i+size]
-                req = self.intraworkers.Isend(buf, 1-self.intrarank)
-                # Then I need to resize local beam.dt and beam.dE, also
-                # beam.n_macroparticles
-                beam.dE = beam.dE[:beam.n_macroparticles-size]
-                beam.dt = beam.dt[:beam.n_macroparticles-size]
-                beam.id = beam.id[:beam.n_macroparticles-size]
-                beam.n_macroparticles -= size
-            else:
-                req = self.intraworkers.Irecv(buf, 1-self.intrarank)
+        # Keep only the last values
+        self.coefficients['particles'] = self.coefficients['particles'][-self.dlb['coeffs_keep']:]
+        self.coefficients['times'] = self.coefficients['times'][-self.dlb['coeffs_keep']:]
+
+        # We pass weights to the polyfit
+        # The weight function I am using is:
+        # e(-x/T), where x is the abs(distance) from the last
+        # datapoint, and T is the decay coefficient
+        ncoeffs = len(self.coefficients['times'])
+        weights = np.exp(-(ncoeffs - 1 - np.arange(ncoeffs))/self.dlb['decay'])
+        # We model the runtime as latency * particles + c
+        # where latency = p[1] and c = p[0]
+        
+        p = np.polyfit(
+            self.coefficients['particles'],
+            self.coefficients['times'],
+            deg=1,
+            w=weights)
+        latency = p[0]
+        tconst += p[1]
+
+        sendbuf = np.array(
+            [latency, tconst, beam.n_macroparticles], dtype=float)
+        recvbuf = np.empty(len(sendbuf) * self.workers, dtype=float)
+        self.intercomm.Allgather(sendbuf, recvbuf)
+
+        latencies = recvbuf[::3]
+        ctimes = recvbuf[1::3]
+        Pi_old = recvbuf[2::3]
+
+        # avgt = np.mean(synctimes)
+        P = np.sum(Pi_old)
+
+        
+
+        sum1 = np.sum(ctimes/latencies)
+        sum2 = np.sum(1./latencies)
+        Pi = (P + sum1 - ctimes * sum2)/(latencies * sum2)
+
+        # For the scheme to work I need that avgt > ctimes, if not
+        # it means that a machine will be assigned negative number fo particles
+        # I need to put a lower bound on the number of particles that
+        # a machine can get, example 10% of the total/n_workers
+        Pi = np.maximum(Pi, 0.1 * P / self.workers)
+
+        dPi = np.rint(Pi_old - Pi)
+
+        for i in range(len(dPi)):
+            if dPi[i] < 0 and -dPi[i] > Pi[i]:
+                dPi[i] = -Pi[i]
+            elif dPi[i] > Pi[i]:
+                dPi[i] = Pi[i]
+
+        # Need better definition of the cutoff
+        # Maybe as a percentage of the number of particles
+        # Let's say that each transaction has to be at least
+        # 1% of total/n_workers
+        transactions = calc_transactions(
+            dPi, cutoff=self.dlb['cutoff'] * P / self.workers)[self.rank]
+        if dPi[self.rank] > 0 and len(transactions) > 0:
+            reqs = []
+            tot_to_send = np.sum([t[1] for t in transactions])
+            i = beam.n_macroparticles - tot_to_send
+            for t in transactions:
+                # I need to send t[1] particles to t[0]
+                # buf[:t[1]] de, then dt, then id
+                buf = np.empty(3*t[1], dtype=float)
+                buf[0:t[1]] = beam.dE[i:i+t[1]]
+                buf[t[1]:2*t[1]] = beam.dt[i:i+t[1]]
+                buf[2*t[1]:3*t[1]] = beam.id[i:i+t[1]]
+                i += t[1]
+                # self.logger.critical(
+                #     '[{}]: Sending {} parts to {}.'.format(self.rank, t[1], t[0]))
+                reqs.append(self.intercomm.Isend(buf, t[0]))
+            # Then I need to resize local beam.dt and beam.dE, also
+            # beam.n_macroparticles
+            beam.dE = beam.dE[:beam.n_macroparticles-tot_to_send]
+            beam.dt = beam.dt[:beam.n_macroparticles-tot_to_send]
+            beam.id = beam.id[:beam.n_macroparticles-tot_to_send]
+            beam.n_macroparticles -= tot_to_send
+            for req in reqs:
                 req.Wait()
-                # Then I need to resize local beam.dt and beam.dE, also
-                # beam.n_macroparticles
-                beam.dE = np.resize(beam.dE, beam.n_macroparticles + size)
-                beam.dt = np.resize(beam.dt, beam.n_macroparticles + size)
-                beam.id = np.resize(beam.id, beam.n_macroparticles + size)
-                i = beam.n_macroparticles
-                beam.dE[i:i+size] = buf[0:size]
-                beam.dt[i:i+size] = buf[size:2*size]
-                beam.id[i:i+size] = buf[2*size:3*size]
-                beam.n_macroparticles += size
+            # req[0].Waitall(req)
+        elif dPi[self.rank] < 0 and len(transactions) > 0:
+            reqs = []
+            recvbuf = []
+            for t in transactions:
+                # I need to receive t[1] particles from t[0]
+                # The buffer contains: de, dt, id
+                buf = np.empty(3*t[1], float)
+                recvbuf.append(buf)
+                # self.logger.critical(
+                #     '[{}]: Receiving {} parts from {}.'.format(self.rank, t[1], t[0]))
+                reqs.append(self.intercomm.Irecv(buf, t[0]))
+            for req in reqs:
+                req.Wait()
+            # req[0].Waitall(req)
+            # Then I need to resize local beam.dt and beam.dE, also
+            # beam.n_macroparticles
+            tot_to_recv = np.sum([t[1] for t in transactions])
+            beam.dE = np.resize(
+                beam.dE, beam.n_macroparticles + tot_to_recv)
+            beam.dt = np.resize(
+                beam.dt, beam.n_macroparticles + tot_to_recv)
+            beam.id = np.resize(
+                beam.id, beam.n_macroparticles + tot_to_recv)
+            i = beam.n_macroparticles
+            for buf, t in zip(recvbuf, transactions):
+                beam.dE[i:i+t[1]] = buf[0:t[1]]
+                beam.dt[i:i+t[1]] = buf[t[1]:2*t[1]]
+                beam.id[i:i+t[1]] = buf[2*t[1]:3*t[1]]
+                i += t[1]
+            beam.n_macroparticles += tot_to_recv
+
+        if np.sum(np.abs(dPi))/2 < 1e-4 * P:
+            self.interval = min(2*self.interval, 4000)
             return self.interval
-
         else:
-            weights = np.ones(len(self.coefficients['times']))
-            weights[-1] = np.sum(weights[:-1])
-            p = np.polyfit(self.coefficients['particles'],
-                           self.coefficients['times'], deg=1,
-                           w=weights)
-            latency = p[0]
-            tconst += p[1]
-            # latency = tcomp / beam.n_macroparticles
-            recvbuf = np.empty(3 * self.workers, dtype=float)
-            self.intercomm.Allgather(
-                np.array([latency, tconst, beam.n_macroparticles]), recvbuf)
-
-            latencies = recvbuf[::3]
-            ctimes = recvbuf[1::3]
-            Pi_old = recvbuf[2::3]
-
-            P = np.sum(Pi_old)
-            sum1 = np.sum(ctimes/latencies)
-            sum2 = np.sum(1./latencies)
-            Pi = (P + sum1 - ctimes * sum2)/(latencies * sum2)
-            dPi = np.rint(Pi_old - Pi)
-
-            for i in range(len(dPi)):
-                if dPi[i] < 0 and -dPi[i] > Pi[i]:
-                    dPi[i] = -Pi[i]
-                elif dPi[i] > Pi[i]:
-                    dPi[i] = Pi[i]
-
-            transactions = calc_transactions(dPi, 2**4)[self.rank]
-            if dPi[self.rank] > 0 and len(transactions) > 0:
-                reqs = []
-                tot_to_send = np.sum([t[1] for t in transactions])
-                i = beam.n_macroparticles - tot_to_send
-                for t in transactions:
-                    # I need to send t[1] particles to t[0]
-                    # buf[:t[1]] de, then dt, then id
-                    buf = np.empty(3*t[1], dtype=float)
-                    buf[0:t[1]] = beam.dE[i:i+t[1]]
-                    buf[t[1]:2*t[1]] = beam.dt[i:i+t[1]]
-                    buf[2*t[1]:3*t[1]] = beam.id[i:i+t[1]]
-                    i += t[1]
-                    # self.logger.critical(
-                    #     '[{}]: Sending {} parts to {}.'.format(self.rank, t[1], t[0]))
-                    reqs.append(self.intercomm.Isend(buf, t[0]))
-                # Then I need to resize local beam.dt and beam.dE, also
-                # beam.n_macroparticles
-                beam.dE = beam.dE[:beam.n_macroparticles-tot_to_send]
-                beam.dt = beam.dt[:beam.n_macroparticles-tot_to_send]
-                beam.id = beam.id[:beam.n_macroparticles-tot_to_send]
-                beam.n_macroparticles -= tot_to_send
-                for req in reqs:
-                    req.Wait()
-                # req[0].Waitall(req)
-            elif dPi[self.rank] < 0 and len(transactions) > 0:
-                reqs = []
-                recvbuf = []
-                for t in transactions:
-                    # I need to receive t[1] particles from t[0]
-                    # The buffer contains: de, dt, id
-                    buf = np.empty(3*t[1], float)
-                    recvbuf.append(buf)
-                    # self.logger.critical(
-                    #     '[{}]: Receiving {} parts from {}.'.format(self.rank, t[1], t[0]))
-                    reqs.append(self.intercomm.Irecv(buf, t[0]))
-                for req in reqs:
-                    req.Wait()
-                # req[0].Waitall(req)
-                # Then I need to resize local beam.dt and beam.dE, also
-                # beam.n_macroparticles
-                tot_to_recv = np.sum([t[1] for t in transactions])
-                beam.dE = np.resize(
-                    beam.dE, beam.n_macroparticles + tot_to_recv)
-                beam.dt = np.resize(
-                    beam.dt, beam.n_macroparticles + tot_to_recv)
-                beam.id = np.resize(
-                    beam.id, beam.n_macroparticles + tot_to_recv)
-                i = beam.n_macroparticles
-                for buf, t in zip(recvbuf, transactions):
-                    beam.dE[i:i+t[1]] = buf[0:t[1]]
-                    beam.dt[i:i+t[1]] = buf[t[1]:2*t[1]]
-                    beam.id[i:i+t[1]] = buf[2*t[1]:3*t[1]]
-                    i += t[1]
-                beam.n_macroparticles += tot_to_recv
-
-            if np.sum(np.abs(dPi))/2 < 1e-4 * P:
-                self.interval = min(2*self.interval, 4000)
-                return self.interval
-            else:
-                self.interval = self.start_interval
-                return self.start_turn
+            self.interval = self.start_interval
+            return self.start_turn
 
     def report(self, turn, beam, tcomp, tcomm, tconst, tsync):
         latency = tcomp / beam.n_macroparticles
-        self.logger.critical('[{}]: Turn {}, Tconst {:g}, Tcomp {:g}, Tcomm {:g}, Tsync {:g}, Latency {:g}, Particles {:g}'.format(
-            self.rank, turn, tconst, tcomp, tcomm, tsync, latency, beam.n_macroparticles))
+        if self.log:
+            self.logger.critical('[{}]: Turn {}, Tconst {:g}, Tcomp {:g}, Tcomm {:g}, Tsync {:g}, Latency {:g}, Particles {:g}'.format(
+                self.rank, turn, tconst, tcomp, tcomm, tsync, latency, beam.n_macroparticles))
 
     def greet(self):
-        self.logger.debug('greet')
+        if self.log:
+            self.logger.debug('greet')
         print('[{}]@{}: Hello World!'.format(self.rank, self.hostname))
 
     def print_version(self):
-        self.logger.debug('version')
+        if self.log:
+            self.logger.debug('version')
         # print('[{}] Library version: {}'.format(self.rank, MPI.Get_library_version()))
         # print('[{}] Version: {}'.format(self.rank,MPI.Get_version()))
         print('[{}] Library: {}'.format(self.rank, MPI.get_vendor()))
@@ -389,31 +500,47 @@ class Worker:
     def timer_reset(self, phase):
         self.times[phase] = {'start': MPI.Wtime(), 'total': 0.}
 
-    def initDLB(self, lb_type, lb_arg, n_iter):
+    def initDLB(self, lbstr, n_iter):
+        # lbstr = lbtype,lbarg,cutoff,decay
         self.lb_turns = []
-        self.lb_type = lb_type
-        self.lb_arg = lb_arg
-        if lb_type == 'times':
-            if lb_arg != 0:
-                intv = max(n_iter // (lb_arg+1), 1)
+
+        self.lb_type = lbstr.split(',')[0]
+
+        if self.lb_type == 'off':
+            return self.lb_turns
+
+        assert len(lbstr.split(',')) == 5, 'Wrong number of LB arguments'
+        lb_arg, cutoff, decay, keep = lbstr.split(',')[1:]
+        if not cutoff:
+            cutoff = 0.03
+        if not decay:
+            decay = 5
+        if not keep:
+            keep = 20
+
+        if self.lb_type == 'times':
+            if lb_arg:
+                intv = max(n_iter // (int(lb_arg)+1), 1)
             else:
                 intv = max(n_iter // (10 + 1), 1)
             self.lb_turns = np.arange(0, n_iter, intv)[1:]
 
-        elif lb_type == 'interval':
-            if lb_arg != 0:
-                self.lb_turns = np.arange(0, n_iter, lb_arg)[1:]
+        elif self.lb_type == 'interval':
+            if lb_arg:
+                self.lb_turns = np.arange(0, n_iter, int(lb_arg))[1:]
             else:
                 self.lb_turns = np.arange(0, n_iter, 1000)[1:]
-        elif lb_type == 'dynamic':
+        elif self.lb_type == 'dynamic':
             self.lb_turns = [self.start_turn]
-        elif lb_type == 'reportonly':
-            if lb_arg != 0:
-                self.lb_turns = np.arange(0, n_iter, lb_arg)
+        elif self.lb_type == 'reportonly':
+            if lb_arg:
+                self.lb_turns = np.arange(0, n_iter, int(lb_arg))
             else:
                 self.lb_turns = np.arange(0, n_iter, 100)
-        self.dlb_times = {'tcomp': 0, 'tcomm': 0,
-                          'tconst': 0, 'tsync': 0}
+        self.dlb = {'tcomp': 0, 'tcomm': 0,
+                    'tconst': 0, 'tsync': 0,
+                    'cutoff': float(cutoff), 'decay': float(decay),
+                    'coeffs_keep': int(keep)}
         return self.lb_turns
 
     def DLB(self, turn, beam):
@@ -426,28 +553,31 @@ class Worker:
         tsync_new = timing.get(['serial:sync', 'serial:intraSync'])
         if self.lb_type != 'reportonly':
             intv = self.redistribute(turn, beam,
-                                     tcomp=tcomp_new-self.dlb_times['tcomp'],
-                                     tconst=((tconst_new-self.dlb_times['tconst'])
-                                             + (tcomm_new - self.dlb_times['tcomm'])))
+                                     tcomp=tcomp_new-self.dlb['tcomp'],
+                                     # tsync=tsync_new - self.dlb['tsync'])
+                                     tconst=((tconst_new-self.dlb['tconst'])
+                                             + (tcomm_new - self.dlb['tcomm'])))
         if self.lb_type == 'dynamic':
             self.lb_turns[0] += intv
-        self.report(turn, beam, tcomp=tcomp_new-self.dlb_times['tcomp'],
-                    tcomm=tcomm_new-self.dlb_times['tcomm'],
-                    tconst=tconst_new-self.dlb_times['tconst'],
-                    tsync=tsync_new-self.dlb_times['tsync'])
-        self.dlb_times['tcomp'] = tcomp_new
-        self.dlb_times['tcomm'] = tcomm_new
-        self.dlb_times['tconst'] = tconst_new
-        self.dlb_times['tsync'] = tsync_new
+        self.report(turn, beam, tcomp=tcomp_new-self.dlb['tcomp'],
+                    tcomm=tcomm_new-self.dlb['tcomm'],
+                    tconst=tconst_new-self.dlb['tconst'],
+                    tsync=tsync_new-self.dlb['tsync'])
+        self.dlb['tcomp'] = tcomp_new
+        self.dlb['tcomm'] = tcomm_new
+        self.dlb['tconst'] = tconst_new
+        self.dlb['tsync'] = tsync_new
 
 
 def calc_transactions(dpi, cutoff):
     trans = {}
-    for i in range(len(dpi)):
-        trans[i] = []
-    arr = [{'val': i[1], 'id':i[0]} for i in enumerate(dpi)]
+    arr = []
+    for i in enumerate(dpi):
+        trans[i[0]] = []
+        arr.append({'val': i[1], 'id': i[0]})
 
     # First pass is to prioritize transactions within the same node
+    # basically transactions between worker i and i + 1, i: 0, 2, 4, ...
     i = 0
     # e = len(arr)-1
     while i < len(arr)-1:
@@ -486,15 +616,16 @@ def calc_transactions(dpi, cutoff):
 
     return trans
 
-
 class MPILog(object):
     """Class to log messages coming from other classes. Messages contain 
     {Time stamp} {Class name} {Log level} {Message}. Errors, warnings and info
     are logged into the console. To disable logging, call Logger().disable()
+
     Parameters
     ----------
     debug : bool
         Log DEBUG messages in 'debug.log'; default is False
+
     """
 
     def __init__(self, rank=0, log_dir='./logs'):
@@ -504,7 +635,7 @@ class MPILog(object):
         self.root_logger = logging.getLogger()
         self.root_logger.setLevel(logging.WARNING)
         if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
+            os.makedirs(log_dir, exist_ok=True)
 
         log_name = log_dir+'/worker-%.3d.log' % rank
         # Console handler on INFO level
@@ -548,3 +679,75 @@ class MPILog(object):
 
 if worker is None:
     worker = Worker()
+
+
+def c_add_float32(xmem, ymem, dt):
+    x = np.frombuffer(xmem, dtype=np.float32)
+    y = np.frombuffer(ymem, dtype=np.float32)
+    bm.add(y, x, inplace=True)
+
+
+add_op_float32 = MPI.Op.Create(c_add_float32, commute=True)
+
+
+def c_add_float64(xmem, ymem, dt):
+    x = np.frombuffer(xmem, dtype=np.float64)
+    y = np.frombuffer(ymem, dtype=np.float64)
+    bm.add(y, x, inplace=True)
+
+
+add_op_float64 = MPI.Op.Create(c_add_float64, commute=True)
+
+
+def c_add_uint16(xmem, ymem, dt):
+    x = np.frombuffer(xmem, dtype=np.uint16)
+    y = np.frombuffer(ymem, dtype=np.uint16)
+    bm.add(y, x, inplace=True)
+
+
+add_op_uint16 = MPI.Op.Create(c_add_uint16, commute=True)
+
+
+def c_add_uint32(xmem, ymem, dt):
+    x = np.frombuffer(xmem, dtype=np.uint32)
+    y = np.frombuffer(ymem, dtype=np.uint32)
+    bm.add(y, x, inplace=True)
+
+
+add_op_uint32 = MPI.Op.Create(c_add_uint32, commute=True)
+
+
+def c_add_uint64(xmem, ymem, dt):
+    x = np.frombuffer(xmem, dtype=np.uint64)
+    y = np.frombuffer(ymem, dtype=np.uint64)
+    bm.add(y, x, inplace=True)
+
+
+add_op_uint64 = MPI.Op.Create(c_add_uint64, commute=True)
+
+
+def c_add_int16(xmem, ymem, dt):
+    x = np.frombuffer(xmem, dtype=np.int16)
+    y = np.frombuffer(ymem, dtype=np.int16)
+    bm.add(y, x, inplace=True)
+
+
+add_op_int16 = MPI.Op.Create(c_add_int16, commute=True)
+
+
+def c_add_int32(xmem, ymem, dt):
+    x = np.frombuffer(xmem, dtype=np.int32)
+    y = np.frombuffer(ymem, dtype=np.int32)
+    bm.add(y, x, inplace=True)
+
+
+add_op_int32 = MPI.Op.Create(c_add_int32, commute=True)
+
+
+def c_add_int64(xmem, ymem, dt):
+    x = np.frombuffer(xmem, dtype=np.int64)
+    y = np.frombuffer(ymem, dtype=np.int64)
+    bm.add(y, x, inplace=True)
+
+
+add_op_int64 = MPI.Op.Create(c_add_int64, commute=True)

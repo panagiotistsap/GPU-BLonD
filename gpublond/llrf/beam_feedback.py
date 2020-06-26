@@ -18,6 +18,12 @@ from __future__ import division
 from builtins import object
 import numpy as np
 from ..utils import bmath as bm
+try:
+    from pyprof import timing
+    # from pyprof import mpiprof
+except ImportError:
+    from ..utils import profile_mock as timing
+    # mpiprof = timing
 
 
 class BeamFeedback(object):
@@ -255,7 +261,7 @@ class BeamFeedback(object):
         else:
             self.on_time = np.arange(Ring.t_rev.size)
 
-    
+    @timing.timeit(key='serial:beam_phase')    
     def beam_phase(self):
         '''
         *Beam phase measured at the main RF frequency and phase. The beam is 
@@ -296,7 +302,7 @@ class BeamFeedback(object):
        
         self.phi_beam = np.arctan(coeff) + np.pi
         
-
+    @timing.timeit(key='serial:beam_phase_sharpWindow')
     def beam_phase_sharpWindow(self):
         '''
         *Beam phase measured at the main RF frequency and phase. The beam is
@@ -331,6 +337,7 @@ class BeamFeedback(object):
         # Project beam phase to (pi/2,3pi/2) range
         self.phi_beam = np.arctan(scoeff/ccoeff) + np.pi
 
+    @timing.timeit(key='serial:phase_difference')
     def phase_difference(self):
         '''
         *Phase difference between beam and RF phase of the main RF system.
@@ -530,38 +537,39 @@ class BeamFeedback(object):
 
         self.dphi_sum += self.dphi
 
-        # Phase and radial loop active on certain turns
-        if counter == self.on_time[self.PL_counter] and counter >= self.delay:
-            # Phase loop
-            self.dphi_av = self.dphi_sum / (self.on_time[self.PL_counter]
-                                            - self.on_time[self.PL_counter-1])
+        with timing.timed_region('serial:PSBBeamFB'):
+            # Phase and radial loop active on certain turns
+            if counter == self.on_time[self.PL_counter] and counter >= self.delay:
+                # Phase loop
+                self.dphi_av = self.dphi_sum / (self.on_time[self.PL_counter]
+                                                - self.on_time[self.PL_counter-1])
 
-            if self.RFnoise != None:
-                self.dphi_av += self.RFnoise.dphi[counter]
+                if self.RFnoise != None:
+                    self.dphi_av += self.RFnoise.dphi[counter]
 
-            self.domega_PL = 0.99803799*self.domega_PL \
-                + self.gain[counter]*(0.99901903*self.dphi_av -
-                                      0.99901003*self.dphi_av_prev)
+                self.domega_PL = 0.99803799*self.domega_PL \
+                    + self.gain[counter]*(0.99901903*self.dphi_av -
+                                          0.99901003*self.dphi_av_prev)
 
-            self.dphi_av_prev = self.dphi_av
-            self.dphi_sum = 0.
+                self.dphi_av_prev = self.dphi_av
+                self.dphi_sum = 0.
 
-            # Radial loop
-            self.dR_over_R = (self.rf_station.omega_rf[0, counter] -
-                              self.rf_station.omega_rf_d[0, counter])/(
-                self.rf_station.omega_rf_d[0, counter] *
-                         (1./(self.ring.alpha_0[0, counter] *
-                              self.rf_station.gamma[counter]**2) - 1.))
+                # Radial loop
+                self.dR_over_R = (self.rf_station.omega_rf[0, counter] -
+                                  self.rf_station.omega_rf_d[0, counter])/(
+                    self.rf_station.omega_rf_d[0, counter] *
+                             (1./(self.ring.alpha_0[0, counter] *
+                                  self.rf_station.gamma[counter]**2) - 1.))
 
-            self.domega_RL = self.domega_RL + self.gain2[0][counter]*(self.dR_over_R
-                                                                      - self.dR_over_R_prev) + self.gain2[1][counter]*self.dR_over_R
+                self.domega_RL = self.domega_RL + self.gain2[0][counter]*(self.dR_over_R
+                                                                          - self.dR_over_R_prev) + self.gain2[1][counter]*self.dR_over_R
 
-            self.dR_over_R_prev = self.dR_over_R
+                self.dR_over_R_prev = self.dR_over_R
 
-            # Counter to pick the next time step when the PL & RL will be active
-            self.PL_counter += 1
+                # Counter to pick the next time step when the PL & RL will be active
+                self.PL_counter += 1
 
-        # Apply frequency correction
-        self.domega_rf = - self.domega_PL - self.domega_RL
+            # Apply frequency correction
+            self.domega_rf = - self.domega_PL - self.domega_RL
 
   

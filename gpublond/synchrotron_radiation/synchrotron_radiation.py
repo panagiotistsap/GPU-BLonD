@@ -16,10 +16,15 @@
 from __future__ import division, print_function
 from builtins import range, object
 import numpy as np
-import ctypes
+# import ctypes
 from scipy.constants import e, c, epsilon_0, hbar
 from ..utils import bmath as bm
-
+try:
+    from pyprof import timing
+    # from pyprof import mpiprof
+except ImportError:
+    from ..utils import profile_mock as timing
+    # mpiprof = timing
 
 class SynchrotronRadiation(object):
 
@@ -127,6 +132,7 @@ class SynchrotronRadiation(object):
         print('------------------------------------------------')
 
     # Track particles with SR only (without quantum excitation)
+    @timing.timeit(key='comp:SR_python')
     def track_SR_python(self):
         i_turn = self.rf_params.counter[0]
         # Recalculate SR parameters if energy changes
@@ -138,6 +144,7 @@ class SynchrotronRadiation(object):
                               + self.U0 / self.n_kicks)
 
     # Track particles with SR and quantum excitation
+    @timing.timeit(key='comp:SR_full_python')
     def track_full_python(self):
         i_turn = self.rf_params.counter[0]
         # Recalculate SR parameters if energy changes
@@ -153,6 +160,7 @@ class SynchrotronRadiation(object):
 
     # Track particles with SR only (without quantum excitation)
     # C implementation
+    @timing.timeit(key='comp:SR_C')
     def track_SR_C(self):
         i_turn = self.rf_params.counter[0]
         # Recalculate SR parameters if energy changes
@@ -164,6 +172,7 @@ class SynchrotronRadiation(object):
                                  self.n_kicks, self.tau_z)
 
     # Track particles with SR and quantum excitation. C implementation
+    @timing.timeit(key='comp:SR_full_C')
     def track_full_C(self):
         i_turn = self.rf_params.counter[0]
         # Recalculate SR parameters if energy changes

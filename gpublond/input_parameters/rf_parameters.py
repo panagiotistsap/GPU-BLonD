@@ -21,6 +21,8 @@ from scipy.integrate import cumtrapz
 from ..beam.beam import Proton
 from ..input_parameters.rf_parameters_options import RFStationOptions
 from ..gpu.cpu_gpu_array import CGA
+from ..utils import bmath as bm
+
 
 class RFStation(object):
     r""" Class containing all the RF parameters for all the RF systems in one
@@ -370,10 +372,9 @@ class RFStation(object):
         global gpuarray,drv
         from pycuda.compiler import SourceModule
         from pycuda import gpuarray, driver as drv, tools
-        from ..utils.bmath import gpu_num
 
         drv.init()
-        dev = drv.Device(gpu_num)
+        dev = drv.Device(bm.gpuId())
         if (self.phi_modulation!=None):
             self.dev_phi_modulation = (gpuarray.to_gpu(dPhi),gpuarray.to_gpu(dOmega))
         else:

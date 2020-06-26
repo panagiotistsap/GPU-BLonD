@@ -19,11 +19,11 @@ from ..utils.cucache import get_gpuarray
 from ..gpu.gpu_butils_wrap import ElementwiseKernel
 from pycuda import gpuarray, driver as drv, tools
 import atexit      
-from ..utils.bmath import gpu_num as gpu_num
 from ..utils.butils_wrap import trapz
+from ..utils import bmath as bm
 
 drv.init()
-my_gpu = drv.Device(gpu_num)
+my_gpu = drv.Device(bm.gpuId())
 
 try:
 
@@ -456,7 +456,7 @@ synch_rad_ker = SourceModule("""
 """,no_extern_c=True, )
 
 
-#my_gpu = drv.Device(gpu_num)
+#my_gpu = drv.Device(bm.gpuId())
 
 drift_simple   = ker.get_function("drift_simple")
 drift_legacy_0 = ker.get_function("drift_legacy_0")

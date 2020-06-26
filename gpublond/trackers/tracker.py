@@ -18,9 +18,17 @@ from __future__ import division
 from builtins import range, object
 import numpy as np
 from scipy.integrate import cumtrapz
-import ctypes
+# import ctypes
 import warnings
 from ..utils import bmath as bm
+
+try:
+    from pyprof import timing
+    # from pyprof import mpiprof
+except ImportError:
+    from ..utils import profile_mock as timing
+    # mpiprof = timing
+
 
 class FullRingAndRF(object):
     """
@@ -46,7 +54,6 @@ class FullRingAndRF(object):
 
         #: *Ring radius in [m]*
         self.ring_radius = self.ring_circumference / (2*np.pi)
-
 
     def potential_well_generation(self, turn=0, n_points=1e5,
                                   main_harmonic_option='lowest_freq',
@@ -120,7 +127,6 @@ class FullRingAndRF(object):
 
         self.potential_well_coordinates = time_array
         self.potential_well = potential_well
-
 
     def track(self):
         """Function to loop over all the RingAndRFSection.track methods
@@ -254,9 +260,9 @@ class RingAndRFTracker(object):
         self.beta = RFStation.beta
         self.charge = RFStation.Particle.charge
         self.harmonic = RFStation.harmonic
-       
+
         self.phi_noise = RFStation.phi_noise
-        
+
         self.phi_modulation = RFStation.phi_modulation
 
         self.phi_rf = RFStation.phi_rf
@@ -265,9 +271,9 @@ class RingAndRFTracker(object):
         self.voltage = RFStation.voltage
         self.omega_rf = RFStation.omega_rf
         self.phi_rf = RFStation.phi_rf
-        
+
         self.rf_station = RFStation
-        
+
         self.total_transfers = 0
         self.alpha_0 = RFStation.alpha_0
         self.alpha_1 = RFStation.alpha_1
@@ -278,15 +284,10 @@ class RingAndRFTracker(object):
         self.alpha_order = RFStation.alpha_order
         self.acceleration_kick = - RFStation.delta_E
 
-              
-
-                            
-
-                        
         # Other imports
         self.beam = Beam
         self.solver = str(solver)
-        
+
         if self.solver not in ['simple', 'exact', 'legacy']:
             # SolverError
             raise RuntimeError("ERROR in RingAndRFTracker: Choice of" +
@@ -329,33 +330,31 @@ class RingAndRFTracker(object):
             self.interpolation = True
             warnings.warn('Setting interpolation to TRUE')
             # self.logger.warning("Setting interpolation to TRUE")
-    
 
     def use_gpu(self):
         from ..gpu.gpu_tracker import tracker_funcs_update
         from pycuda.compiler import SourceModule
         from pycuda import gpuarray, driver as drv, tools
-        import atexit      
-        from ..utils.bmath import gpu_num
+        import atexit
         drv.init()
-        dev = drv.Device(gpu_num)
-        
+        dev = drv.Device(bm.gpuId())
+
         if (self.profile):
             self.profile.use_gpu()
         tracker_funcs_update(self)
         if (self.totalInducedVoltage != None):
             self.totalInducedVoltage.use_gpu()
-        if (self.profile!=None):
+        if (self.profile != None):
             self.profile.use_gpu()
-        if (self.beam!=None):
+        if (self.beam != None):
             self.beam.use_gpu()
-        if (self.beamFB!=None):
+        if (self.beamFB != None):
             self.beamFB.use_gpu()
-        if (self.rf_station!=None):
+        if (self.rf_station != None):
             self.rf_station.use_gpu()
-        self.dev_phi_modulation  = self.rf_station.dev_phi_modulation
+        self.dev_phi_modulation = self.rf_station.dev_phi_modulation
 
-   
+    @timing.timeit(key='comp:kick')
     def kick(self, beam_dt, beam_dE, index):
         """Function updating the particle energy due to the RF kick in a given
         RF station. The kicks are summed over the different harmonic RF systems
@@ -370,14 +369,12 @@ class RingAndRFTracker(object):
 
         """
 
-        
-     
-       
         bm.kick(beam_dt, beam_dE, self.rf_station.voltage[:, index],
-            self.rf_station.omega_rf[:, index], self.rf_station.phi_rf[:, index],
-            self.charge, self.n_rf, self.acceleration_kick[index], self.beam)
-        
-    
+                self.rf_station.omega_rf[:,
+                                         index], self.rf_station.phi_rf[:, index],
+                self.charge, self.n_rf, self.acceleration_kick[index], self.beam)
+
+    @timing.timeit(key='comp:drift')
     def drift(self, beam_dt, beam_dE, index):
         """Function updating the particle arrival time to the RF station
         (drift). If only the zeroth order slippage factor is given, 'simple'
@@ -405,33 +402,34 @@ class RingAndRFTracker(object):
             \\delta = \\frac{\\Delta E}{\\beta_s^2 E_s} \quad \\text{(simple, legacy)}
 
         """
-       
 
-
-        if (bm.get_exec_mode()!='GPU'):
+        if (bm.gpuMode()):
             bm.drift(beam_dt, beam_dE, self.solver, self.t_rev[index],
-                self.length_ratio, self.alpha_order, self.eta_0[index],
-                self.eta_1[index], self.eta_2[index], self.alpha_0[index],
-                self.alpha_1[index], self.alpha_2[index],
-                self.rf_params.beta[index], self.rf_params.energy[index], self.beam)
+                     self.length_ratio, self.alpha_order, self.eta_0[index],
+                     self.eta_1[index], self.eta_2[index], self.alpha_0[index],
+                     self.alpha_1[index], self.alpha_2[index],
+                     self.rf_params.beta[index], self.rf_params.energy[index], self.beam)
             self.beam.gpu_valid = False
-        else: 
+        else:
             bm.drift(self.solver, self.t_rev[index],
-                self.length_ratio, self.alpha_order, self.eta_0[index],
-                self.eta_1[index], self.eta_2[index], self.alpha_0[index],
-                self.alpha_1[index], self.alpha_2[index],
-                self.rf_params.beta[index], self.rf_params.energy[index], self.beam)
+                     self.length_ratio, self.alpha_order, self.eta_0[index],
+                     self.eta_1[index], self.eta_2[index], self.alpha_0[index],
+                     self.alpha_1[index], self.alpha_2[index],
+                     self.rf_params.beta[index], self.rf_params.energy[index], self.beam)
 
-    
+    @timing.timeit(key='serial:RFVCalc')
     def rf_voltage_calculation(self):
         """Function calculating the total, discretised RF voltage seen by the
         beam at a given turn. Requires a Profile object.
 
         """
-        voltages = np.ascontiguousarray(self.rf_station.voltage[:, self.counter[0]])
-        omega_rf = np.ascontiguousarray(self.rf_station.omega_rf[:, self.counter[0]])
-        phi_rf = np.ascontiguousarray(self.rf_station.phi_rf[:, self.counter[0]])
-        
+        voltages = np.ascontiguousarray(
+            self.rf_station.voltage[:, self.counter[0]])
+        omega_rf = np.ascontiguousarray(
+            self.rf_station.omega_rf[:, self.counter[0]])
+        phi_rf = np.ascontiguousarray(
+            self.rf_station.phi_rf[:, self.counter[0]])
+
         # TODO: test with multiple harmonics, think about 800 MHz OTFB
         if self.cavityFB:
             self.rf_voltage = voltages[0] * self.cavityFB.V_corr * \
@@ -440,12 +438,40 @@ class RingAndRFTracker(object):
                 bm.rf_volt_comp(voltages[1:], omega_rf[1:], phi_rf[1:],
                                 self.profile.bin_centers)
         else:
-            self.rf_voltage =   bm.rf_volt_comp(voltages, omega_rf, phi_rf,
-                                self.profile.bin_centers)
-        #print("rf voltage mean, std", np.mean(self.rf_voltage), np.std(self.rf_voltage))        
+            self.rf_voltage = bm.rf_volt_comp(voltages, omega_rf, phi_rf,
+                                              self.profile.bin_centers)
+        #print("rf voltage mean, std", np.mean(self.rf_voltage), np.std(self.rf_voltage))
 
+    def pre_track(self):
+        """Tracking method for the section. Applies first the kick, then the 
+        drift. Calls also RF/beam feedbacks if applicable. Updates the counter
+        of the corresponding RFStation class and the energy-related variables
+        of the Beam class.
 
-    def track(self):
+        """
+
+        # Add phase noise directly to the cavity RF phase
+        if self.phi_noise is not None:
+            if self.noiseFB is not None:
+                self.phi_rf[:, self.counter[0]] += \
+                    self.noiseFB.x * self.phi_noise[:, self.counter[0]]
+            else:
+                self.phi_rf[:, self.counter[0]] += \
+                    self.phi_noise[:, self.counter[0]]
+
+        # Determine phase loop correction on RF phase and frequency
+        if self.beamFB is not None and self.counter[0] >= self.beamFB.delay:
+            self.beamFB.track()
+
+        if self.periodicity:
+            pass
+        else:
+
+            if self.rf_params.empty is False:
+                if self.interpolation:
+                    self.rf_voltage_calculation()
+
+    def track_only(self):
         """Tracking method for the section. Applies first the kick, then the 
         drift. Calls also RF/beam feedbacks if applicable. Updates the counter
         of the corresponding RFStation class and the energy-related variables
@@ -453,25 +479,6 @@ class RingAndRFTracker(object):
 
         """
         turn = self.counter[0]
-        # Add phase noise directly to the cavity RF phase
-        if self.phi_noise is not None:
-            if self.noiseFB is not None:
-                self.phi_rf[:, turn] += \
-                    self.noiseFB.x * self.phi_noise[:, turn]
-            else:
-                self.phi_rf[:, turn] += \
-                    self.phi_noise[:, turn]
-
-        # Add phase modulation directly to the cavity RF phase
-        if self.phi_modulation is not None:
-            self.phi_rf[:, turn] += \
-                self.phi_modulation[0][:, turn]
-            self.omega_rf[:, turn] += \
-                self.phi_modulation[1][:, turn]
-
-        # Determine phase loop correction on RF phase and frequency
-        if self.beamFB is not None and turn >= self.beamFB.delay:
-            self.beamFB.track()
 
         if self.periodicity:
 
@@ -496,7 +503,8 @@ class RingAndRFTracker(object):
                 self.insiders_dE = np.ascontiguousarray(
                     self.beam.dE[self.indices_inside_frame])
                 self.kick(self.insiders_dt, self.insiders_dE, turn)
-                self.drift(self.insiders_dt, self.insiders_dE, turn+1)
+                self.drift(self.insiders_dt, self.insiders_dE,
+                           turn+1)
                 self.beam.dt[self.indices_inside_frame] = self.insiders_dt
                 self.beam.dE[self.indices_inside_frame] = self.insiders_dE
                 # Check all the particles on the left of the just updated
@@ -518,29 +526,50 @@ class RingAndRFTracker(object):
                 left_outsiders_dE = np.ascontiguousarray(
                     self.beam.dE[self.indices_left_outside])
                 left_outsiders_dt += self.t_rev[turn+1]
-                self.kick(left_outsiders_dt, left_outsiders_dE, turn)
-                self.drift(left_outsiders_dt, left_outsiders_dE, turn+1)
+                self.kick(left_outsiders_dt, left_outsiders_dE,
+                          turn)
+                self.drift(left_outsiders_dt, left_outsiders_dE,
+                           turn+1)
                 self.beam.dt[self.indices_left_outside] = left_outsiders_dt
                 self.beam.dE[self.indices_left_outside] = left_outsiders_dE
 
         else:
+
             if self.rf_params.empty is False:
                 if self.interpolation:
-                    self.rf_voltage_calculation()
                     if self.totalInducedVoltage is not None:
                         self.total_voltage = self.rf_voltage \
-                            + self.totalInducedVoltage.induced_voltage    
+                            + self.totalInducedVoltage.induced_voltage
                     else:
                         self.total_voltage = self.rf_voltage
-                    
-                    bm.linear_interp_kick(dt=self.beam.dt, dE=self.beam.dE,
-                                    voltage=self.total_voltage,
-                                    bin_centers=self.profile.bin_centers,
-                                    charge=self.beam.Particle.charge,
-                                    acceleration_kick=self.acceleration_kick[turn])
+
+                    with timing.timed_region('comp:LIKick'):
+                        # with mpiprof.traced_region('comp:LIKick'):
+                        bm.linear_interp_kick(dt=self.beam.dt, dE=self.beam.dE,
+                                              voltage=self.total_voltage,
+                                              bin_centers=self.profile.bin_centers,
+                                              charge=self.beam.Particle.charge,
+                                              acceleration_kick=self.acceleration_kick[turn])
+                    self.drift(self.beam.dt, self.beam.dE, turn + 1)
+
+                    # bm.LIKick_n_drift(self.beam.dt,
+                    #                   self.beam.dE,
+                    #                   self.total_voltage,
+                    #                   self.profile.bin_centers,
+                    #                   self.beam.Particle.charge,
+                    #                   self.acceleration_kick[turn],
+                    #                   self.solver,
+                    #                   self.t_rev[turn],
+                    #                   self.length_ratio,
+                    #                   self.alpha_order,
+                    #                   self.eta_0[turn],
+                    #                   self.eta_1[turn],
+                    #                   self.eta_2[turn],
+                    #                   self.rf_params.beta[turn],
+                    #                   self.rf_params.energy[turn])
                 else:
                     self.kick(self.beam.dt, self.beam.dE, turn)
-            self.drift(self.beam.dt, self.beam.dE, turn + 1)
+                    self.drift(self.beam.dt, self.beam.dE, turn + 1)
 
         # Updating the beam synchronous momentum etc.
         self.beam.beta = self.rf_params.beta[turn+1]
@@ -550,3 +579,113 @@ class RingAndRFTracker(object):
 
         # Increment by one the turn counter
         self.counter[0] += 1
+
+    def track(self):
+        self.pre_track()
+        self.track_only()
+
+    # def track(self):
+    #     """Tracking method for the section. Applies first the kick, then the
+    #     drift. Calls also RF/beam feedbacks if applicable. Updates the counter
+    #     of the corresponding RFStation class and the energy-related variables
+    #     of the Beam class.
+
+    #     """
+    #     turn = self.counter[0]
+    #     # Add phase noise directly to the cavity RF phase
+    #     if self.phi_noise is not None:
+    #         if self.noiseFB is not None:
+    #             self.phi_rf[:, turn] += \
+    #                 self.noiseFB.x * self.phi_noise[:, turn]
+    #         else:
+    #             self.phi_rf[:, turn] += \
+    #                 self.phi_noise[:, turn]
+
+    #     # Add phase modulation directly to the cavity RF phase
+    #     if self.phi_modulation is not None:
+    #         self.phi_rf[:, turn] += \
+    #             self.phi_modulation[0][:, turn]
+    #         self.omega_rf[:, turn] += \
+    #             self.phi_modulation[1][:, turn]
+
+    #     # Determine phase loop correction on RF phase and frequency
+    #     if self.beamFB is not None and turn >= self.beamFB.delay:
+    #         self.beamFB.track()
+
+    #     if self.periodicity:
+
+    #         # Distinguish the particles inside the frame from the particles on
+    #         # the right-hand side of the frame.
+    #         self.indices_right_outside = \
+    #             np.where(self.beam.dt > self.t_rev[turn + 1])[0]
+    #         self.indices_inside_frame = \
+    #             np.where(self.beam.dt < self.t_rev[turn + 1])[0]
+
+    #         if len(self.indices_right_outside) > 0:
+    #             # Change reference of all the particles on the right of the
+    #             # current frame; these particles skip one kick and drift
+    #             self.beam.dt[self.indices_right_outside] -= \
+    #                 self.t_rev[turn + 1]
+    #             # Synchronize the bunch with the particles that are on the
+    #             # RHS of the current frame applying kick and drift to the
+    #             # bunch
+    #             # After that all the particles are in the new updated frame
+    #             self.insiders_dt = np.ascontiguousarray(
+    #                 self.beam.dt[self.indices_inside_frame])
+    #             self.insiders_dE = np.ascontiguousarray(
+    #                 self.beam.dE[self.indices_inside_frame])
+    #             self.kick(self.insiders_dt, self.insiders_dE, turn)
+    #             self.drift(self.insiders_dt, self.insiders_dE, turn+1)
+    #             self.beam.dt[self.indices_inside_frame] = self.insiders_dt
+    #             self.beam.dE[self.indices_inside_frame] = self.insiders_dE
+    #             # Check all the particles on the left of the just updated
+    #             # frame and apply a second kick and drift to them with the
+    #             # previous wave after having changed reference.
+    #             self.indices_left_outside = np.where(self.beam.dt < 0)[0]
+
+    #         else:
+    #             self.kick(self.beam.dt, self.beam.dE, turn)
+    #             self.drift(self.beam.dt, self.beam.dE, turn + 1)
+    #             # Check all the particles on the left of the just updated
+    #             # frame and apply a second kick and drift to them with the
+    #             # previous wave after having changed reference.
+    #             self.indices_left_outside = np.where(self.beam.dt < 0)[0]
+
+    #         if len(self.indices_left_outside) > 0:
+    #             left_outsiders_dt = np.ascontiguousarray(
+    #                 self.beam.dt[self.indices_left_outside])
+    #             left_outsiders_dE = np.ascontiguousarray(
+    #                 self.beam.dE[self.indices_left_outside])
+    #             left_outsiders_dt += self.t_rev[turn+1]
+    #             self.kick(left_outsiders_dt, left_outsiders_dE, turn)
+    #             self.drift(left_outsiders_dt, left_outsiders_dE, turn+1)
+    #             self.beam.dt[self.indices_left_outside] = left_outsiders_dt
+    #             self.beam.dE[self.indices_left_outside] = left_outsiders_dE
+
+    #     else:
+    #         if self.rf_params.empty is False:
+    #             if self.interpolation:
+    #                 self.rf_voltage_calculation()
+    #                 if self.totalInducedVoltage is not None:
+    #                     self.total_voltage = self.rf_voltage \
+    #                         + self.totalInducedVoltage.induced_voltage
+    #                 else:
+    #                     self.total_voltage = self.rf_voltage
+
+    #                 bm.linear_interp_kick(dt=self.beam.dt, dE=self.beam.dE,
+    #                                 voltage=self.total_voltage,
+    #                                 bin_centers=self.profile.bin_centers,
+    #                                 charge=self.beam.Particle.charge,
+    #                                 acceleration_kick=self.acceleration_kick[turn])
+    #             else:
+    #                 self.kick(self.beam.dt, self.beam.dE, turn)
+    #         self.drift(self.beam.dt, self.beam.dE, turn + 1)
+
+    #     # Updating the beam synchronous momentum etc.
+    #     self.beam.beta = self.rf_params.beta[turn+1]
+    #     self.beam.gamma = self.rf_params.gamma[turn+1]
+    #     self.beam.energy = self.rf_params.energy[turn+1]
+    #     self.beam.momentum = self.rf_params.momentum[turn+1]
+
+    #     # Increment by one the turn counter
+    #     self.counter[0] += 1

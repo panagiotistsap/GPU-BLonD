@@ -25,12 +25,13 @@ from gpublond.llrf.beam_feedback import BeamFeedback
 from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
 from gpublond.input_parameters.rf_parameters import RFStation
 from gpublond.input_parameters.ring import Ring
-from gpublond.utils.bmath import use_gpu,use_mpi
+from gpublond.utils import bmath as bm
+# from gpublond.utils.bmath import use_gpu,use_mpi
 try:
     from gpublond.utils.bmath import enable_gpucache
 except:
     pass
-from gpublond.utils import bmath as bm
+# from gpublond.utils import bmath as bm
 from joblib import dump
 from gpublond.utils.mpi_config import worker, mpiprint
 
@@ -178,14 +179,14 @@ fullring = FullRingAndRF([tracker])
 # beam.losses_separatrix(ring, rf)
 cache_part = ""
 timing_kind = 'cpu'
-use_mpi()
+bm.use_mpi()
 if (worker.rank==0):
     cache_part = ""
     timing_kind = 'cpu'
     if (args.g):
         timing_kind = 'gpu'
         print("Using gpu")
-        use_gpu()
+        bm.use_gpu()
         tracker.use_gpu()
         #totVoltage.use_gpu()
         #beam.use_gpu()
@@ -212,21 +213,19 @@ for turn in range(0,n_iterations):
     #     print(turn)
     #     print("dt ",np.mean(beam.dt))
     #     print("dE ",np.mean(beam.dE))
-    with region_timer('histo',timing_kind) as rt:
-        profile.track()
-    with region_timer('sync',timing_kind) as rt:
-        worker.sync()
-    with region_timer('histo_reduce',timing_kind) as rt:
-        profile.reduce_histo()
+    # with region_timer('histo',timing_kind) as rt:
+    profile.track()
+    # with region_timer('sync',timing_kind) as rt:
+    # with region_timer('histo_reduce',timing_kind) as rt:
 
     #ith region_timer('voltage_sum',timing_kind) as rt:
         #  with timing.timed_region('serial:ind_volt_sum_packed'):
         #     with mpiprof.traced_region('serial:ind_volt_sum_packed'):
         #         totVoltage.induced_voltage_sum()
-        pass
-    with region_timer('tracking',timing_kind) as rt:
-        tracker.track()
-        pass
+        # pass
+    # with region_timer('tracking',timing_kind) as rt:
+    tracker.track()
+        # pass
     worker.DLB(turn, beam)
 
 beam.gather()

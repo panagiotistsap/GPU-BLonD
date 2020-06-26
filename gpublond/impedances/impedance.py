@@ -17,11 +17,18 @@
 from __future__ import division, print_function
 from builtins import range, object
 import numpy as np
-from ctypes import c_uint, c_double, c_void_p
+# from ctypes import c_uint, c_double, c_void_p
 from scipy.constants import e
 from ..toolbox.next_regular import next_regular
 from ..utils import bmath as bm
 from ..gpu.cpu_gpu_array import CGA
+
+try:
+    from pyprof import timing
+    # from pyprof import mpiprof
+except ImportError:
+    from ..utils import profile_mock as timing
+    # mpiprof = timing
 
 
 class TotalInducedVoltage(object):
@@ -80,10 +87,9 @@ class TotalInducedVoltage(object):
         global tiv_update_funcs, iv_update_funcs, ii_update_funcs,drv,gpuarray
         from ..gpu.gpu_impedance import tiv_update_funcs, iv_update_funcs, ii_update_funcs
         from pycuda import gpuarray, driver as drv, tools
-        from ..utils.bmath import gpu_num
 
         drv.init()
-        dev = drv.Device(gpu_num)
+        dev = drv.Device(bm.gpuId())
 
 
         # induced_voltage to gpu
@@ -136,19 +142,20 @@ class TotalInducedVoltage(object):
         self.induced_voltage_list[0].profile.beam_spectrum_generation(
             self.induced_voltage_list[0].n_fft)
         beam_spectrum = self.induced_voltage_list[0].profile.beam_spectrum
-        
-        self.induced_voltage = []
-        min_idx = self.profile.n_slices
-        for obj in self.induced_voltage_list:
-            self.induced_voltage.append(
-                bm.mul(obj.total_impedance, beam_spectrum))
-            min_idx = min(obj.n_induced_voltage, min_idx)
 
-        self.induced_voltage = bm.irfft_packed(
-            self.induced_voltage)[:, :min_idx]
-        self.induced_voltage = -self.beam.Particle.charge * \
-            e * self.beam.ratio * self.induced_voltage
-        self.induced_voltage = np.sum(self.induced_voltage, axis=0)
+        with timing.timed_region('serial:ind_volt_sum_packed'):    
+            self.induced_voltage = []
+            min_idx = self.profile.n_slices
+            for obj in self.induced_voltage_list:
+                self.induced_voltage.append(
+                    bm.mul(obj.total_impedance, beam_spectrum))
+                min_idx = min(obj.n_induced_voltage, min_idx)
+
+            self.induced_voltage = bm.irfft_packed(
+                self.induced_voltage)[:, :min_idx]
+            self.induced_voltage = -self.beam.Particle.charge * \
+                e * self.beam.ratio * self.induced_voltage
+            self.induced_voltage = np.sum(self.induced_voltage, axis=0)
 
 
     def track(self):
@@ -157,17 +164,19 @@ class TotalInducedVoltage(object):
         """
         
         self.induced_voltage_sum()
-        if (bm.get_exec_mode()=='GPU'):
-            bm.linear_interp_kick(dev_voltage=self.dev_induced_voltage,
-                              dev_bin_centers=self.profile.dev_bin_centers,
-                              charge=self.beam.Particle.charge,
-                              acceleration_kick=0.0, beam = self.beam)
-        else:
-            bm.linear_interp_kick(dt=self.beam.dt, dE=self.beam.dE,
-                                    voltage=self.induced_voltage,
-                                    bin_centers=self.profile.bin_centers,
-                                    charge=self.beam.Particle.charge,
-                                    acceleration_kick=0.0, beam = self.beam)
+
+        with timing.timed_region('comp:LIKick'):    
+            if (bm.gpuMode()):
+                bm.linear_interp_kick(dev_voltage=self.dev_induced_voltage,
+                                  dev_bin_centers=self.profile.dev_bin_centers,
+                                  charge=self.beam.Particle.charge,
+                                  acceleration_kick=0.0, beam = self.beam)
+            else:
+                bm.linear_interp_kick(dt=self.beam.dt, dE=self.beam.dE,
+                                        voltage=self.induced_voltage,
+                                        bin_centers=self.profile.bin_centers,
+                                        charge=self.beam.Particle.charge,
+                                        acceleration_kick=0.0, beam = self.beam)
 
 
     def track_ghosts_particles(self, ghostBeam):
@@ -363,20 +372,26 @@ class _InducedVoltage(object):
 
     def induced_voltage_1turn(self, beam_spectrum_dict={}):
         """
-        Method to calculate the induced voltage at the current turn. DFTs are
+        Method to calculate the induced voltage at the current turn. DFTs are 
         used for calculations in time and frequency domain (see classes below)
         """
+        # if induced_voltage_1turn.last_turn < self.RFParams.counter[0]:
+        # induced_voltage_1turn.last_turn = self.RFParams.counter[0]
+        # print('Inside induced_voltage_1turn')
         if self.n_fft not in beam_spectrum_dict:
+            # print('Before calling beam_spectrum_generation')
+
             self.profile.beam_spectrum_generation(self.n_fft)
             beam_spectrum_dict[self.n_fft] = self.profile.beam_spectrum
 
-        self.profile.beam_spectrum_generation(self.n_fft)
-        inp = self.total_impedance * self.profile.beam_spectrum
-        my_res = bm.irfft(inp)
-       
-       
-        induced_voltage = - (self.beam.Particle.charge * e * self.beam.ratio *
-                            my_res )
+        # print('After beam spectrum')
+
+        beam_spectrum = beam_spectrum_dict[self.n_fft]
+
+        with timing.timed_region('serial:indVolt1Turn'):
+            # with mpiprof.traced_region('serial:indVolt1Turn'):
+            induced_voltage = - (self.beam.Particle.charge * e * self.beam.ratio
+                                 * bm.irfft(self.total_impedance * beam_spectrum))
 
         self.induced_voltage = induced_voltage[:self.n_induced_voltage]
 
@@ -404,7 +419,7 @@ class _InducedVoltage(object):
         self.mtw_memory[:self.n_induced_voltage] += self.induced_voltage
         self.induced_voltage = self.mtw_memory[:self.n_induced_voltage]
 
-
+    @timing.timeit(key='serial:shift_trev_freq')
     def shift_trev_freq(self):
         """
         Method to shift the induced voltage by a revolution period in the
@@ -420,7 +435,7 @@ class _InducedVoltage(object):
         # circular convolution
         self.mtw_memory[-int(self.buffer_size):] = 0
 
-
+    @timing.timeit(key='serial:shift_trev_time')
     def shift_trev_time(self):
         """
         Method to shift the induced voltage by a revolution period in the
@@ -440,7 +455,7 @@ class _InducedVoltage(object):
 
         self.induced_voltage_generation()
         
-        if (bm.get_exec_mode()=='GPU'):
+        if (bm.gpuMode()):
             bm.linear_interp_kick(voltage=self.dev_induced_voltage,
                               dev_bin_centers=self.profile.dev_bin_centers,
                               charge=self.beam.Particle.charge,
@@ -672,7 +687,7 @@ class InductiveImpedance(_InducedVoltage):
         #ii_update_funcs(self)
         super().use_gpu(is_ii = True)
         
-    
+    @timing.timeit(key='serial:InductiveImped')
     def induced_voltage_1turn(self, beam_spectrum_dict={}):
         """
         Method to calculate the induced voltage through the derivative of the

@@ -29,7 +29,8 @@ from gpublond.beam.distributions import bigaussian
 from gpublond.beam.profile import CutOptions, FitOptions, Profile
 from gpublond.monitors.monitors import BunchMonitor
 from gpublond.plots.plot import Plot
-from gpublond.utils.bmath import use_gpu
+from gpublond.utils import bmath as bm
+# from gpublond.utils.bmath import use_gpu
 import os
 print(sys.argv)
 if (len(sys.argv)<3):
@@ -37,7 +38,7 @@ if (len(sys.argv)<3):
     exit(0)
 
 if (len(sys.argv)==4):
-    use_gpu()
+    bm.use_gpu()
     print("Using Gpu")
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'

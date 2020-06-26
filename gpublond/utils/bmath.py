@@ -9,7 +9,6 @@ import numpy as np
 from ..utils import butils_wrap
 from ..utils import bphysics_wrap
 from numpy import fft
-gpu_num = 0
 
 def enable_gpucache():
     from ..utils import cucache as cc
@@ -19,14 +18,15 @@ def disable_gpucache():
     cc.disable_cache()
 #except:
 #    pass
+__gpu_id = 0
 __exec_mode = 'single_node'
-__second_exec_mode = 'single_node'
+# __second_exec_mode = 'single_node'
 # Other modes: multi_node
-gpu_num = 0
+# gpu_num = 0
 
-def get_exec_mode():
-    global __exec_mode
-    return __exec_mode
+# def get_exec_mode():
+#     global __exec_mode
+#     return __exec_mode
 # dictionary storing the CPU versions of the desired functions #
 
 
@@ -87,18 +87,39 @@ _MPI_func_dict = {
 }
 
 
+# def use_mpi():
+#     '''
+#     Replace some bm functions with MPI implementations
+#     '''
+#     global __second_exec_mode
+#     globals().update(_MPI_func_dict)
+#     __second_exec_mode = 'multi_node'
+
+
+# def mpiMode():
+#     global __second_exec_mode
+#     return __second_exec_mode == 'multi_node'
+
+
+
 def use_mpi():
     '''
     Replace some bm functions with MPI implementations
     '''
-    global __second_exec_mode
+    global __exec_mode
     globals().update(_MPI_func_dict)
-    __second_exec_mode = 'multi_node'
+    __exec_mode = 'multi_node'
 
 
 def mpiMode():
-    global __second_exec_mode
-    return __second_exec_mode == 'multi_node'
+    global __exec_mode
+    return __exec_mode == 'multi_node'
+
+def gpuMode():
+    return globals()['device'] == 'GPU'
+
+def gpuId():
+    return __gpu_id
 
 
 def use_fftw():
@@ -137,19 +158,21 @@ update_active_dict(_CPU_func_dict)
 ################################################################################
 
 def stop_gpu():
-    global __exec_mode
+    # global __exec_mode
     update_active_dict(_CPU_func_dict)
-    __exec_mode = 'single_node'
+    # __exec_mode = 'single_node'
 
 def use_gpu(my_gpu_num=0):
-    import traceback
+    # import traceback
     print("USING GPU")
-    global __exec_mode,gpu_num
+    global __gpu_id
+    # global __exec_mode,gpu_num
     from pycuda import driver as drv
     import atexit
 
-    gpu_num = my_gpu_num
-    __exec_mode = 'GPU'
+    # gpu_num = my_gpu_num
+    __gpu_id = my_gpu_num
+    # __exec_mode = 'GPU'
     #drv.init()
     #dev = drv.Device(gpu_num)
     #ctx = dev.make_context()

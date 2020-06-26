@@ -19,12 +19,17 @@ from builtins import object
 import numpy as np
 # from numpy.fft import rfft, rfftfreq
 from scipy import ndimage
-import ctypes
 from ..toolbox import filters_and_fitting as ffroutines
 from ..utils import bmath as bm
-from ..utils.bmath import get_exec_mode
+# from ..utils.bmath import get_exec_mode
 from ..gpu.cpu_gpu_array import CGA
 
+try:
+    from pyprof import timing
+    # from pyprof import mpiprof
+except ImportError:
+    from ..utils import profile_mock as timing
+    # mpiprof = timing
 
 class CutOptions(object):
     r"""
@@ -428,10 +433,9 @@ class Profile(object):
         global gpuarray,drv
         from ..gpu.gpu_profile import funcs_update
         from pycuda import gpuarray, driver as drv, tools
-        from ..utils.bmath import gpu_num
 
         drv.init()
-        dev = drv.Device(gpu_num)
+        dev = drv.Device(bm.gpuId())
         
         funcs_update(self)
 
@@ -483,50 +487,51 @@ class Profile(object):
         
         for op in self.operations:
             op()
-    
-    def _slice(self, reduce=True):
+
+    @timing.timeit(key='comp:histo')
+    def _slice(self):
         """
         Constant space slicing with a constant frame.
         """
         bm.slice(self.Beam.dt, self.n_macroparticles, self.cut_left,
                 self.cut_right, self.Beam)
+        
+        if bm.mpiMode():
+            self.reduce_histo()
          
-         
-    def reduce_histo(self):
-        from ..utils.mpi_config import worker
-
-        self.n_macroparticles = self.n_macroparticles.astype(
-                    np.uint32, order='C')
-
-        worker.allreduce(self.n_macroparticles, dtype=np.uint32)
-
-        self.n_macroparticles = self.n_macroparticles.astype(
-                    np.float64, order='C')
-
     def reduce_histo(self, dtype=np.uint32):
         if not bm.mpiMode():
             raise RuntimeError(
                 'ERROR: Cannot use this routine unless in MPI Mode')
 
         from ..utils.mpi_config import worker
+        worker.sync()
+        if self.Beam.is_splitted:
 
-        self.n_macroparticles = self.n_macroparticles.astype(
-                    dtype, order='C')
+            with timing.timed_region('serial:conversion'):
+                # with mpiprof.traced_region('serial:conversion'):
+                self.n_macroparticles = self.n_macroparticles.astype(
+                    np.uint32, order='C')
 
-        worker.allreduce(self.n_macroparticles)
+            worker.allreduce(self.n_macroparticles, dtype=np.uint32, operator='custom_sum')
 
-       
-        self.n_macroparticles = self.n_macroparticles.astype(
-                    np.float64, order='C')
+            with timing.timed_region('serial:conversion'):
+                # with mpiprof.traced_region('serial:conversion'):
+                self.n_macroparticles = self.n_macroparticles.astype(dtype=np.float64, order='C', copy=False)
 
+
+    @timing.timeit(key='serial:scale_histo')
+    # @mpiprof.traceit(key='serial:scale_histo')
     def scale_histo(self):
         if not bm.mpiMode():
             raise RuntimeError(
                 'ERROR: Cannot use this routine unless in MPI Mode')
-        
+
         from ..utils.mpi_config import worker
-        bm.mul(self.n_macroparticles, worker.workers, self.n_macroparticles)
-        
+        if self.Beam.is_splitted:
+            bm.mul(self.n_macroparticles, worker.workers, self.n_macroparticles)
+
+          
     def _slice_smooth(self, reduce=True):
         """
         At the moment 4x slower than _slice but smoother (filtered).
@@ -605,12 +610,13 @@ class Profile(object):
         """
 
         self.beam_spectrum_freq = bm.rfftfreq(n_sampling_fft, self.bin_size)
-        
+
+    @timing.timeit(key='serial:beam_spectrum_gen')
     def beam_spectrum_generation(self, n_sampling_fft):
         """
         Beam spectrum calculation
         """
-        if (bm.get_exec_mode()=='GPU'):
+        if (bm.gpuMode()):
             self.dev_beam_spectrum = bm.rfft(self.dev_n_macroparticles, n_sampling_fft)
         else:
             self.beam_spectrum = bm.rfft(self.n_macroparticles, n_sampling_fft)

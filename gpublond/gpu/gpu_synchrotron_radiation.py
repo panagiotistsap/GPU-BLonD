@@ -1,11 +1,9 @@
 from pycuda import gpuarray, driver as drv, tools
-from ..utils.bmath as bm
+from ..utils import bmath as bm
 from types import MethodType
 
 drv.init()
-dev = drv.Device(bm.gpu_num)   
-
-
+dev = drv.Device(bm.gpuId())
 
 
 def update_synch_rad(obj):
@@ -26,10 +24,12 @@ def track_SR_cuda(self):
         self.calculate_SR_params()
 
     bm.synchrotron_radiation(self.beam.dev_dE, self.U0,
-                                self.n_kicks, self.tau_z)
+                             self.n_kicks, self.tau_z)
 
-# Track particles with SR and quantum excitation. 
+# Track particles with SR and quantum excitation.
 # Cuda implementation
+
+
 def track_full_cuda(self):
     i_turn = self.rf_params.counter[0]
     # Recalculate SR parameters if energy changes
@@ -38,5 +38,5 @@ def track_full_cuda(self):
         self.calculate_SR_params()
 
     bm.synchrotron_radiation_full(self.beam.dev_dE, self.U0, self.n_kicks,
-                                   self.tau_z, self.sigma_dE,
-                                   self.general_params.energy[0, i_turn])
+                                  self.tau_z, self.sigma_dE,
+                                  self.general_params.energy[0, i_turn])
