@@ -15,15 +15,15 @@ Test case to show how to use radial loop (CERN PS Booster context).
 
 from __future__ import division, print_function
 import numpy as np
-from gpublond.input_parameters.ring import Ring
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
-from gpublond.beam.distributions import matched_from_distribution_function
-from gpublond.monitors.monitors import BunchMonitor
-from gpublond.beam.profile import Profile, CutOptions
-from gpublond.beam.beam import Beam, Proton
-from gpublond.plots.plot import Plot
-from gpublond.llrf.beam_feedback import BeamFeedback
+from blond.input_parameters.ring import Ring
+from blond.input_parameters.rf_parameters import RFStation
+from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from blond.beam.distributions import matched_from_distribution_function
+from blond.monitors.monitors import BunchMonitor
+from blond.beam.profile import Profile, CutOptions
+from blond.beam.beam import Beam, Proton
+from blond.plots.plot import Plot
+from blond.llrf.beam_feedback import BeamFeedback
 import os
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
@@ -123,7 +123,7 @@ parser.add_argument('-d', default = False, action='store_true')
 args = parser.parse_args()
 print(args)
 if (args.g):
-    import gpublond.utils.bmath as bm
+    import blond.utils.bmath as bm
     bm.use_gpu()
     bm.enable_gpucache()
     for m in map_:

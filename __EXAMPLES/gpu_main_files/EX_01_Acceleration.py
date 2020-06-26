@@ -19,14 +19,14 @@ from builtins import range
 import numpy as np
 
 #  gpublond Imports
-from gpublond.input_parameters.ring import Ring
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.trackers.tracker import RingAndRFTracker
-from gpublond.beam.beam import Beam, Proton
-from gpublond.beam.distributions import bigaussian
-from gpublond.beam.profile import CutOptions, FitOptions, Profile
-from gpublond.monitors.monitors import BunchMonitor
-from gpublond.plots.plot import Plot
+from blond.input_parameters.ring import Ring
+from blond.input_parameters.rf_parameters import RFStation
+from blond.trackers.tracker import RingAndRFTracker
+from blond.beam.beam import Beam, Proton
+from blond.beam.distributions import bigaussian
+from blond.beam.profile import CutOptions, FitOptions, Profile
+from blond.monitors.monitors import BunchMonitor
+from blond.plots.plot import Plot
 import os
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
@@ -105,7 +105,7 @@ test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
 timing_kind = "cpu"
 
 ### to use gpu uncomment the following lines
-import gpublond.utils.bmath as bm
+import blond.utils.bmath as bm
 # bm.use_gpu()
 # bm.enable_gpucache()
 # long_tracker.use_gpu()

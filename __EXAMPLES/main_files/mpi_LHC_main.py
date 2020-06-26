@@ -13,36 +13,36 @@ import numpy as np
 
 from pyprof import timing
 from pyprof import mpiprof
-from gpublond.monitors.monitors import SlicesMonitor
-from gpublond.toolbox.next_regular import next_regular
-from gpublond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
-from gpublond.impedances.impedance_sources import InputTable
-from gpublond.beam.profile import Profile, CutOptions
-from gpublond.beam.distributions import bigaussian
-from gpublond.beam.beam import Beam, Proton
-from gpublond.llrf.rf_noise import FlatSpectrum, LHCNoiseFB
-from gpublond.llrf.beam_feedback import BeamFeedback
-from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.input_parameters.ring import Ring
-from gpublond.utils import bmath as bm
-# from gpublond.utils.bmath import use_gpu,use_mpi
+from blond.monitors.monitors import SlicesMonitor
+from blond.toolbox.next_regular import next_regular
+from blond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
+from blond.impedances.impedance_sources import InputTable
+from blond.beam.profile import Profile, CutOptions
+from blond.beam.distributions import bigaussian
+from blond.beam.beam import Beam, Proton
+from blond.llrf.rf_noise import FlatSpectrum, LHCNoiseFB
+from blond.llrf.beam_feedback import BeamFeedback
+from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from blond.input_parameters.rf_parameters import RFStation
+from blond.input_parameters.ring import Ring
+from blond.utils import bmath as bm
+# from blond.utils.bmath import use_gpu,use_mpi
 try:
-    from gpublond.utils.bmath import enable_gpucache
+    from blond.utils.bmath import enable_gpucache
 except:
     pass
-# from gpublond.utils import bmath as bm
+# from blond.utils import bmath as bm
 from joblib import dump
-from gpublond.utils.mpi_config import worker, mpiprint
+from blond.utils.mpi_config import worker, mpiprint
 
 REAL_RAMP = True    # track full ramp
 MONITORING = False   # turn off plots and monitors
 
 if MONITORING:
-    from gpublond.monitors.monitors import BunchMonitor
-    from gpublond.plots.plot import Plot
-    from gpublond.plots.plot_beams import plot_long_phase_space
-    from gpublond.plots.plot_slices import plot_beam_profile
+    from blond.monitors.monitors import BunchMonitor
+    from blond.plots.plot import Plot
+    from blond.plots.plot_beams import plot_long_phase_space
+    from blond.plots.plot_slices import plot_beam_profile
 
 import argparse
 

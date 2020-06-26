@@ -14,17 +14,17 @@ from SPSimpedanceModel.impedance_scenario import scenario, impedance2gpublond
 from impedance_reduction_dir.impedance_reduction import ImpedanceReduction
 
 # gpublond imports
-from gpublond.beam.distributions import matched_from_distribution_function
-from gpublond.input_parameters.ring import Ring
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.beam.beam import Beam, Proton
-from gpublond.beam.profile import Profile, CutOptions
-from gpublond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
-from gpublond.impedances.impedance_sources import TravelingWaveCavity
-from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
-from gpublond.llrf.beam_feedback import BeamFeedback
-from gpublond.monitors.monitors import SlicesMonitor
-from gpublond.utils import bmath as bm
+from blond.beam.distributions import matched_from_distribution_function
+from blond.input_parameters.ring import Ring
+from blond.input_parameters.rf_parameters import RFStation
+from blond.beam.beam import Beam, Proton
+from blond.beam.profile import Profile, CutOptions
+from blond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
+from blond.impedances.impedance_sources import TravelingWaveCavity
+from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from blond.llrf.beam_feedback import BeamFeedback
+from blond.monitors.monitors import SlicesMonitor
+from blond.utils import bmath as bm
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 
