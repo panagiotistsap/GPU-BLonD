@@ -1,20 +1,26 @@
-from __future__ import division
-from builtins import object
+# from __future__ import division
+# from builtins import object
 import numpy as np
 from types import MethodType
 from ..utils import bmath as bm
 from ..utils.cucache import get_gpuarray
 from pycuda.compiler import SourceModule
-import pycuda.reduction as reduce
+# import pycuda.reduction as reduce
 from pycuda.elementwise import ElementwiseKernel
 from ..gpu.gpu_butils_wrap import gpu_diff, cugradient, gpu_copy_d2d, gpu_interp
 
-from pycuda import gpuarray, driver as drv, tools
+from pycuda import gpuarray
+# , driver as drv, tools
+from ..gpu import grid_size, block_size
+try:
+    from pyprof import timing
+except ImportError:
+    from ..utils import profile_mock as timing
 
-drv.init()
-dev = drv.Device(bm.gpuId())
+# drv.init()
+# dev = drv.Device(bm.gpuId())
 
-
+@timing.timeit(key='comp:histo')
 def gpu_slice(self, reduce=True):
     """
     Constant space slicing with a constant frame.
@@ -35,7 +41,7 @@ def funcs_update(prof):
         if (prof.operations[i] == old_slice):
             prof.operations[i] = prof._slice
 
-
+@timing.timeit(key='serial:beam_spectrum_gen')
 def gpu_beam_spectrum_generation(self, n_sampling_fft):
     """
     Beam spectrum calculation
@@ -60,7 +66,7 @@ def gpu_beam_profile_derivative(self, mode='gradient', caller_id=None):
         else:
             derivative = gpuarray.zeros(x.size, dtype=np.float64)
         cugradient(np.float64(dist_centers), self.dev_n_macroparticles,
-                   derivative, np.int32(x.size), block=(1024, 1, 1), grid=(16, 1, 1))
+                   derivative, np.int32(x.size), block=block_size, grid=(16, 1, 1))
     elif mode == 'diff':
         if (caller_id):
             derivative = get_gpuarray(

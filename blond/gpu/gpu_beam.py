@@ -15,19 +15,20 @@ statistics
 """
 
 from __future__ import division
-from builtins import object
+# from builtins import object
 import numpy as np
-from time import sleep
-import traceback
+# from time import sleep
+# import traceback
 from ..utils import bmath as bm
 from pycuda.compiler import SourceModule
-import pycuda.reduction as reduce
-from pycuda import gpuarray, driver as drv, tools
+# import pycuda.reduction as reduce
+from pycuda import gpuarray
+# , driver as drv, tools
 from types import MethodType
 from ..gpu.gpu_butils_wrap import stdKernel, sum_non_zeros, mean_non_zeros
-
-drv.init()
-dev = drv.Device(bm.gpuId())
+from ..gpu import grid_size, block_size
+# drv.init()
+# dev = drv.Device(bm.gpuId())
 
 
 @property
@@ -73,7 +74,7 @@ def gpu_losses_longitudinal_cut(self, dt_min, dt_max):
     """)
     gllc = beam_ker.get_function("gpu_losses_longitudinal_cut")
     gllc(self.dev_dt, self.dev_id, np.int32(self.n_macroparticles), np.float64(dt_min), np.float64(dt_max),
-         grid=(160, 1, 1), block=(1024, 1, 1))
+         grid=grid_size, block=block_size)
     self.id_obj.invalidate_cpu()
 
 
@@ -96,7 +97,7 @@ def gpu_losses_energy_cut(self, dE_min, dE_max):
     """)
     glec = beam_ker.get_function("gpu_losses_energy_cut")
     glec(self.dev_dE, self.dev_id, np.int32(self.n_macroparticles), np.float64(dE_min), np.float64(dE_max),
-         grid=(160, 1, 1), block=(1024, 1, 1))
+         grid=grid_size, block=block_size)
     self.id_obj.invalidate_cpu()
 
 
@@ -118,7 +119,7 @@ def gpu_losses_below_energy(self, dE_min):
     """)
     glbe = beam_ker.get_function("gpu_losses_energy_cut")
     glbe(self.dev_dE, self.dev_id, np.int32(self.n_macroparticles), np.float64(dE_min),
-         grid=(160, 1, 1), block=(1024, 1, 1))
+         grid=grid_size, block=block_size)
     self.id_obj.invalidate_cpu()
 
 

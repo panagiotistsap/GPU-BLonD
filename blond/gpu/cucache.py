@@ -1,12 +1,13 @@
 import numpy as np
 from pycuda.compiler import SourceModule
-from pycuda import gpuarray, driver as drv, tools
+from pycuda import gpuarray
+# , driver as drv, tools
 import atexit
 from ..utils import bmath as bm
 
-drv.init()
+# drv.init()
 #assert ( driver.Device.count() >= 1)
-dev = drv.Device(bm.gpuId())
+# dev = drv.Device(bm.gpuId())
 # ctx = dev.make_context()
 # atexit.register(ctx.pop)
 

@@ -1,14 +1,17 @@
 import numpy as np
-try:
-    global gpuarray,drv
-    import pycuda.autoinit
-    from pycuda import gpuarray, driver as drv
-    from  ..utils import bmath as bm   
-except ModuleNotFoundError:
-    pass
+# try:
+#     global gpuarray,drv
+#     import pycuda.autoinit
+#     from pycuda import gpuarray
+#     from  ..utils import bmath as bm   
+# except ModuleNotFoundError:
+#     pass
+
+from pycuda import gpuarray
+# from  ..utils import bmath as bm   
 
 
-class my_gpuarray(pycuda.gpuarray.GPUArray):
+class my_gpuarray(gpuarray.GPUArray):
          
     def set_parent(self, parent):
         self.parent = parent

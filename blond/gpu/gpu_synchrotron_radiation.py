@@ -1,9 +1,10 @@
-from pycuda import gpuarray, driver as drv, tools
+from pycuda import gpuarray
+# , driver as drv, tools
 from ..utils import bmath as bm
 from types import MethodType
 
-drv.init()
-dev = drv.Device(bm.gpuId())
+# drv.init()
+# dev = drv.Device(bm.gpuId())
 
 
 def update_synch_rad(obj):

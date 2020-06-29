@@ -13,5 +13,5 @@ import pycuda.cumath as cm
 from pycuda import gpuarray, driver as drv, tools
 
 
-drv.init()
-dev = drv.Device(bm.gpu_num)
+# drv.init()
+# dev = drv.Device(bm.gpu_num)

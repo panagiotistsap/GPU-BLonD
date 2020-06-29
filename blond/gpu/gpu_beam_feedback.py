@@ -1,5 +1,6 @@
-from __future__ import division, print_function
-from builtins import range, object
+# from __future__ import division, print_function
+
+# from builtins import range, object
 import numpy as np
 from ..toolbox.next_regular import next_regular
 from ..utils import bmath as bm
@@ -9,17 +10,23 @@ from ..gpu.gpu_butils_wrap import gpu_copy_one, set_zero, triple_kernel,\
 from ..utils.cucache import get_gpuarray
 from ..utils.bphysics_wrap import beam_phase as cpu_beamphase
 import pycuda.cumath as cm
-from pycuda import gpuarray, driver as drv, tools
+from pycuda import gpuarray
+# from ..gpu import grid_size, block_size
+# , driver as drv, tools
+try:
+    from pyprof import timing
+except ImportError:
+    from ..utils import profile_mock as timing
 
 
-drv.init()
-dev = drv.Device(bm.gpuId())
+# drv.init()
+# dev = drv.Device(bm.gpuId())
 
 
-str1 = drv.Stream()
-str2 = drv.Stream()
+# str1 = drv.Stream()
+# str2 = drv.Stream()
 
-
+@timing.timeit(key='serial:beam_phase')
 def gpu_beam_phase(self):
     '''
     *Beam phase measured at the main RF frequency and phase. The beam is 
@@ -115,6 +122,7 @@ def gpu_track(self):
     self.rf_station.phi_rf_obj.invalidate_cpu()
 
 
+@timing.timeit(key='serial:beam_phase_sharpWindow')
 def gpu_beam_phase_sharpWindow(self):
     '''
     *Beam phase measured at the main RF frequency and phase. The beam is

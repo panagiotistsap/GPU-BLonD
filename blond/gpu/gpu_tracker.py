@@ -8,17 +8,21 @@ from ..gpu.gpu_butils_wrap import gpu_copy_d2d, first_kernel_tracker, second_ker
     copy_column, rf_voltage_calculation_kernel, cavityFB_case, add_kernel, gpu_rf_voltage_calc_mem_ops
 
 from pycuda.compiler import SourceModule
-from pycuda import gpuarray, driver as drv, tools
+from pycuda import gpuarray
+# , driver as drv, tools
+try:
+    from pyprof import timing
+except ImportError:
+    from ..utils import profile_mock as timing
 
-
-drv.init()
-dev = drv.Device(bm.gpuId())
+# drv.init()
+# dev = drv.Device(bm.gpuId())
 
 
 arrays_dict = {}
 
 
-def gpu_track(self):
+def gpu_pre_track(self):
     """Tracking method for the section. Applies first the kick, then the 
     drift. Calls also RF/beam feedbacks if applicable. Updates the counter
     of the corresponding RFStation class and the energy-related variables
@@ -30,13 +34,13 @@ def gpu_track(self):
     if self.phi_noise is not None:
         if self.noiseFB is not None:
 
-            first_kernel_tracker(self.rf_station.dev_phi_rf, self.noiseFB.x, self.dev_phi_noise,
-                                 self.rf_station.dev_phi_rf.shape[0], turn, slice=slice(0, self.rf_station.n_rf))
+            first_kernel_tracker(self.rf_params.dev_phi_rf, self.noiseFB.x, self.dev_phi_noise,
+                                 self.rf_params.dev_phi_rf.shape[0], turn, slice=slice(0, self.rf_params.n_rf))
             # self.phi_rf[:, turn] += \
             #     self.noiseFB.x * self.phi_noise[:, turn]
         else:
-            first_kernel_tracker(self.rf_station.dev_phi_rf, 1.0, self.rf_station.dev_phi_noise,
-                                 self.rf_station.dev_phi_rf.shape[0], turn, slice=slice(0, self.rf_station.n_rf))
+            first_kernel_tracker(self.rf_params.dev_phi_rf, 1.0, self.rf_params.dev_phi_noise,
+                                 self.rf_params.dev_phi_rf.shape[0], turn, slice=slice(0, self.rf_params.n_rf))
             # self.phi_rf[:, turn] += \
             #     self.phi_noise[:, turn]
 
@@ -53,6 +57,28 @@ def gpu_track(self):
 
     if self.beamFB is not None and turn >= self.beamFB.delay:
         self.beamFB.track()
+
+    # Update the RF phase of all systems for the next turn
+    # Accumulated phase offset due to beam phase loop or frequency offset
+    self.rf_params.dphi_rf += 2.*np.pi*self.rf_params.harmonic[:,turn+1]* \
+                              (self.rf_params.omega_rf[:,turn+1] -
+                               self.rf_params.omega_rf_d[:,turn+1]) / \
+                              self.rf_params.omega_rf_d[:,turn+1]
+
+    # Total phase offset
+    self.rf_params.phi_rf[:,turn+1] += self.rf_params.dphi_rf
+
+    if self.periodicity:
+        pass
+    else:
+        if self.rf_params.empty is False:
+            if self.interpolation:
+                self.rf_voltage_calculation()
+
+
+
+def gpu_track_only(self):
+    turn = self.counter[0]
 
     if self.periodicity:
 
@@ -107,7 +133,7 @@ def gpu_track(self):
     else:
         if self.rf_params.empty is False:
             if self.interpolation:
-                self.rf_voltage_calculation()
+                # self.rf_voltage_calculation()
                 self.dev_total_voltage = get_gpuarray(
                     (self.dev_rf_voltage.size, np.float64, id(self), "dtv"))
                 if self.totalInducedVoltage is not None:
@@ -115,11 +141,13 @@ def gpu_track(self):
                                self.totalInducedVoltage.dev_induced_voltage)
                 else:
                     self.dev_total_voltage = self.dev_rf_voltage
-                bm.linear_interp_kick(dev_voltage=self.dev_total_voltage,
-                                      dev_bin_centers=self.profile.dev_bin_centers,
-                                      charge=self.beam.Particle.charge,
-                                      acceleration_kick=self.acceleration_kick[turn],
-                                      beam=self.beam)
+                    
+                with timing.timed_region('comp:LIKick'):
+                    bm.linear_interp_kick(dev_voltage=self.dev_total_voltage,
+                                          dev_bin_centers=self.profile.dev_bin_centers,
+                                          charge=self.beam.Particle.charge,
+                                          acceleration_kick=self.acceleration_kick[turn],
+                                          beam=self.beam)
             else:
                 self.kick(turn)
         self.drift(turn + 1)
@@ -134,24 +162,25 @@ def gpu_track(self):
     self.counter[0] += 1
 
 
+@timing.timeit(key='serial:RFVCalc')
 def gpu_rf_voltage_calculation(self):
     """Function calculating the total, discretised RF voltage seen by the
     beam at a given turn. Requires a Profile object.
     """
 
     dev_voltages = get_gpuarray(
-        (self.rf_station.n_rf, np.float64, id(self), "v"))
+        (self.rf_params.n_rf, np.float64, id(self), "v"))
     dev_omega_rf = get_gpuarray(
-        (self.rf_station.n_rf, np.float64, id(self), "omega"))
+        (self.rf_params.n_rf, np.float64, id(self), "omega"))
     dev_phi_rf = get_gpuarray(
-        (self.rf_station.n_rf, np.float64, id(self), "phi"))
-    n_turns = self.rf_station.n_turns+1
+        (self.rf_params.n_rf, np.float64, id(self), "phi"))
+    n_turns = self.rf_params.n_turns+1
 
     sz = self.n_rf
-    my_end = self.rf_station.dev_voltage.size
+    my_end = self.rf_params.dev_voltage.size
     gpu_rf_voltage_calc_mem_ops(dev_voltages, dev_omega_rf, dev_phi_rf,
-                                self.rf_station.dev_voltage, self.rf_station.dev_omega_rf,
-                                self.rf_station.dev_phi_rf, np.int32(
+                                self.rf_params.dev_voltage, self.rf_params.dev_omega_rf,
+                                self.rf_params.dev_phi_rf, np.int32(
                                     self.counter[0]),
                                 np.int32(my_end), np.int32(n_turns), block=(32, 1, 1), grid=(1, 1, 1))
 
@@ -174,7 +203,7 @@ def gpu_rf_voltage_calculation(self):
                         self.profile.dev_bin_centers, self.dev_rf_voltage)
     #print("rf voltage mean, std", np.mean(self.dev_rf_voltage.get()), np.std(self.dev_rf_voltage.get()))
 
-
+@timing.timeit(key='comp:kick')
 def gpu_kick(self, index):
     """Function updating the particle energy due to the RF kick in a given
     RF station. The kicks are summed over the different harmonic RF systems
@@ -190,23 +219,23 @@ def gpu_kick(self, index):
     """
 
     dev_voltage = get_gpuarray(
-        (self.rf_station.n_rf, np.float64, id(self), "v"))
+        (self.rf_params.n_rf, np.float64, id(self), "v"))
     dev_omega_rf = get_gpuarray(
-        (self.rf_station.n_rf, np.float64, id(self), "omega"))
+        (self.rf_params.n_rf, np.float64, id(self), "omega"))
     dev_phi_rf = get_gpuarray(
-        (self.rf_station.n_rf, np.float64, id(self), "phi"))
+        (self.rf_params.n_rf, np.float64, id(self), "phi"))
 
-    my_end = self.rf_station.dev_voltage.size
+    my_end = self.rf_params.dev_voltage.size
 
-    dev_voltage[:] = self.rf_station.dev_voltage[index:my_end:self.rf_station.n_turns+1]
-    dev_omega_rf[:] = self.rf_station.dev_omega_rf[index:my_end:self.rf_station.n_turns+1]
-    dev_phi_rf[:] = self.rf_station.dev_phi_rf[index:my_end:self.rf_station.n_turns+1]
+    dev_voltage[:] = self.rf_params.dev_voltage[index:my_end:self.rf_params.n_turns+1]
+    dev_omega_rf[:] = self.rf_params.dev_omega_rf[index:my_end:self.rf_params.n_turns+1]
+    dev_phi_rf[:] = self.rf_params.dev_phi_rf[index:my_end:self.rf_params.n_turns+1]
 
     bm.kick(dev_voltage, dev_omega_rf, dev_phi_rf,
             self.charge, self.n_rf, self.acceleration_kick[index], self.beam)
     self.beam.dE_obj.invalidate_cpu()
 
-
+@timing.timeit(key='comp:drift')
 def gpu_drift(self, index):
     bm.drift(self.solver, self.t_rev[index],
              self.length_ratio, self.alpha_order, self.eta_0[index],
@@ -218,7 +247,8 @@ def gpu_drift(self, index):
 
 def tracker_funcs_update(obj):
     if (bm.gpuMode()):
-        obj.track = MethodType(gpu_track, obj)
+        obj.track_only = MethodType(gpu_track_only, obj)
+        obj.pre_track = MethodType(gpu_pre_track, obj)
         obj.rf_voltage_calculation = MethodType(gpu_rf_voltage_calculation, obj)
         obj.kick = MethodType(gpu_kick, obj)
         obj.drift = MethodType(gpu_drift, obj)

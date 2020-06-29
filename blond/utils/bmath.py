@@ -10,26 +10,12 @@ from ..utils import butils_wrap
 from ..utils import bphysics_wrap
 from numpy import fft
 
-def enable_gpucache():
-    from ..utils import cucache as cc
-    cc.enable_cache()
-def disable_gpucache():
-    from  ..utils import cucache as cc
-    cc.disable_cache()
-#except:
-#    pass
+
 __gpu_id = 0
 __exec_mode = 'single_node'
-# __second_exec_mode = 'single_node'
-# Other modes: multi_node
-# gpu_num = 0
+__gpu_dev = None
 
-# def get_exec_mode():
-#     global __exec_mode
-#     return __exec_mode
 # dictionary storing the CPU versions of the desired functions #
-
-
 _CPU_func_dict = {
     'rfft': fft.rfft,
     'irfft': fft.irfft,
@@ -86,19 +72,12 @@ _MPI_func_dict = {
 
 }
 
-
-# def use_mpi():
-#     '''
-#     Replace some bm functions with MPI implementations
-#     '''
-#     global __second_exec_mode
-#     globals().update(_MPI_func_dict)
-#     __second_exec_mode = 'multi_node'
-
-
-# def mpiMode():
-#     global __second_exec_mode
-#     return __second_exec_mode == 'multi_node'
+def use_fftw():
+    '''
+    Replace the existing rfft and irfft implementations
+    with the ones coming from butils_wrap.
+    '''
+    globals().update(_FFTW_func_dict)
 
 
 
@@ -121,65 +100,41 @@ def gpuMode():
 def gpuId():
     return __gpu_id
 
-
-def use_fftw():
-    '''
-    Replace the existing rfft and irfft implementations
-    with the ones coming from butils_wrap.
-    '''
-    globals().update(_FFTW_func_dict)
+def enable_gpucache():
+    from ..gpu import cucache as cc
+    cc.enable_cache()
 
 
-def update_active_dict(new_dict):
-    '''
-    Update the currently active dictionary. Removes the keys of the currently
-    active dictionary from globals() and spills the keys
-    from new_dict to globals()
-    Args:
-        new_dict A dictionary which contents will be spilled to globals()
-    '''
-    if not hasattr(update_active_dict, 'active_dict'):
-        update_active_dict.active_dict = new_dict
-
-    # delete all old implementations/references from globals()
-    for key in update_active_dict.active_dict.keys():
-        if key in globals():
-            del globals()[key]
-    # for key in globals().keys():
-    #     if key in update_active_dict.active_dict.keys():
-    #         del globals()[key]
-    # add the new active dict to the globals()
-    globals().update(new_dict)
-    update_active_dict.active_dict = new_dict
+def disable_gpucache():
+    from  ..gpu import cucache as cc
+    cc.disable_cache()
 
 
-################################################################################
-update_active_dict(_CPU_func_dict)
-################################################################################
+def gpuDev():
+    return __gpu_dev
 
 def stop_gpu():
-    # global __exec_mode
     update_active_dict(_CPU_func_dict)
-    # __exec_mode = 'single_node'
 
 def use_gpu(my_gpu_num=0):
     # import traceback
-    print("USING GPU")
-    global __gpu_id
-    # global __exec_mode,gpu_num
+    # import pycuda.autoinit
+    from ..gpu import gpu_physics_wrap
+    from ..gpu import gpu_butils_wrap
     from pycuda import driver as drv
     import atexit
 
-    # gpu_num = my_gpu_num
+
+    print("USING GPU")
+    global __gpu_id
+    global __gpu_dev
+
     __gpu_id = my_gpu_num
-    # __exec_mode = 'GPU'
-    #drv.init()
-    #dev = drv.Device(gpu_num)
+    drv.init()
+    __gpu_dev = drv.Device(__gpu_id)
+
     #ctx = dev.make_context()
     #atexit.register(ctx.pop)
-    import pycuda.autoinit
-    from ..gpu import gpu_physics_wrap
-    from ..gpu import gpu_butils_wrap
    
     
     _GPU_func_dict = {
@@ -230,3 +185,32 @@ def use_gpu(my_gpu_num=0):
     update_active_dict(_GPU_func_dict)
 # print ('Available functions on GPU:\n' + str(_CPU_numpy_func_dict.keys()))
 # print ('Available functions on CPU:\n' + str(_GPU_func_dict.keys()))
+
+
+def update_active_dict(new_dict):
+    '''
+    Update the currently active dictionary. Removes the keys of the currently
+    active dictionary from globals() and spills the keys
+    from new_dict to globals()
+    Args:
+        new_dict A dictionary which contents will be spilled to globals()
+    '''
+    if not hasattr(update_active_dict, 'active_dict'):
+        update_active_dict.active_dict = new_dict
+
+    # delete all old implementations/references from globals()
+    for key in update_active_dict.active_dict.keys():
+        if key in globals():
+            del globals()[key]
+    # for key in globals().keys():
+    #     if key in update_active_dict.active_dict.keys():
+    #         del globals()[key]
+    # add the new active dict to the globals()
+    globals().update(new_dict)
+    update_active_dict.active_dict = new_dict
+
+
+################################################################################
+update_active_dict(_CPU_func_dict)
+################################################################################
+

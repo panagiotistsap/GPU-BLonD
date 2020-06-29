@@ -8,13 +8,15 @@ from pycuda.compiler import SourceModule
 import traceback
 from ..utils.cucache import get_gpuarray
 import pycuda.reduction as reduce
-from pycuda import gpuarray, driver as drv, tools
+from pycuda import gpuarray
+# , driver as drv, tools
+from ..gpu import grid_size, block_size
 import atexit
 from ..utils import bmath as bm
 
-drv.init()
+# drv.init()
 #assert ( driver.Device.count() >= 1)
-dev = drv.Device(bm.gpuId())
+# dev = drv.Device(bm.gpuId())
 
 
 integrate.init()
@@ -52,7 +54,7 @@ class myElementwiseKernel:
         else:
             step = kwargs['slice'].step
         # blocks = 1+( np.int32(kwargs['slice'].stop-np.int32(kwargs['slice'].start)/step
-        self.my_func(*args, np.int32(kwargs['slice'].start), np.int32(kwargs['slice'].stop), np.int32(step), block=(1024, 1, 1), grid=(2*dev.MULTIPROCESSOR_COUNT, 1, 1), time_kernel=True)
+        self.my_func(*args, np.int32(kwargs['slice'].start), np.int32(kwargs['slice'].stop), np.int32(step), block=block_size, grid=grid_size, time_kernel=True)
 
 
 #ElementwiseKernel = ElementwiseKernel
@@ -340,7 +342,7 @@ gpu_trapz = reduce.ReductionKernel(np.float64, neutral="0", reduce_expr="a+b",
 def gpu_trapz_2(ar1, dx, sz):
     res = gpuarray.zeros(1, np.float64)
     custom_gpu_trapz(ar1, np.float64(dx), np.int32(
-        sz), res, block=(1024, 1, 1), grid=(1, 1, 1))
+        sz), res, block=block_size, grid=(1, 1, 1))
     return res[0].get()
     # return gpu_trapz(ar1, np.float64(dx), sz).get()
     # return custom_trapz(ar1.get(), dx)
