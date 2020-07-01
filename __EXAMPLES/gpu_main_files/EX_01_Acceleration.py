@@ -89,11 +89,11 @@ profile = Profile(beam, CutOptions(n_slices=100),
 bunchmonitor = BunchMonitor(ring, rf, beam,
                             this_directory + '../output_files/EX_01_output_data', Profile=profile)
 
-format_options = {'dirname': this_directory + '../output_files/EX_01_fig'}
-plots = Plot(ring, rf, beam, dt_plt, N_t, 0, 0.0001763*h,
-             -400e6, 400e6, xunit='rad', separatrix_plot=True,
-             Profile=profile, h5file=this_directory + '../output_files/EX_01_output_data',
-             format_options=format_options)
+# format_options = {'dirname': this_directory + '../output_files/EX_01_fig'}
+# plots = Plot(ring, rf, beam, dt_plt, N_t, 0, 0.0001763*h,
+#              -400e6, 400e6, xunit='rad', separatrix_plot=True,
+#              Profile=profile, h5file=this_directory + '../output_files/EX_01_output_data',
+#              format_options=format_options)
 
 # For testing purposes
 test_string = ''
@@ -106,11 +106,11 @@ timing_kind = "cpu"
 
 ### to use gpu uncomment the following lines
 import blond.utils.bmath as bm
-# bm.use_gpu()
-# bm.enable_gpucache()
-# long_tracker.use_gpu()
-# profile.use_gpu()
-# timing_kind = "gpu"
+bm.use_gpu()
+bm.enable_gpucache()
+long_tracker.use_gpu()
+profile.use_gpu()
+timing_kind = "gpu"
 
 # Accelerator map
 map_ = [long_tracker] + [profile] #+ [bunchmonitor] + [plots]
@@ -138,9 +138,8 @@ for i in range(1, N_t+1):
     
     # Define losses according to separatrix and/or longitudinal position
     # these two operations are quite slow in the gpu
-    beam.losses_separatrix(ring, rf)
-    sbeam.losses_longitudinal_cut(0., 2.5e-9)
-        pass
+    # beam.losses_separatrix(ring, rf)
+    # beam.losses_longitudinal_cut(0., 2.5e-9)
 
 # For testing purposes
 test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(

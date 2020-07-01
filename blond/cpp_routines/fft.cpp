@@ -15,7 +15,7 @@
 #include <fftw3.h>
 #include <functional>
 #include <iostream>
-
+#include "openmp.h"
 
 // FFTW_PATIENT: run a lot of ffts to discover the best plan.
 // Will not use the multithreaded version unless the fft size

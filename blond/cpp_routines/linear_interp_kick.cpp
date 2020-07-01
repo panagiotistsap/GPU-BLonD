@@ -15,7 +15,7 @@ Project website: http://blond.web.cern.ch/
 #include <stdlib.h>
 #include <math.h>
 #include <cmath>
-
+#include "openmp.h"
 
 extern "C" void linear_interp_kick(double * __restrict__ beam_dt,
                                    double * __restrict__ beam_dE,
