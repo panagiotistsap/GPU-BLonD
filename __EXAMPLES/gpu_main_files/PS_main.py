@@ -22,6 +22,10 @@ from blond.impedances.impedance_sources import Resonators
 from blond.monitors.monitors import SlicesMonitor
 # from blond.utils.bmath import use_gpu,get_exec_mode
 from blond.utils import bmath as bm
+from blond.utils import input_parser
+
+args = input_parser.parse()
+
 try:
     from blond.utils.bmath import enable_gpucache
 except:
@@ -41,15 +45,15 @@ cmap = colormap.cmap_white_blue_red
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 inputDir = os.path.join(this_directory, '../input_files/PS/')
 
-import argparse
+# import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-c', default = False, action='store_true')
-parser.add_argument('-g', default = False, action='store_true')
-parser.add_argument('-b', type=int, required = True)
-parser.add_argument('-d', default = False, action='store_true')
-args = parser.parse_args()
-print(args)
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-c', default = False, action='store_true')
+# parser.add_argument('-g', default = False, action='store_true')
+# parser.add_argument('-b', type=int, required = True)
+# parser.add_argument('-d', default = False, action='store_true')
+# args = parser.parse_args()
+# print(args)
 
 
 # Simulation parameters -------------------------------------------------------
@@ -382,11 +386,11 @@ match_beam_from_distribution(beam, full_tracker, ring,
 print("Tracking starts")
 
 # if you want to use gpu 
-# print("using gpu")
-# bm.use_gpu()
-# PS_longitudinal_intensity.use_gpu()
-# tracker.use_gpu()
-# enable_gpucache()
+if args['gpu'] == 1:
+  bm.use_gpu()
+  PS_longitudinal_intensity.use_gpu()
+  tracker.use_gpu()
+  bm.enable_gpucache()
 
 for turn in range(n_iterations):
 
@@ -403,5 +407,9 @@ for turn in range(n_iterations):
     PS_longitudinal_intensity.induced_voltage_sum()
     tracker.track()
 
-print("dE std :", np.std(beam.dE))
-print("dt std :", np.mean(beam.dt))
+print('dE mean: ', np.mean(beam.dE))
+print('dE std: ', np.std(beam.dE))
+print('profile mean: ', np.mean(profile.n_macroparticles))
+print('profile std: ', np.std(profile.n_macroparticles))
+print('Done!')
+

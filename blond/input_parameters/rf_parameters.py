@@ -370,21 +370,22 @@ class RFStation(object):
     def use_gpu(self):
         from ..gpu.cpu_gpu_array import CGA
         
-        global gpuarray,drv
+        # global gpuarray
         from pycuda.compiler import SourceModule
-        from pycuda import gpuarray, driver as drv, tools
+        from pycuda import gpuarray
+        # , driver as drv, tools
 
-        drv.init()
-        dev = drv.Device(bm.gpuId())
-        if (self.phi_modulation!=None):
-            self.dev_phi_modulation = (gpuarray.to_gpu(dPhi),gpuarray.to_gpu(dOmega))
-        else:
+        # drv.init()
+        # dev = drv.Device(bm.gpuId())
+        if (self.phi_modulation is None):
             self.dev_phi_modulation = None
-            
-        if (self.phi_noise != None):
-            self.dev_phi_noise = gpuarray.to_gpu(self.phi_noise.flatten())
         else:
+            self.dev_phi_modulation = (gpuarray.to_gpu(dPhi),gpuarray.to_gpu(dOmega))
+            
+        if (self.phi_noise is None):
             self.dev_phi_noise = None
+        else:
+            self.dev_phi_noise = gpuarray.to_gpu(self.phi_noise.flatten())
 
         ## gpu properties    
 

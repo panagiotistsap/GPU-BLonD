@@ -27,8 +27,10 @@ from blond.beam.distributions import bigaussian
 from blond.beam.profile import CutOptions, FitOptions, Profile
 from blond.monitors.monitors import BunchMonitor
 from blond.plots.plot import Plot
+from blond.utils import input_parser
 import os
 
+args = input_parser.parse()
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 try:
@@ -89,11 +91,11 @@ profile = Profile(beam, CutOptions(n_slices=100),
 bunchmonitor = BunchMonitor(ring, rf, beam,
                             this_directory + '../output_files/EX_01_output_data', Profile=profile)
 
-# format_options = {'dirname': this_directory + '../output_files/EX_01_fig'}
-# plots = Plot(ring, rf, beam, dt_plt, N_t, 0, 0.0001763*h,
-#              -400e6, 400e6, xunit='rad', separatrix_plot=True,
-#              Profile=profile, h5file=this_directory + '../output_files/EX_01_output_data',
-#              format_options=format_options)
+format_options = {'dirname': this_directory + '../output_files/EX_01_fig'}
+plots = Plot(ring, rf, beam, dt_plt, N_t, 0, 0.0001763*h,
+             -400e6, 400e6, xunit='rad', separatrix_plot=True,
+             Profile=profile, h5file=this_directory + '../output_files/EX_01_output_data',
+             format_options=format_options)
 
 # For testing purposes
 test_string = ''
@@ -105,12 +107,13 @@ test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
 timing_kind = "cpu"
 
 ### to use gpu uncomment the following lines
-import blond.utils.bmath as bm
-bm.use_gpu()
-bm.enable_gpucache()
-long_tracker.use_gpu()
-profile.use_gpu()
-timing_kind = "gpu"
+if args['gpu'] == 1:
+    import blond.utils.bmath as bm
+    bm.use_gpu()
+    bm.enable_gpucache()
+    long_tracker.use_gpu()
+    profile.use_gpu()
+    timing_kind = "gpu"
 
 # Accelerator map
 map_ = [long_tracker] + [profile] #+ [bunchmonitor] + [plots]
@@ -141,12 +144,17 @@ for i in range(1, N_t+1):
     # beam.losses_separatrix(ring, rf)
     # beam.losses_longitudinal_cut(0., 2.5e-9)
 
+print('dE mean: ', np.mean(beam.dE))
+print('dE std: ', np.std(beam.dE))
+print('profile mean: ', np.mean(profile.n_macroparticles))
+print('profile std: ', np.std(profile.n_macroparticles))
+
 # For testing purposes
 test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
     np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
 with open(this_directory + '../output_files/EX_01_test_data.txt', 'w') as f:
     f.write(test_string)
 beam.statistics()
-print(beam.mean_dt)
-print(beam.sigma_dt)
+# print(beam.mean_dt)
+# print(beam.sigma_dt)
 print("Done!")

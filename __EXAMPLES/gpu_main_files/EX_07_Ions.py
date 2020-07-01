@@ -29,6 +29,10 @@ from blond.beam.profile import Profile, CutOptions
 from blond.beam.beam import Beam, Particle
 from blond.plots.plot import Plot
 import os
+from blond.utils import input_parser
+
+args = input_parser.parse()
+
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 try:
@@ -138,13 +142,13 @@ map_ = [long_tracker] + [slice_beam]# + [bunchmonitor] + [plots]
 print("Map set")
 print("")
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('-g', default = False, action='store_true')
-parser.add_argument('-d', default = False, action='store_true')
-args = parser.parse_args()
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-g', default = False, action='store_true')
+# parser.add_argument('-d', default = False, action='store_true')
+# args = parser.parse_args()
 print(args)
-if (args.g):
+if (args['gpu'] == 1):
     import blond.utils.bmath as bm
     bm.use_gpu()
     bm.enable_gpucache()
@@ -173,13 +177,15 @@ for i in range(1, N_t+1):
     # beam.losses_separatrix(general_params, rf_params)
    
 # For testing purposes
-# test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-#     np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
-# with open(this_directory + '../output_files/EX_07_test_data.txt', 'w') as f:
-#     f.write(test_string)
+test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
+    np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
+with open(this_directory + '../output_files/EX_07_test_data.txt', 'w') as f:
+    f.write(test_string)
 
-if (args.d):
-    print(np.std(beam.dt))
-    print(np.std(slice_beam.n_macroparticles))
+print('dE mean: ', np.mean(beam.dE))
+print('dE std: ', np.std(beam.dE))
+print('profile mean: ', np.mean(slice_beam.n_macroparticles))
+print('profile std: ', np.std(slice_beam.n_macroparticles))
+
    
 print("Done!")

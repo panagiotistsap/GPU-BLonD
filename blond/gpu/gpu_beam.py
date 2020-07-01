@@ -125,7 +125,7 @@ def gpu_losses_below_energy(self, dE_min):
 
 def gpu_statistics(self):
     ones_sum = sum_non_zeros(self.dev_id).get()
-    print(self.dev_id.dtype)
+    # print(self.dev_id.dtype)
     self.ones_sum = ones_sum
     self.mean_dt = np.float64(mean_non_zeros(
         self.dev_dt, self.dev_id).get()/ones_sum)

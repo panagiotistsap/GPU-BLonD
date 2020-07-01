@@ -25,6 +25,9 @@ from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
 from blond.llrf.beam_feedback import BeamFeedback
 from blond.monitors.monitors import SlicesMonitor
 from blond.utils import bmath as bm
+from blond.utils import input_parser
+args = input_parser.parse()
+
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 
@@ -413,11 +416,12 @@ FBtime = max(longCavityImpedanceReduction.FB_time,
 
 delta = 0
 # if you want to use the GPU uncomment the following lines
-bm.use_gpu()
-profile.use_gpu()
-tracker.use_gpu()
-phaseLoop.use_gpu()
-bm.enable_gpucache()
+if args['gpu'] == 1:
+    bm.use_gpu()
+    profile.use_gpu()
+    tracker.use_gpu()
+    phaseLoop.use_gpu()
+    bm.enable_gpucache()
 
 
 print("Loop started")
@@ -456,4 +460,7 @@ for turn in range(n_iterations):
 
 print('dE mean: ', np.mean(beam.dE))
 print('dE std: ', np.std(beam.dE))
-print('profile sum: ', np.sum(profile.n_macroparticles))
+print('profile mean: ', np.mean(profile.n_macroparticles))
+print('profile std: ', np.std(profile.n_macroparticles))
+
+print('Done!')

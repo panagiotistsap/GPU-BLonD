@@ -163,13 +163,14 @@ class Beam(object):
 
     def use_gpu(self):
         from ..gpu.cpu_gpu_array import CGA
-        global drv, gpuarray, gb
+        # global drv, gpuarray, gb
         from ..gpu import gpu_beam as gb
-        from pycuda import gpuarray, driver as drv, tools
+        from pycuda import gpuarray
+        # , driver as drv, tools
         import atexit
 
-        drv.init()
-        drv.Device(bm.gpuId())
+        # drv.init()
+        # drv.Device(bm.gpuId())
 
         gb.funcs_update(self)
 

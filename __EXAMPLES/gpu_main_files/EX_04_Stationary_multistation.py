@@ -25,9 +25,12 @@ from blond.beam.distributions import bigaussian
 from blond.beam.profile import CutOptions, Profile, FitOptions
 from blond.monitors.monitors import BunchMonitor
 from blond.plots.plot import Plot
+from blond.utils import input_parser
+
 import os
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
+args = input_parser.parse()
 
 try:
     os.mkdir(this_directory + '../output_files')
@@ -127,13 +130,13 @@ map_ = [long_tracker_1] + [long_tracker_2] + [slice_beam] #+ [bunchmonitor] + \
        #[plots]
 print("Map set")
 print("")
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('-g', default = False, action='store_true')
-parser.add_argument('-d', default = False, action='store_true')
-args = parser.parse_args()
-print(args)
-if (args.g):
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-g', default = False, action='store_true')
+# parser.add_argument('-d', default = False, action='store_true')
+# args = parser.parse_args()
+# print(args)
+if (args['gpu'] == 1):
     import blond.utils.bmath as bm
     bm.use_gpu()
     long_tracker_1.use_gpu()
@@ -153,17 +156,21 @@ for i in np.arange(1,N_t+1):
         m.track()
     
     # Define losses according to separatrix and/or longitudinal position
-    beam.losses_separatrix(general_params, rf_params_tot)
-    beam.losses_longitudinal_cut(0., 2.5e-9)
+    # beam.losses_separatrix(general_params, rf_params_tot)
+    # beam.losses_longitudinal_cut(0., 2.5e-9)
 
-if (args.d):
-    print(np.std(beam.dE))
+# if (args.d):
+#     print(np.std(beam.dE))
+print('dE mean: ', np.mean(beam.dE))
+print('dE std: ', np.std(beam.dE))
+print('profile mean: ', np.mean(slice_beam.n_macroparticles))
+print('profile std: ', np.std(slice_beam.n_macroparticles))
 
 # # For testing purposes
-# test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-#     np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
-# with open(this_directory + '../output_files/EX_04_test_data.txt', 'w') as f:
-#     f.write(test_string)
+test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
+    np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
+with open(this_directory + '../output_files/EX_04_test_data.txt', 'w') as f:
+    f.write(test_string)
 
     
 

@@ -29,6 +29,9 @@ from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
 from blond.input_parameters.rf_parameters import RFStation
 from blond.input_parameters.ring import Ring
 from blond.utils import bmath as bm
+from blond.utils import input_parser
+args = input_parser.parse()
+
 REAL_RAMP = True    # track full ramp
 MONITORING = False   # turn off plots and monitors
 
@@ -160,12 +163,13 @@ fullring = FullRingAndRF([tracker])
 # beam.losses_separatrix(ring, rf)
 
 ## if you want to use the GPU uncomment the following lines
-bm.use_gpu()
-tracker.use_gpu()
-totVoltage.use_gpu()
-beam.use_gpu()
-PL.use_gpu()
-bm.enable_gpucache()
+if args['gpu'] == 1:
+    bm.use_gpu()
+    tracker.use_gpu()
+    totVoltage.use_gpu()
+    beam.use_gpu()
+    PL.use_gpu()
+    bm.enable_gpucache()
 
 for turn in range(n_iterations):
     # After the first 2/3 of the ramp, regulate down the bunch length
@@ -175,5 +179,9 @@ for turn in range(n_iterations):
     totVoltage.induced_voltage_sum()
     tracker.track()
 
-print((np.std(beam.dt)))
-print((np.std(beam.dE)))
+print('dE mean: ', np.mean(beam.dE))
+print('dE std: ', np.std(beam.dE))
+print('profile mean: ', np.mean(profile.n_macroparticles))
+print('profile std: ', np.std(profile.n_macroparticles))
+
+print('Done!')
