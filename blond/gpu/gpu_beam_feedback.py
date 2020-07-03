@@ -35,6 +35,8 @@ def gpu_beam_phase(self):
     beam phase, projected to the range -Pi/2 to 3/2 Pi. Note that this beam
     phase is already w.r.t. the instantaneous RF phase.*
     '''
+    omega_rf = self.rf_station.dev_omega_rf[self.rf_station.counter[0]].get()
+    phi_rf = self.rf_station.dev_phi_rf[self.rf_station.counter[0]].get()
 
     if self.time_offset is None:
         coeff = bm.beam_phase(self.profile.dev_bin_centers,

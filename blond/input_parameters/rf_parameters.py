@@ -380,7 +380,7 @@ class RFStation(object):
         if (self.phi_modulation is None):
             self.dev_phi_modulation = None
         else:
-            self.dev_phi_modulation = (gpuarray.to_gpu(dPhi),gpuarray.to_gpu(dOmega))
+            self.dev_phi_modulation = (gpuarray.to_gpu(self.phi_modulation[0]),gpuarray.to_gpu(self.phi_modulation[1]))
             
         if (self.phi_noise is None):
             self.dev_phi_noise = None

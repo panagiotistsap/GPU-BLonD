@@ -59,8 +59,8 @@ def get_gpuarray(key, zero_fills=False):
     return gpu_cache.get_array(key, zero_fills=zero_fills)
 
 
-def get_gpuarray_fft(key):
-    return gpu_cache_fft.get_array(key)
+# def get_gpuarray_fft(key):
+#     return gpu_cache_fft.get_array(key)
 
 
 def enable_cache():
