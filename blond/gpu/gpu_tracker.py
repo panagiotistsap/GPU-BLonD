@@ -3,7 +3,7 @@ from builtins import range, object
 import numpy as np
 from ..utils import bmath as bm
 from types import MethodType
-from ..utils.cucache import get_gpuarray
+from ..gpu.cucache import get_gpuarray
 from ..gpu.gpu_butils_wrap import gpu_copy_d2d, first_kernel_tracker, second_kernel_tracker,\
     copy_column, rf_voltage_calculation_kernel, cavityFB_case, add_kernel, gpu_rf_voltage_calc_mem_ops
 

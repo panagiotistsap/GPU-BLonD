@@ -3,7 +3,7 @@
 import numpy as np
 from types import MethodType
 from ..utils import bmath as bm
-from ..utils.cucache import get_gpuarray
+from ..gpu.cucache import get_gpuarray
 from pycuda.compiler import SourceModule
 # import pycuda.reduction as reduce
 from pycuda.elementwise import ElementwiseKernel

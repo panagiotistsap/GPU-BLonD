@@ -26,6 +26,10 @@ from blond.beam.beam import Beam, Proton
 from blond.plots.plot import Plot
 from blond.llrf.beam_feedback import BeamFeedback
 import os
+from blond.utils import input_parser
+
+args = input_parser.parse()
+
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 try:
@@ -118,13 +122,13 @@ test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
 map_ = [long_tracker] + [slices_ring] #+ [bunch_monitor] + [plots] 
 
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('-g', default = False, action='store_true')
-parser.add_argument('-d', default = False, action='store_true')
-args = parser.parse_args()
-print(args)
-if (args.g):
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-g', default = False, action='store_true')
+# parser.add_argument('-d', default = False, action='store_true')
+# args = parser.parse_args()
+# print(args)
+if (args['gpu'] == 1):
     import blond.utils.bmath as bm
     bm.use_gpu()
     bm.enable_gpucache()
@@ -150,14 +154,16 @@ for i in range(1, n_turns+1):
     #     print("    Tracker frequency %.6e 1/s" %(long_tracker.omega_rf[0,i]))
 
 # For testing purposes
-# test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-#     np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))
-# with open(this_directory + '../output_files/EX_10_test_data.txt', 'w') as f:
-#     f.write(test_string)
+test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
+    np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))
+with open(this_directory + '../output_files/EX_10_test_data.txt', 'w') as f:
+    f.write(test_string)
 
-if (args.d):
-    print(np.std(my_beam.dt))
-    print(np.std(slices_ring.n_macroparticles))    
+print('dE mean: ', np.mean(my_beam.dE))
+print('dE std: ', np.std(my_beam.dE))
+print('profile mean: ', np.mean(slices_ring.n_macroparticles))
+print('profile std: ', np.std(slices_ring.n_macroparticles))
+ 
 
         
 print("Done!")

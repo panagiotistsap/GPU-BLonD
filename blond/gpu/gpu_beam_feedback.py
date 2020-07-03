@@ -7,7 +7,7 @@ from ..utils import bmath as bm
 from types import MethodType
 from ..gpu.gpu_butils_wrap import gpu_copy_one, set_zero, triple_kernel,\
     first_kernel_x, second_kernel_x, third_kernel_x, indexing_double, indexing_int, sincos_mul_add, mul_d, gpu_trapz_2, sincos_mul_add_2
-from ..utils.cucache import get_gpuarray
+from ..gpu.cucache import get_gpuarray
 from ..utils.bphysics_wrap import beam_phase as cpu_beamphase
 import pycuda.cumath as cm
 from pycuda import gpuarray

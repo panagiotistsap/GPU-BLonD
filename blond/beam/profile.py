@@ -431,12 +431,13 @@ class Profile(object):
     def use_gpu(self):
         from ..gpu.cpu_gpu_array import CGA
         
-        global gpuarray,drv
+        # global gpuarray,drv
         from ..gpu.gpu_profile import funcs_update
-        from pycuda import gpuarray, driver as drv, tools
+        from pycuda import gpuarray
+        # , driver as drv, tools
 
-        drv.init()
-        dev = drv.Device(bm.gpuId())
+        # drv.init()
+        # dev = drv.Device(bm.gpuId())
         
         funcs_update(self)
 

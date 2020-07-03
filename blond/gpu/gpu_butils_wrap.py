@@ -6,7 +6,7 @@ from pycuda.elementwise import ElementwiseKernel
 from pycuda.reduction import ReductionKernel
 from pycuda.compiler import SourceModule
 import traceback
-from ..utils.cucache import get_gpuarray
+from ..gpu.cucache import get_gpuarray
 import pycuda.reduction as reduce
 from pycuda import gpuarray
 # , driver as drv, tools
@@ -389,8 +389,8 @@ cavityFB_case = ElementwiseKernel(
 
 gpu_rf_voltage_calc_mem_ops = ker.get_function("gpu_rf_voltage_calc_mem_ops")
 
-drv.init()
-my_gpu = drv.Device(0)
+# drv.init()
+# my_gpu = drv.Device(0)
 cuinterp = ker.get_function("cuinterp")
 
 plans_dict = {}
@@ -509,5 +509,5 @@ def gpu_interp(dev_x, dev_xp, dev_yp, left=0.12345, right=0.12345, caller_id=Non
              dev_xp, np.int32(dev_xp.size),
              dev_yp, dev_res,
              np.float64(left), np.float64(right),
-             block=(1024, 1, 1), grid=(my_gpu.MULTIPROCESSOR_COUNT*2, 1, 1))
+             block=block_size, grid=grid_size)
     return dev_res

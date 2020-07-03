@@ -327,10 +327,11 @@ class RingAndRFTracker(object):
     def use_gpu(self):
         from ..gpu.gpu_tracker import tracker_funcs_update
         from pycuda.compiler import SourceModule
-        from pycuda import gpuarray, driver as drv, tools
+        from pycuda import gpuarray
+        # , driver as drv, tools
         import atexit
-        drv.init()
-        dev = drv.Device(bm.gpuId())
+        # drv.init()
+        # dev = drv.Device(bm.gpuId())
 
         if (self.profile):
             self.profile.use_gpu()

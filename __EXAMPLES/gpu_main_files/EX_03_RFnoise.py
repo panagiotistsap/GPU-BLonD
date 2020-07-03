@@ -27,6 +27,8 @@ from blond.monitors.monitors import BunchMonitor
 from blond.plots.plot import Plot
 from blond.llrf.rf_noise import FlatSpectrum
 import os
+from blond.utils import input_parser
+args = input_parser.parse()
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
@@ -128,13 +130,13 @@ test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
 map_ = [long_tracker] + [slice_beam] #+ [bunchmonitor] + [plots]
 print("Map set")
 print("")
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('-g', default = False, action='store_true')
-parser.add_argument('-d', default = False, action='store_true')
-args = parser.parse_args()
-print(args)
-if (args.g):
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-g', default = False, action='store_true')
+# parser.add_argument('-d', default = False, action='store_true')
+# args = parser.parse_args()
+# print(args)
+if (args['gpu'] == 1):
     import blond.utils.bmath as bm
     bm.use_gpu()
     long_tracker.use_gpu()
@@ -164,16 +166,22 @@ for i in range(1,N_t+1):
         
         
     # Define losses according to separatrix and/or longitudinal position
-    beam.losses_separatrix(general_params, rf_params)
-    beam.losses_longitudinal_cut(0., 2.5e-9)
+    # beam.losses_separatrix(general_params, rf_params)
+    # beam.losses_longitudinal_cut(0., 2.5e-9)
 
-if (args.d):
-    print(np.std(beam.dE))
+print('dE mean: ', np.mean(beam.dE))
+print('dE std: ', np.std(beam.dE))
+print('profile mean: ', np.mean(slice_beam.n_macroparticles))
+print('profile std: ', np.std(slice_beam.n_macroparticles))
+
+
+# if (args.d):
+#     print(np.std(beam.dE))
 # For testing purposes
-# test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-#     np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
-# with open(this_directory + '../output_files/EX_03_test_data.txt', 'w') as f:
-#     f.write(test_string)
+test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
+    np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
+with open(this_directory + '../output_files/EX_03_test_data.txt', 'w') as f:
+    f.write(test_string)
 
     
 

@@ -85,12 +85,14 @@ class TotalInducedVoltage(object):
     def use_gpu(self):
         from ..gpu.cpu_gpu_array import CGA
         
-        global tiv_update_funcs, iv_update_funcs, ii_update_funcs,drv,gpuarray
-        from ..gpu.gpu_impedance import tiv_update_funcs, iv_update_funcs, ii_update_funcs
-        from pycuda import gpuarray, driver as drv, tools
+        # global tiv_update_funcs, iv_update_funcs, ii_update_funcs
+        # ,drv,gpuarray
+        from ..gpu.gpu_impedance import tiv_update_funcs
+        from pycuda import gpuarray
+        # , driver as drv, tools
 
-        drv.init()
-        dev = drv.Device(bm.gpuId())
+        # drv.init()
+        # dev = drv.Device(bm.gpuId())
 
 
         # induced_voltage to gpu
@@ -275,6 +277,8 @@ class _InducedVoltage(object):
 
         global gpuarray
         from pycuda import gpuarray
+        from ..gpu.gpu_impedance import iv_update_funcs
+
         iv_update_funcs(self,is_ii=is_ii)
         
         # mtw_memory to gpu
@@ -282,14 +286,14 @@ class _InducedVoltage(object):
         
         
         #self.mtw_memory_obj = CGA(self.mtw_memory)
-        setattr(_InducedVoltage, "mtw_memory", mtw_memory)
-        setattr(_InducedVoltage, "dev_mtw_memory", dev_mtw_memory)
+        setattr(self, "mtw_memory", mtw_memory)
+        setattr(self, "dev_mtw_memory", dev_mtw_memory)
 
         # total_impedance to gpu
         from ..gpu.gpu_properties.properties_generator import total_impedance,dev_total_impedance
         #self.total_impedance_obj = CGA(self.total_impedance)
-        setattr(_InducedVoltage, "total_impedance", total_impedance)
-        setattr(_InducedVoltage, "dev_total_impedance", dev_total_impedance)
+        setattr(self, "total_impedance", total_impedance)
+        setattr(self, "dev_total_impedance", dev_total_impedance)
 
 
         if (hasattr(self, "time_mtw")):

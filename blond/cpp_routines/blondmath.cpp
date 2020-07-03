@@ -21,10 +21,7 @@ C++ Math library
 #include <algorithm>
 #include <functional>
 #include "blondmath.h"
-
-#ifdef PARALLEL
-#include <omp.h>
-#endif
+#include "openmp.h"
 
 using namespace std;
 

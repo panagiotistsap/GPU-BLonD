@@ -11,7 +11,6 @@ from ..utils import bphysics_wrap
 from numpy import fft
 
 
-__gpu_id = 0
 __exec_mode = 'single_node'
 __gpu_dev = None
 
@@ -97,8 +96,6 @@ def mpiMode():
 def gpuMode():
     return globals()['device'] == 'GPU'
 
-def gpuId():
-    return __gpu_id
 
 def enable_gpucache():
     from ..gpu import cucache as cc
@@ -109,29 +106,57 @@ def disable_gpucache():
     from  ..gpu import cucache as cc
     cc.disable_cache()
 
+def gpuId():
+    return __gpu_dev.id
 
 def gpuDev():
-    return __gpu_dev
+    return __gpu_dev.dev
 
-def stop_gpu():
-    update_active_dict(_CPU_func_dict)
+def gpuCtx():
+    return __gpu_dev.ctx
 
-def use_gpu(my_gpu_num=0):
+
+# def stop_gpu():
+#     __gpu_ctx.pop()
+#     update_active_dict(_CPU_func_dict)
+
+
+class GPUDev:
+    __instance = None
+    def __init__(self, _gpu_num=0):
+        if GPUDev.__instance != None:
+            raise Exception("The GPUDev class is a singleton!")
+        else:
+            GPUDev.__instance = self
+        from pycuda import driver as drv
+        drv.init()
+        self.id = _gpu_num
+        self.dev = drv.Device(self.id)
+        self.ctx = self.dev.make_context()
+
+    def report_attributes(self):
+        # Saves into a file all the device attributes 
+        with open(f'{self.dev.name()}-attributes.txt', 'w') as f:
+            for k, v in self.dev.get_attributes().items():
+                f.write(f"{k}:{v}\n")
+
+    def __del__(self):
+        self.ctx.pop()
+        update_active_dict(_CPU_func_dict)
+
+
+def use_gpu(gpu_id=0):
     # import traceback
+    # import atexit
+    from pycuda import driver as drv
+
+    print("USING GPU")
+    global __gpu_dev
+    __gpu_dev = GPUDev(gpu_id)
+
     # import pycuda.autoinit
     from ..gpu import gpu_physics_wrap
     from ..gpu import gpu_butils_wrap
-    from pycuda import driver as drv
-    import atexit
-
-
-    print("USING GPU")
-    global __gpu_id
-    global __gpu_dev
-
-    __gpu_id = my_gpu_num
-    drv.init()
-    __gpu_dev = drv.Device(__gpu_id)
 
     #ctx = dev.make_context()
     #atexit.register(ctx.pop)

@@ -66,6 +66,11 @@ parser.add_argument('-seed', '--seed', type=int, default=0,
                     help='Seed value for the particle distribution generation.'
                     '\nDefault: None')
 
+parser.add_argument('-gpu', '--gpu', type=int, choices=[0, 1], default=0,
+                    help='Use the GPU to run the computational core: 0 (OFF), 1 (ON)'
+                    'Default: 0 (OFF)')
+
+
 parser.add_argument('-trace', '--trace', type=int, default=0, choices=[0, 1],
                     help='Trace the specified regions of interest (MPE).'
                     '\nDefault: No tracing.')

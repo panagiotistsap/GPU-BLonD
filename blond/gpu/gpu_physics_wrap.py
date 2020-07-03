@@ -15,7 +15,7 @@ import pycuda.cumath as cm
 import traceback
 from pycuda.reduction import ReductionKernel
 from skcuda.misc import diff as cuda_diff
-from ..utils.cucache import get_gpuarray
+from ..gpu.cucache import get_gpuarray
 from ..gpu.gpu_butils_wrap import ElementwiseKernel
 from pycuda import gpuarray
 # , driver as drv, tools
