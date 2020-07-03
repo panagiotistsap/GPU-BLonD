@@ -13,35 +13,36 @@ import numpy as np
 
 from pyprof import timing
 from pyprof import mpiprof
-from gpublond.monitors.monitors import SlicesMonitor
-from gpublond.toolbox.next_regular import next_regular
-from gpublond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
-from gpublond.impedances.impedance_sources import InputTable
-from gpublond.beam.profile import Profile, CutOptions
-from gpublond.beam.distributions import bigaussian
-from gpublond.beam.beam import Beam, Proton
-from gpublond.llrf.rf_noise import FlatSpectrum, LHCNoiseFB
-from gpublond.llrf.beam_feedback import BeamFeedback
-from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.input_parameters.ring import Ring
-from gpublond.utils.bmath import use_gpu,use_mpi
+from blond.monitors.monitors import SlicesMonitor
+from blond.toolbox.next_regular import next_regular
+from blond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
+from blond.impedances.impedance_sources import InputTable
+from blond.beam.profile import Profile, CutOptions
+from blond.beam.distributions import bigaussian
+from blond.beam.beam import Beam, Proton
+from blond.llrf.rf_noise import FlatSpectrum, LHCNoiseFB
+from blond.llrf.beam_feedback import BeamFeedback
+from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from blond.input_parameters.rf_parameters import RFStation
+from blond.input_parameters.ring import Ring
+from blond.utils import bmath as bm
+# from blond.utils.bmath import use_gpu,use_mpi
 try:
-    from gpublond.utils.bmath import enable_gpucache
+    from blond.utils.bmath import enable_gpucache
 except:
     pass
-from gpublond.utils import bmath as bm
+# from blond.utils import bmath as bm
 from joblib import dump
-from gpublond.utils.mpi_config import worker, mpiprint
+from blond.utils.mpi_config import worker, mpiprint
 
 REAL_RAMP = True    # track full ramp
 MONITORING = False   # turn off plots and monitors
 
 if MONITORING:
-    from gpublond.monitors.monitors import BunchMonitor
-    from gpublond.plots.plot import Plot
-    from gpublond.plots.plot_beams import plot_long_phase_space
-    from gpublond.plots.plot_slices import plot_beam_profile
+    from blond.monitors.monitors import BunchMonitor
+    from blond.plots.plot import Plot
+    from blond.plots.plot_beams import plot_long_phase_space
+    from blond.plots.plot_slices import plot_beam_profile
 
 import argparse
 
@@ -178,14 +179,14 @@ fullring = FullRingAndRF([tracker])
 # beam.losses_separatrix(ring, rf)
 cache_part = ""
 timing_kind = 'cpu'
-use_mpi()
+bm.use_mpi()
 if (worker.rank==0):
     cache_part = ""
     timing_kind = 'cpu'
     if (args.g):
         timing_kind = 'gpu'
         print("Using gpu")
-        use_gpu()
+        bm.use_gpu()
         tracker.use_gpu()
         #totVoltage.use_gpu()
         #beam.use_gpu()
@@ -212,21 +213,19 @@ for turn in range(0,n_iterations):
     #     print(turn)
     #     print("dt ",np.mean(beam.dt))
     #     print("dE ",np.mean(beam.dE))
-    with region_timer('histo',timing_kind) as rt:
-        profile.track()
-    with region_timer('sync',timing_kind) as rt:
-        worker.sync()
-    with region_timer('histo_reduce',timing_kind) as rt:
-        profile.reduce_histo()
+    # with region_timer('histo',timing_kind) as rt:
+    profile.track()
+    # with region_timer('sync',timing_kind) as rt:
+    # with region_timer('histo_reduce',timing_kind) as rt:
 
     #ith region_timer('voltage_sum',timing_kind) as rt:
         #  with timing.timed_region('serial:ind_volt_sum_packed'):
         #     with mpiprof.traced_region('serial:ind_volt_sum_packed'):
         #         totVoltage.induced_voltage_sum()
-        pass
-    with region_timer('tracking',timing_kind) as rt:
-        tracker.track()
-        pass
+        # pass
+    # with region_timer('tracking',timing_kind) as rt:
+    tracker.track()
+        # pass
     worker.DLB(turn, beam)
 
 beam.gather()

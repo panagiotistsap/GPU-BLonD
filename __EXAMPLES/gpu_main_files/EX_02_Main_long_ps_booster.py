@@ -16,19 +16,21 @@ Example script to take into account intensity effects from impedance tables
 from __future__ import division, print_function
 from builtins import str, range, bytes
 import numpy as np
-from gpublond.input_parameters.ring import Ring
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.trackers.tracker import RingAndRFTracker
-from gpublond.beam.beam import Beam, Proton
-from gpublond.beam.distributions import bigaussian
-from gpublond.beam.profile import CutOptions, Profile
-from gpublond.monitors.monitors import BunchMonitor
-from gpublond.plots.plot import Plot
-from gpublond.plots.plot_impedance import plot_impedance_vs_frequency, plot_induced_voltage_vs_bin_centers
-from gpublond.impedances.impedance_sources import InputTable
-from gpublond.impedances.impedance import InductiveImpedance, InducedVoltageFreq, TotalInducedVoltage
+from blond.input_parameters.ring import Ring
+from blond.input_parameters.rf_parameters import RFStation
+from blond.trackers.tracker import RingAndRFTracker
+from blond.beam.beam import Beam, Proton
+from blond.beam.distributions import bigaussian
+from blond.beam.profile import CutOptions, Profile
+from blond.monitors.monitors import BunchMonitor
+from blond.plots.plot import Plot
+from blond.plots.plot_impedance import plot_impedance_vs_frequency, plot_induced_voltage_vs_bin_centers
+from blond.impedances.impedance_sources import InputTable
+from blond.impedances.impedance import InductiveImpedance, InducedVoltageFreq, TotalInducedVoltage
 from scipy.constants import m_p, e, c
 import os
+from blond.utils import input_parser
+args = input_parser.parse()
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
@@ -168,14 +170,14 @@ test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
 
 
 # ACCELERATION MAP-------------------------------------------------------------
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('-g', default = False, action='store_true')
-parser.add_argument('-d', default = False, action='store_true')
-args = parser.parse_args()
-print(args)
-if (args.g):
-    import gpublond.utils.bmath as bm
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-g', default = False, action='store_true')
+# parser.add_argument('-d', default = False, action='store_true')
+# args = parser.parse_args()
+# print(args)
+if (args['gpu'] == 1):
+    import blond.utils.bmath as bm
     bm.use_gpu()
     total_induced_voltage.use_gpu()
     ring_RF_section.use_gpu()
@@ -201,8 +203,14 @@ for i in range(1, n_turns+1):
     #     plot_induced_voltage_vs_bin_centers(i, general_params, total_induced_voltage, style = '.', dirname = this_directory + '../output_files/EX_02_fig')
 
 # For testing purposes
-if (args.d):
-    print(np.std(my_beam.dE))
+# if (args.d):
+#     print(np.std(my_beam.dE))
+
+print('dE mean: ', np.mean(my_beam.dE))
+print('dE std: ', np.std(my_beam.dE))
+print('profile mean: ', np.mean(slice_beam.n_macroparticles))
+print('profile std: ', np.std(slice_beam.n_macroparticles))
+
 
 test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
     np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))

@@ -14,17 +14,20 @@ from SPSimpedanceModel.impedance_scenario import scenario, impedance2gpublond
 from impedance_reduction_dir.impedance_reduction import ImpedanceReduction
 
 # gpublond imports
-from gpublond.beam.distributions import matched_from_distribution_function
-from gpublond.input_parameters.ring import Ring
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.beam.beam import Beam, Proton
-from gpublond.beam.profile import Profile, CutOptions
-from gpublond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
-from gpublond.impedances.impedance_sources import TravelingWaveCavity
-from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
-from gpublond.llrf.beam_feedback import BeamFeedback
-from gpublond.monitors.monitors import SlicesMonitor
-from gpublond.utils import bmath as bm
+from blond.beam.distributions import matched_from_distribution_function
+from blond.input_parameters.ring import Ring
+from blond.input_parameters.rf_parameters import RFStation
+from blond.beam.beam import Beam, Proton
+from blond.beam.profile import Profile, CutOptions
+from blond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
+from blond.impedances.impedance_sources import TravelingWaveCavity
+from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from blond.llrf.beam_feedback import BeamFeedback
+from blond.monitors.monitors import SlicesMonitor
+from blond.utils import bmath as bm
+from blond.utils import input_parser
+args = input_parser.parse()
+
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 
@@ -413,11 +416,12 @@ FBtime = max(longCavityImpedanceReduction.FB_time,
 
 delta = 0
 # if you want to use the GPU uncomment the following lines
-bm.use_gpu()
-profile.use_gpu()
-tracker.use_gpu()
-phaseLoop.use_gpu()
-bm.enable_gpucache()
+if args['gpu'] == 1:
+    bm.use_gpu()
+    profile.use_gpu()
+    tracker.use_gpu()
+    phaseLoop.use_gpu()
+    bm.enable_gpucache()
 
 
 print("Loop started")
@@ -456,4 +460,7 @@ for turn in range(n_iterations):
 
 print('dE mean: ', np.mean(beam.dE))
 print('dE std: ', np.std(beam.dE))
-print('profile sum: ', np.sum(profile.n_macroparticles))
+print('profile mean: ', np.mean(profile.n_macroparticles))
+print('profile std: ', np.std(profile.n_macroparticles))
+
+print('Done!')

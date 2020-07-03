@@ -18,15 +18,15 @@ from __future__ import division
 import matplotlib.pyplot as plt
 import os
 import numpy as np
-from gpublond.input_parameters.ring import Ring
-from gpublond.beam.beam import Beam, Electron
-from gpublond.beam.distributions import matched_from_distribution_function
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.beam.profile import Profile
-from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
-from gpublond.synchrotron_radiation.synchrotron_radiation import SynchrotronRadiation
+from blond.input_parameters.ring import Ring
+from blond.beam.beam import Beam, Electron
+from blond.beam.distributions import matched_from_distribution_function
+from blond.input_parameters.rf_parameters import RFStation
+from blond.beam.profile import Profile
+from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from blond.synchrotron_radiation.synchrotron_radiation import SynchrotronRadiation
 from scipy.constants import c, e, m_e
-from gpublond.beam.profile import CutOptions
+from blond.beam.profile import CutOptions
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 

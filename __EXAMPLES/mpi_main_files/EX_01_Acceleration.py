@@ -14,39 +14,40 @@ No intensity effects
 :Authors: **Helga Timko**
 '''
 #  General Imports
-from __future__ import division, print_function
-from builtins import range
+# from __future__ import division, print_function
+# from builtins import range
 import numpy as np
-
-#  gpublond Imports
-from gpublond.input_parameters.ring import Ring
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.trackers.tracker import RingAndRFTracker
-from gpublond.beam.beam import Beam, Proton
-from gpublond.beam.distributions import bigaussian
-from gpublond.beam.profile import CutOptions, FitOptions, Profile
-from gpublond.monitors.monitors import BunchMonitor
-from gpublond.plots.plot import Plot
 import os
-from gpublond.utils import bmath as bm
-from gpublond.utils.mpi_config import worker, mpiprint
+import time
+try:
+    from pyprof import timing
+    from pyprof import mpiprof
+except ImportError:
+    from blond.utils import profile_mock as timing
+    mpiprof = timing
+#  BLonD Imports
+from blond.monitors.monitors import SlicesMonitor
+from blond.input_parameters.ring import Ring
+from blond.input_parameters.rf_parameters import RFStation
+from blond.trackers.tracker import RingAndRFTracker
+from blond.beam.beam import Beam, Proton
+from blond.beam.distributions import bigaussian
+from blond.beam.profile import CutOptions, FitOptions, Profile
+from blond.monitors.monitors import BunchMonitor
+from blond.plots.plot import Plot
+from blond.utils.input_parser import parse
+from blond.utils import bmath as bm
+from blond.utils.mpi_config import worker, mpiprint
 bm.use_mpi()
+
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
-try:
-    os.mkdir(this_directory + '../mpi_output_files')
-except:
-    pass
-try:
-    os.mkdir(this_directory + '../mpi_output_files/EX_01_fig')
-except:
-    pass
 
 # Simulation parameters -------------------------------------------------------
 # Bunch parameters
 N_b = 1e9           # Intensity
-N_p = 50000         # Macro-particles
+n_particles = 1e6         # Macro-particles
 tau_0 = 0.4e-9          # Initial bunch length, 4 sigma [s]
 
 # Machine and RF parameters
@@ -77,41 +78,52 @@ beam = Beam(ring, N_p, N_b)
 
 # Define RF station parameters and corresponding tracker
 rf = RFStation(ring, [h], [V], [dphi])
-long_tracker = RingAndRFTracker(rf, beam)
 
 
-bigaussian(ring, rf, beam, tau_0/4, reinsertion=True, seed=1)
+bigaussian(ring, rf, beam, tau_0/4, reinsertion=True, seed=seed)
 
 
 # Need slices for the Gaussian fit
-profile = Profile(beam, CutOptions(n_slices=100),
-                  FitOptions(fit_option='gaussian'))
+# TODO add the gaussian fit
+profile = Profile(beam, CutOptions(n_slices=n_slices))
+# FitOptions(fit_option='gaussian'))
 
-# Accelerator map
-map_ = [long_tracker] + [profile]
+long_tracker = RingAndRFTracker(rf, beam)
 
-# Define what to save in file
-if worker.isMaster:
-    bunchmonitor = BunchMonitor(ring, rf, beam,
-                                this_directory + '../mpi_output_files/EX_01_output_data',
-                                Profile=profile)
-    format_options = {'dirname': this_directory + '../mpi_output_files/EX_01_fig'}
-    plots = Plot(ring, rf, beam, dt_plt, N_t, 0, 0.0001763*h,
-                 -400e6, 400e6, xunit='rad', separatrix_plot=True,
-                 Profile=profile, h5file=this_directory + '../mpi_output_files/EX_01_output_data',
-                 format_options=format_options)
-
-    map_ += [bunchmonitor] + [plots]
-
-mpiprint("Map set\n")
+# beam.split_random()
 beam.split()
 
-# Tracking --------------------------------------------------------------------
-for i in range(1, N_t+1):
+
+if args['monitor'] > 0 and worker.isMaster:
+    if args.get('monitorfile', None):
+        filename = args['monitorfile']
+    else:
+        filename = 'monitorfiles/ex01-t{}-p{}-b{}-sl{}-approx{}-prec{}-r{}-m{}-se{}-w{}'.format(
+            n_iterations, n_particles, n_bunches, n_slices, args['approx'], args['precision'],
+            args['reduce'], args['monitor'], seed, worker.workers)
+    slicesMonitor = SlicesMonitor(filename=filename,
+                                  n_turns=np.ceil(
+                                      n_iterations / args['monitor']),
+                                  profile=profile,
+                                  rf=rf,
+                                  Nbunches=n_bunches)
+
+# Accelerator map
+# map_ = [long_tracker, profile]
+mpiprint("Map set")
+
+worker.initDLB(args['loadbalance'], args['loadbalancearg'], n_iterations)
+
+worker.sync()
+timing.reset()
+start_t = time.time()
+
+
+for turn in range(n_iterations):
 
     # Plot has to be done before tracking (at least for cases with separatrix)
-    if (i % dt_plt) == 0:
-        mpiprint("Outputting at time step %d..." % i)
+    if (turn % dt_plt) == 0:
+        mpiprint("Outputting at time step %d..." % turn)
         mpiprint("   Beam momentum %.6e eV" % beam.momentum)
         mpiprint("   Beam gamma %3.3f" % beam.gamma)
         mpiprint("   Beam beta %3.3f" % beam.beta)
@@ -119,17 +131,52 @@ for i in range(1, N_t+1):
         mpiprint("   Four-times r.m.s. bunch length %.4e s" %
                  (4.*beam.sigma_dt))
         mpiprint("   Gaussian bunch length %.4e s" % profile.bunchLength)
+        mpiprint("")
 
     # Track
-    for m in map_:
-        m.track()
+    long_tracker.track()
 
-    # Define losses according to separatrix and/or longitudinal position
-    beam.losses_separatrix(ring, rf)
-    beam.losses_longitudinal_cut(0., 2.5e-9)
-    beam.gather_losses()
+    profile.track()
+
+    worker.DLB(turn, beam)
+
+    if (args['monitor'] > 0) and (turn % args['monitor'] == 0):
+        beam.statistics()
+        beam.gather_statistics()
+        if worker.isMaster:
+            # profile.fwhm()
+            slicesMonitor.track(turn)
+
+        # mpiprint('dE mean: ', beam.mean_dE)
+        # mpiprint('dE std: ', beam.sigma_dE)
+        # mpiprint('dE min: ', beam.min_dE)
+        # mpiprint('dE max: ', beam.max_dE)
+
+        # mpiprint('dt mean: ', beam.mean_dt)
+        # mpiprint('dt std: ', beam.sigma_dt)
+        # mpiprint('dt min: ', beam.min_dt)
+        # mpiprint('dt max: ', beam.max_dt)
+
 
 beam.gather()
+
+# mpiprint('real dE std: ', np.std(beam.dE))
+# mpiprint('real dt std: ', np.std(beam.dt))
+
+end_t = time.time()
+
+timing.report(total_time=1e3*(end_t-start_t),
+              out_dir=args['timedir'],
+              out_file='worker-{}.csv'.format(worker.rank))
 worker.finalize()
 
-mpiprint("Done!")
+
+if args['monitor'] > 0:
+    slicesMonitor.close()
+
+mpiprint('dE mean: ', np.mean(beam.dE))
+mpiprint('dE std: ', np.std(beam.dE))
+mpiprint('profile mean: ', np.mean(profile.n_macroparticles))
+mpiprint('profile std: ', np.std(profile.n_macroparticles))
+
+mpiprint('Done!')

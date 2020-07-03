@@ -21,21 +21,25 @@ the corresponding h5 files).
 from __future__ import division, print_function
 import numpy as np
 import matplotlib.pyplot as plt
-from gpublond.input_parameters.ring import Ring
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.trackers.tracker import RingAndRFTracker
-from gpublond.beam.distributions import bigaussian
-from gpublond.monitors.monitors import BunchMonitor
-from gpublond.beam.profile import Profile, CutOptions, FitOptions
-from gpublond.impedances.impedance import InducedVoltageTime, InducedVoltageFreq
-from gpublond.impedances.impedance import InducedVoltageResonator, TotalInducedVoltage
-from gpublond.impedances.induced_voltage_analytical import analytical_gaussian_resonator
-from gpublond.beam.beam import Beam, Proton
-from gpublond.plots.plot import Plot
-from gpublond.plots.plot_impedance import plot_induced_voltage_vs_bin_centers
-from gpublond.impedances.impedance_sources import Resonators
+from blond.input_parameters.ring import Ring
+from blond.input_parameters.rf_parameters import RFStation
+from blond.trackers.tracker import RingAndRFTracker
+from blond.beam.distributions import bigaussian
+from blond.monitors.monitors import BunchMonitor
+from blond.beam.profile import Profile, CutOptions, FitOptions
+from blond.impedances.impedance import InducedVoltageTime, InducedVoltageFreq
+from blond.impedances.impedance import InducedVoltageResonator, TotalInducedVoltage
+from blond.impedances.induced_voltage_analytical import analytical_gaussian_resonator
+from blond.beam.beam import Beam, Proton
+from blond.plots.plot import Plot
+from blond.plots.plot_impedance import plot_induced_voltage_vs_bin_centers
+from blond.impedances.impedance_sources import Resonators
 import os
+from blond.utils import input_parser
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
+
+
+args = input_parser.parse()
 
 try:
     os.mkdir(this_directory + '../output_files')
@@ -208,14 +212,14 @@ map_freq = [tot_vol_freq] + [ring_RF_section_freq] + [slice_beam_freq] \
 map_res = [tot_vol_res] + [ring_RF_section_res] + [slice_beam_res] \
     #+ [bunchmonitor_res] + [plots_res]
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('-g', default = False, action='store_true')
-parser.add_argument('-d', default = False, action='store_true')
-args = parser.parse_args()
-print(args)
-if (args.g):
-    import gpublond.utils.bmath as bm
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-g', default = False, action='store_true')
+# parser.add_argument('-d', default = False, action='store_true')
+# args = parser.parse_args()
+# print(args)
+if (args['gpu'] == 1):
+    import blond.utils.bmath as bm
     bm.use_gpu()
     for m in [map_, map_freq, map_res]:
         for t in m:
@@ -246,8 +250,12 @@ for i in np.arange(1, n_turns+1):
     #               tot_vol_freq, style='.', dirname=this_directory + '../output_files/EX_05_fig/2')
     #     plot_induced_voltage_vs_bin_centers(i, general_params_res,
     #               tot_vol_res, style='.', dirname=this_directory + '../output_files/EX_05_fig/3')
-if (args.d):
-    print(np.std(my_beam.dE))
+# if (args.d):
+print('dE mean: ', np.mean(my_beam.dE))
+print('dE std: ', np.std(my_beam.dE))
+print('profile mean: ', np.mean(slice_beam.n_macroparticles))
+print('profile std: ', np.std(slice_beam.n_macroparticles))
+
 # Plotting induced voltages---------------------------------------------------
 # plt.clf()
 # plt.ylabel("induced voltage [arb. unit]")
@@ -264,10 +272,10 @@ if (args.d):
 # plt.savefig(fign)
 
 # # For testing purposes
-# test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-#     np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))
-# with open(this_directory + '../output_files/EX_05_test_data.txt', 'w') as f:
-#     f.write(test_string)
+test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
+    np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))
+with open(this_directory + '../output_files/EX_05_test_data.txt', 'w') as f:
+    f.write(test_string)
 
 
 

@@ -6,25 +6,30 @@ import numpy as np
 import time
 import os
 from scipy.constants import c
+import sys
 
 
 # gpublond imports
-#from gpublond.beams.distributions import matched_from_line_density
-from gpublond.beam.beam import Proton, Beam
-from gpublond.input_parameters.ring import Ring, RingOptions
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.beam.profile import Profile, CutOptions
-from gpublond.beam.distributions_multibunch import match_beam_from_distribution
-from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
-from gpublond.impedances.impedance import InducedVoltageTime, InducedVoltageFreq, TotalInducedVoltage, InductiveImpedance
-from gpublond.impedances.impedance_sources import Resonators
-from gpublond.monitors.monitors import SlicesMonitor
-from gpublond.utils.bmath import use_gpu,get_exec_mode
+#from blond.beams.distributions import matched_from_line_density
+from blond.beam.beam import Proton, Beam
+from blond.input_parameters.ring import Ring, RingOptions
+from blond.input_parameters.rf_parameters import RFStation
+from blond.beam.profile import Profile, CutOptions
+from blond.beam.distributions_multibunch import match_beam_from_distribution
+from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from blond.impedances.impedance import InducedVoltageTime, InducedVoltageFreq, TotalInducedVoltage, InductiveImpedance
+from blond.impedances.impedance_sources import Resonators
+from blond.monitors.monitors import SlicesMonitor
+# from blond.utils.bmath import use_gpu,get_exec_mode
+from blond.utils import bmath as bm
+from blond.utils import input_parser
+
+args = input_parser.parse()
+
 try:
-    from gpublond.utils.bmath import enable_gpucache
+    from blond.utils.bmath import enable_gpucache
 except:
     pass
-import sys
 
 # Other imports
 from colormap import colormap
@@ -40,15 +45,15 @@ cmap = colormap.cmap_white_blue_red
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 inputDir = os.path.join(this_directory, '../input_files/PS/')
 
-import argparse
+# import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-c', default = False, action='store_true')
-parser.add_argument('-g', default = False, action='store_true')
-parser.add_argument('-b', type=int, required = True)
-parser.add_argument('-d', default = False, action='store_true')
-args = parser.parse_args()
-print(args)
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-c', default = False, action='store_true')
+# parser.add_argument('-g', default = False, action='store_true')
+# parser.add_argument('-b', type=int, required = True)
+# parser.add_argument('-d', default = False, action='store_true')
+# args = parser.parse_args()
+# print(args)
 
 
 # Simulation parameters -------------------------------------------------------
@@ -312,17 +317,17 @@ gap_prog_group_4 = generate_gap_prog(close_group_4)
 gap_prog_group_2 = generate_gap_prog(close_group_2)
 gap_prog_group_1 = generate_gap_prog(close_group_1)
 
-R_S_10MHz_save = np.array(imp10MHzTogpublond.wakeList[0].R_S)
+R_S_10MHz_save = np.array(imp10MHzToblond.wakeList[0].R_S)
 R_S_program_10MHz = (gap_prog_group_3+gap_prog_group_4 +
                      gap_prog_group_2+gap_prog_group_1)/10.
 
 
 # Building up gpublond objects
-ResonatorsList10MHz = imp10MHzTogpublond.wakeList
-ImpedanceTableList10MHz = imp10MHzTogpublond.impedanceList
+ResonatorsList10MHz = imp10MHzToblond.wakeList
+ImpedanceTableList10MHz = imp10MHzToblond.impedanceList
 
-ResonatorsListRest = impRestTogpublond.wakeList
-ImpedanceTableListRest = impRestTogpublond.impedanceList
+ResonatorsListRest = impRestToblond.wakeList
+ImpedanceTableListRest = impRestToblond.impedanceList
 
 
 frequency_step = 1/(ring.t_rev[0]*n_turns_memory)  # [Hz]
@@ -381,11 +386,11 @@ match_beam_from_distribution(beam, full_tracker, ring,
 print("Tracking starts")
 
 # if you want to use gpu 
-# print("using gpu")
-# use_gpu()
-# PS_longitudinal_intensity.use_gpu()
-# tracker.use_gpu()
-# enable_gpucache()
+if args['gpu'] == 1:
+  bm.use_gpu()
+  PS_longitudinal_intensity.use_gpu()
+  tracker.use_gpu()
+  bm.enable_gpucache()
 
 for turn in range(n_iterations):
 
@@ -402,5 +407,9 @@ for turn in range(n_iterations):
     PS_longitudinal_intensity.induced_voltage_sum()
     tracker.track()
 
-print("dE std :", np.std(beam.dE))
-print("dt std :", np.mean(beam.dt))
+print('dE mean: ', np.mean(beam.dE))
+print('dE std: ', np.std(beam.dE))
+print('profile mean: ', np.mean(profile.n_macroparticles))
+print('profile std: ', np.std(profile.n_macroparticles))
+print('Done!')
+
