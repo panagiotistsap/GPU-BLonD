@@ -117,6 +117,7 @@ class CGA():
             #super(my_gpuarray, self._dev_array).__setitem__(slice(None, None, None), value)
             self.array_obj.dev_array[:] = value
         else:
+            self.array_obj = my_cpuarray(value.get())
             self.array_obj.dev_array = value
             self.array_obj.dev_array.__class__ = my_gpuarray
             self.array_obj.dev_array.set_parent(self.array_obj)
