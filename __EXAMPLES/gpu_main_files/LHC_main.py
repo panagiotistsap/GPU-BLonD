@@ -13,30 +13,33 @@ import numpy as np
 #     from pyprof import timing
 #     from pyprof import mpiprof
 # except ImportError:
-#     from gpublond.utils import profile_mock as timing
+#     from blond.utils import profile_mock as timing
 #     mpiprof = timing
 
-from gpublond.monitors.monitors import SlicesMonitor
-from gpublond.toolbox.next_regular import next_regular
-from gpublond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
-from gpublond.impedances.impedance_sources import InputTable
-from gpublond.beam.profile import Profile, CutOptions
-from gpublond.beam.distributions import bigaussian
-from gpublond.beam.beam import Beam, Proton
-from gpublond.llrf.rf_noise import FlatSpectrum, LHCNoiseFB
-from gpublond.llrf.beam_feedback import BeamFeedback
-from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.input_parameters.ring import Ring
-from gpublond.utils import bmath as bm
+from blond.monitors.monitors import SlicesMonitor
+from blond.toolbox.next_regular import next_regular
+from blond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
+from blond.impedances.impedance_sources import InputTable
+from blond.beam.profile import Profile, CutOptions
+from blond.beam.distributions import bigaussian
+from blond.beam.beam import Beam, Proton
+from blond.llrf.rf_noise import FlatSpectrum, LHCNoiseFB
+from blond.llrf.beam_feedback import BeamFeedback
+from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from blond.input_parameters.rf_parameters import RFStation
+from blond.input_parameters.ring import Ring
+from blond.utils import bmath as bm
+from blond.utils import input_parser
+args = input_parser.parse()
+
 REAL_RAMP = True    # track full ramp
 MONITORING = False   # turn off plots and monitors
 
 if MONITORING:
-    from gpublond.monitors.monitors import BunchMonitor
-    from gpublond.plots.plot import Plot
-    from gpublond.plots.plot_beams import plot_long_phase_space
-    from gpublond.plots.plot_slices import plot_beam_profile
+    from blond.monitors.monitors import BunchMonitor
+    from blond.plots.plot import Plot
+    from blond.plots.plot_beams import plot_long_phase_space
+    from blond.plots.plot_slices import plot_beam_profile
 
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
@@ -160,12 +163,13 @@ fullring = FullRingAndRF([tracker])
 # beam.losses_separatrix(ring, rf)
 
 ## if you want to use the GPU uncomment the following lines
-bm.use_gpu()
-tracker.use_gpu()
-totVoltage.use_gpu()
-beam.use_gpu()
-PL.use_gpu()
-bm.enable_gpucache()
+if args['gpu'] == 1:
+    bm.use_gpu()
+    tracker.use_gpu()
+    totVoltage.use_gpu()
+    beam.use_gpu()
+    PL.use_gpu()
+    bm.enable_gpucache()
 
 for turn in range(n_iterations):
     # After the first 2/3 of the ramp, regulate down the bunch length
@@ -175,5 +179,9 @@ for turn in range(n_iterations):
     totVoltage.induced_voltage_sum()
     tracker.track()
 
-print((np.std(beam.dt)))
-print((np.std(beam.dE)))
+print('dE mean: ', np.mean(beam.dE))
+print('dE std: ', np.std(beam.dE))
+print('profile mean: ', np.mean(profile.n_macroparticles))
+print('profile std: ', np.std(profile.n_macroparticles))
+
+print('Done!')

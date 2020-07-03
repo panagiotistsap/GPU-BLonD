@@ -16,12 +16,12 @@ Example for toolbox.action oscillation_amplitude_from_coordinates()
 import numpy as np
 import matplotlib.pyplot as plt 
 
-from gpublond.input_parameters.ring import Ring
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.beam.beam import Beam, Proton
-from gpublond.beam.distributions import bigaussian
-from gpublond.beam.profile import Profile, CutOptions
-from gpublond.toolbox.action import oscillation_amplitude_from_coordinates
+from blond.input_parameters.ring import Ring
+from blond.input_parameters.rf_parameters import RFStation
+from blond.beam.beam import Beam, Proton
+from blond.beam.distributions import bigaussian
+from blond.beam.profile import Profile, CutOptions
+from blond.toolbox.action import oscillation_amplitude_from_coordinates
 import os
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 

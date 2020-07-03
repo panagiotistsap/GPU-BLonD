@@ -15,16 +15,19 @@ Test case to show how to use radial loop (CERN PS Booster context).
 
 from __future__ import division, print_function
 import numpy as np
-from gpublond.input_parameters.ring import Ring
-from gpublond.input_parameters.rf_parameters import RFStation
-from gpublond.trackers.tracker import RingAndRFTracker, FullRingAndRF
-from gpublond.beam.distributions import matched_from_distribution_function
-from gpublond.monitors.monitors import BunchMonitor
-from gpublond.beam.profile import Profile, CutOptions
-from gpublond.beam.beam import Beam, Proton
-from gpublond.plots.plot import Plot
-from gpublond.llrf.beam_feedback import BeamFeedback
+from blond.input_parameters.ring import Ring
+from blond.input_parameters.rf_parameters import RFStation
+from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
+from blond.beam.distributions import matched_from_distribution_function
+from blond.monitors.monitors import BunchMonitor
+from blond.beam.profile import Profile, CutOptions
+from blond.beam.beam import Beam, Proton
+from blond.plots.plot import Plot
+from blond.llrf.beam_feedback import BeamFeedback
 import os
+from blond.utils import input_parser
+args = input_parser.parse()
+
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 try:
@@ -116,14 +119,14 @@ test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
 # Accelerator map
 map_ = [long_tracker] + [slices_ring] #+ [bunch_monitor] + [plots] 
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('-g', default = False, action='store_true')
-parser.add_argument('-d', default = False, action='store_true')
-args = parser.parse_args()
-print(args)
-if (args.g):
-    import gpublond.utils.bmath as bm
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-g', default = False, action='store_true')
+# parser.add_argument('-d', default = False, action='store_true')
+# args = parser.parse_args()
+# print(args)
+if (args['gpu']):
+    import blond.utils.bmath as bm
     bm.use_gpu()
     bm.enable_gpucache()
     for m in map_:
@@ -146,17 +149,21 @@ for i in range(1, n_turns+1):
     #           %(phase_loop.domega_rf))
     #     print("    RF phase %.4f rad" %(rf_params.phi_rf[0,i]))
     #     print("    RF frequency %.6e 1/s" %(rf_params.omega_rf[0,i]))
-if (args.d):
-    print(np.std(my_beam.dt))
-    print(np.std(slices_ring.n_macroparticles))
+# if (args.d):
+#     print(np.std(my_beam.dt))
+#     print(np.std(slices_ring.n_macroparticles))
    
-print("Done!")
+
+print('dE mean: ', np.mean(my_beam.dE))
+print('dE std: ', np.std(my_beam.dE))
+print('profile mean: ', np.mean(slices_ring.n_macroparticles))
+print('profile std: ', np.std(slices_ring.n_macroparticles))
 
 # # For testing purposes
-# test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-#     np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))
-# with open(this_directory + '../output_files/EX_09_test_data.txt', 'w') as f:
-#     f.write(test_string)
+test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
+    np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))
+with open(this_directory + '../output_files/EX_09_test_data.txt', 'w') as f:
+    f.write(test_string)
 
     
 

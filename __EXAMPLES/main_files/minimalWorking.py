@@ -2,16 +2,16 @@ import numpy as np
 import time
 
 # gpublond
-import gpublond.input_parameters.ring as inputRing
-import gpublond.input_parameters.ring_options as ringOpt
-import gpublond.input_parameters.rf_parameters as inputRF
-import gpublond.trackers.tracker as tracker
-import gpublond.beam.beam as beam
-import gpublond.beam.profile as prof
-import gpublond.beam.distributions as distBeam
-import gpublond.impedances.impedance_sources as impSource
-import gpublond.impedances.impedance as imp
-import gpublond.utils.bmath as bm
+import blond.input_parameters.ring as inputRing
+import blond.input_parameters.ring_options as ringOpt
+import blond.input_parameters.rf_parameters as inputRF
+import blond.trackers.tracker as tracker
+import blond.beam.beam as beam
+import blond.beam.profile as prof
+import blond.beam.distributions as distBeam
+import blond.impedances.impedance_sources as impSource
+import blond.impedances.impedance as imp
+import blond.utils.bmath as bm
 from pycuda import gpuarray
 #%%
 
