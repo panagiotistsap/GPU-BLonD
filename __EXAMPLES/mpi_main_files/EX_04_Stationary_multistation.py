@@ -16,28 +16,30 @@ No intensity effects
 
 from __future__ import division, print_function
 import numpy as np
-from blond.input_parameters.ring import Ring
-from blond.input_parameters.rf_parameters import RFStation
-from blond.trackers.tracker import RingAndRFTracker
-from blond.trackers.utilities import total_voltage
-from blond.beam.beam import Beam, Proton
-from blond.beam.distributions import bigaussian
-from blond.beam.profile import CutOptions, Profile, FitOptions
-from blond.monitors.monitors import BunchMonitor
-from blond.plots.plot import Plot
-from blond.utils import input_parser
-
+from gpublond.input_parameters.ring import Ring
+from gpublond.input_parameters.rf_parameters import RFStation
+from gpublond.trackers.tracker import RingAndRFTracker
+from gpublond.trackers.utilities import total_voltage
+from gpublond.beam.beam import Beam, Proton
+from gpublond.beam.distributions import bigaussian
+from gpublond.beam.profile import CutOptions, Profile, FitOptions
+from gpublond.monitors.monitors import BunchMonitor
+from gpublond.plots.plot import Plot
 import os
+from gpublond.utils import bmath as bm
+from gpublond.utils.mpi_config import worker, mpiprint
+bm.use_mpi()
+print = mpiprint
+
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
-args = input_parser.parse()
 
 try:
-    os.mkdir(this_directory + '../output_files')
+    os.mkdir(this_directory + '../mpi_output_files')
 except:
     pass
 try:
-    os.mkdir(this_directory + '../output_files/EX_04_fig')
+    os.mkdir(this_directory + '../mpi_output_files/EX_04_fig')
 except:
     pass
 
@@ -105,49 +107,30 @@ print("Beam set and distribution generated...")
 # Need slices for the Gaussian fit; slice for the first plot
 slice_beam = Profile(beam, CutOptions(n_slices=100),
                  FitOptions(fit_option='gaussian'))       
-# Define what to save in file
-bunchmonitor = BunchMonitor(general_params, rf_params_tot, beam,
-                            this_directory + '../output_files/EX_04_output_data',
-                            Profile=slice_beam, buffer_time=1)
-
-# PLOTS
-format_options = {'dirname': this_directory + '../output_files/EX_04_fig', 'linestyle': '.'}
-plots = Plot(general_params, rf_params_tot, beam, dt_plt, dt_plt, 0, 
-             0.0001763*h, -450e6, 450e6, xunit='rad',
-             separatrix_plot=True, Profile=slice_beam,
-             h5file=this_directory + '../output_files/EX_04_output_data',
-             histograms_plot=True, format_options=format_options)
-
-# For testing purposes
-test_string = ''
-test_string += '{:<17}\t{:<17}\t{:<17}\t{:<17}\n'.format(
-    'mean_dE', 'std_dE', 'mean_dt', 'std_dt')
-test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-    np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
-
 # Accelerator map
-map_ = [long_tracker_1] + [long_tracker_2] + [slice_beam] #+ [bunchmonitor] + \
-       #[plots]
+map_ = [long_tracker_1] + [long_tracker_2] + [slice_beam]
+
+if worker.isMaster:
+    # Define what to save in file
+    bunchmonitor = BunchMonitor(general_params, rf_params_tot, beam,
+                                this_directory + '../mpi_output_files/EX_04_output_data',
+                                Profile=slice_beam, buffer_time=1)
+
+    # PLOTS
+    format_options = {'dirname': this_directory + '../mpi_output_files/EX_04_fig', 'linestyle': '.'}
+    plots = Plot(general_params, rf_params_tot, beam, dt_plt, dt_plt, 0, 
+                 0.0001763*h, -450e6, 450e6, xunit='rad',
+                 separatrix_plot=True, Profile=slice_beam,
+                 h5file=this_directory + '../mpi_output_files/EX_04_output_data',
+                 histograms_plot=True, format_options=format_options)
+    map_ += [bunchmonitor, plots]
+
 print("Map set")
 print("")
-# import argparse
-# parser = argparse.ArgumentParser()
-# parser.add_argument('-g', default = False, action='store_true')
-# parser.add_argument('-d', default = False, action='store_true')
-# args = parser.parse_args()
-# print(args)
-if (args['gpu'] == 1):
-    import blond.utils.bmath as bm
-    bm.use_gpu()
-    long_tracker_1.use_gpu()
-    long_tracker_2.use_gpu()
-    slice_beam.use_gpu()
-    long_tracker_tot.use_gpu()
-
-
+beam.split()
 # Tracking --------------------------------------------------------------------
 for i in np.arange(1,N_t+1):
-    #print(i)
+    print(i)
     
     long_tracker_tot.track() 
        
@@ -156,23 +139,11 @@ for i in np.arange(1,N_t+1):
         m.track()
     
     # Define losses according to separatrix and/or longitudinal position
-    # beam.losses_separatrix(general_params, rf_params_tot)
-    # beam.losses_longitudinal_cut(0., 2.5e-9)
+    beam.losses_separatrix(general_params, rf_params_tot)
+    beam.losses_longitudinal_cut(0., 2.5e-9)
+    beam.gather_losses()
 
-# if (args.d):
-#     print(np.std(beam.dE))
-print('dE mean: ', np.mean(beam.dE))
-print('dE std: ', np.std(beam.dE))
-print('profile mean: ', np.mean(slice_beam.n_macroparticles))
-print('profile std: ', np.std(slice_beam.n_macroparticles))
-
-# # For testing purposes
-test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-    np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
-with open(this_directory + '../output_files/EX_04_test_data.txt', 'w') as f:
-    f.write(test_string)
-
-    
-
+beam.gather()
+worker.finalize()
 
 print("Done!")

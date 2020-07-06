@@ -42,6 +42,67 @@ from ..beam.beam import Beam
 
 class gpu_Beam(Beam):
 
+    ## dE property
+
+    @property
+    def dE(self):
+        return self.dE_obj.my_array
+
+    @dE.setter
+    def dE(self, value):
+        self.dE_obj.my_array = value
+
+
+    @property
+    def dev_dE(self):
+        return self.dE_obj.dev_my_array
+
+
+    @dev_dE.setter
+    def dev_dE(self, value):
+        self.dE_obj.dev_my_array = value
+        
+    ## dt property
+
+    @property
+    def dt(self):
+        return self.dt_obj.my_array
+
+    @dt.setter
+    def dt(self, value):
+        self.dt_obj.my_array = value
+
+
+    @property
+    def dev_dt(self):
+        return self.dt_obj.dev_my_array
+
+
+    @dev_dt.setter
+    def dev_dt(self, value):
+        self.dt_obj.dev_my_array = value
+
+    ## id property
+    
+    @property
+    def id(self):
+        return self.id_obj.my_array
+
+    @id.setter
+    def id(self, value):
+        self.id_obj.my_array = value
+
+
+    @property
+    def dev_id(self):
+        return self.id_obj.dev_my_array
+
+
+    @dev_id.setter
+    def dev_id(self, value):
+        self.id_obj.dev_my_array = value
+        
+
     @property
     def n_macroparticles_lost(self):
         return self.n_macroparticles - int(gpuarray.sum(self.dev_id).get())
@@ -130,3 +191,5 @@ class gpu_Beam(Beam):
             np.sqrt(stdKernel(self.dev_dE, self.dev_id, self.mean_dE).get()/ones_sum))
 
         self.epsn_rms_l = np.pi*self.sigma_dE*self.sigma_dt  # in eVs
+
+

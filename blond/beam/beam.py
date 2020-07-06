@@ -49,6 +49,7 @@ class Electron(Particle):
         self.mass = float(m_e*c**2/e)
         self.charge = float(-1)
 
+
 class Positron(Particle):
 
     def __init__(self):
@@ -161,35 +162,22 @@ class Beam(object):
         self._sumsq_dt = 0.
         self._sumsq_dE = 0.
     
-    def prepare_gpu(self):
-        self.dE_copy = self.dE
-        self.dt_copy = self.dt
-        self.id_copy = self.id
-        
+            
     def use_gpu(self):
+        
         from ..gpu.cpu_gpu_array import CGA
         from ..gpu import gpu_beam as gb
-        from pycuda import gpuarray
-
-        #gb.funcs_update(self)
+        if (self.__class__==gb.gpu_Beam):
+            return
 
         # dE to gpu
-        from ..gpu.gpu_properties.properties_generator import dE, dev_dE
         self.dE_obj = CGA(self.dE)
-        setattr(gb.gpu_Beam, "dE", dE)
-        setattr(gb.gpu_Beam, "dev_dE", dev_dE)
 
         # dt to gpu
-        from ..gpu.gpu_properties.properties_generator import dt, dev_dt
         self.dt_obj = CGA(self.dt)
-        setattr(gb.gpu_Beam, "dt", dt)
-        setattr(gb.gpu_Beam, "dev_dt", dev_dt)
 
         # id to gpu
-        from ..gpu.gpu_properties.properties_generator import id, dev_id
         self.id_obj = CGA(self.id, dtype2=np.float64)
-        setattr(gb.gpu_Beam, "id", id)
-        setattr(gb.gpu_Beam, "dev_id", dev_id)
         self.__class__ = gb.gpu_Beam
 
     @property

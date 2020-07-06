@@ -9,7 +9,7 @@ from scipy.constants import c
 import sys
 
 
-# gpublond imports
+# BLonD imports
 #from blond.beams.distributions import matched_from_line_density
 from blond.beam.beam import Proton, Beam
 from blond.input_parameters.ring import Ring, RingOptions
@@ -45,15 +45,7 @@ cmap = colormap.cmap_white_blue_red
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 inputDir = os.path.join(this_directory, '../input_files/PS/')
 
-# import argparse
 
-# parser = argparse.ArgumentParser()
-# parser.add_argument('-c', default = False, action='store_true')
-# parser.add_argument('-g', default = False, action='store_true')
-# parser.add_argument('-b', type=int, required = True)
-# parser.add_argument('-d', default = False, action='store_true')
-# args = parser.parse_args()
-# print(args)
 
 
 # Simulation parameters -------------------------------------------------------
@@ -111,7 +103,7 @@ harmonic_ratio = 4
 
 
 # Beam parameters
-n_bunches = args.b
+n_bunches = 1
 n_particles = 1e6
 #exponent = 1.0
 
@@ -275,8 +267,8 @@ space_charge_z_over_n = impedanceRestOfMachine.importSpaceCharge(
 space_charge_z_over_n = np.interp(
     ring.cycle_time, ring.cycle_time[turns_SC], space_charge_z_over_n)
 
-imp10MHzTogpublond = impedance10MHzCavities.export2gpublond()
-impRestTogpublond = impedanceRestOfMachine.export2gpublond()
+imp10MHzToBLonD = impedance10MHzCavities.export2BLonD()
+impRestToBLonD = impedanceRestOfMachine.export2BLonD()
 
 
 # Program for the 10 MHz caivties
@@ -317,17 +309,17 @@ gap_prog_group_4 = generate_gap_prog(close_group_4)
 gap_prog_group_2 = generate_gap_prog(close_group_2)
 gap_prog_group_1 = generate_gap_prog(close_group_1)
 
-R_S_10MHz_save = np.array(imp10MHzToblond.wakeList[0].R_S)
+R_S_10MHz_save = np.array(imp10MHzToBLonD.wakeList[0].R_S)
 R_S_program_10MHz = (gap_prog_group_3+gap_prog_group_4 +
                      gap_prog_group_2+gap_prog_group_1)/10.
 
 
-# Building up gpublond objects
-ResonatorsList10MHz = imp10MHzToblond.wakeList
-ImpedanceTableList10MHz = imp10MHzToblond.impedanceList
+# Building up BLonD objects
+ResonatorsList10MHz = imp10MHzToBLonD.wakeList
+ImpedanceTableList10MHz = imp10MHzToBLonD.impedanceList
 
-ResonatorsListRest = impRestToblond.wakeList
-ImpedanceTableListRest = impRestToblond.impedanceList
+ResonatorsListRest = impRestToBLonD.wakeList
+ImpedanceTableListRest = impRestToBLonD.impedanceList
 
 
 frequency_step = 1/(ring.t_rev[0]*n_turns_memory)  # [Hz]

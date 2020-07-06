@@ -365,20 +365,13 @@ class RFStation(object):
         self.Q_s = calculate_Q_s(self, self.Particle)
         self.omega_s0 = self.Q_s*Ring.omega_rev
 
-       
-    def prepare_gpu(self):
-        self.voltage = self.voltage
-        self.omega_rf_copy = self.omega_rf
-        self.phi_rf_copy = self.phi_rf
-        self.omega_rf_d_copy = self.omega_rf_d
-        self.harmonic_copy = self.harmonic
-        self.dphi_rf_copy = self.dphi_rf
-
 
     def use_gpu(self):
         from ..gpu.cpu_gpu_array import CGA
         from ..gpu.gpu_rf_parameters import gpu_RFStation        
         from pycuda import gpuarray
+        if (self.__class__ == gpu_RFStation):
+            return 
 
         if (self.phi_modulation is None):
             self.dev_phi_modulation = None
@@ -393,41 +386,23 @@ class RFStation(object):
         ## gpu properties    
 
         # voltage to gpu
-        from ..gpu.gpu_properties.properties_generator import voltage,dev_voltage
         self.voltage_obj = CGA(self.voltage)
-        setattr(gpu_RFStation, "voltage", voltage)
-        setattr(gpu_RFStation, "dev_voltage", dev_voltage)
         
         # omega_rf to gpu
-        from ..gpu.gpu_properties.properties_generator import omega_rf,dev_omega_rf
         self.omega_rf_obj = CGA(self.omega_rf)
-        setattr(gpu_RFStation, "omega_rf", omega_rf)
-        setattr(gpu_RFStation, "dev_omega_rf", dev_omega_rf)
 
         # phi_rf to gpu
-        from ..gpu.gpu_properties.properties_generator import phi_rf,dev_phi_rf
         self.phi_rf_obj = CGA(self.phi_rf)
-        setattr(gpu_RFStation, "phi_rf", phi_rf)
-        setattr(gpu_RFStation, "dev_phi_rf", dev_phi_rf)
 
         # omega_rf_d to gpu
-        from ..gpu.gpu_properties.properties_generator import omega_rf_d,dev_omega_rf_d
         self.omega_rf_d_obj = CGA(self.omega_rf_d)
-        setattr(gpu_RFStation, "omega_rf_d", omega_rf_d)
-        setattr(gpu_RFStation, "dev_omega_rf_d", dev_omega_rf_d)
 
 
         # harmonic to gpu
-        from ..gpu.gpu_properties.properties_generator import harmonic,dev_harmonic
         self.harmonic_obj = CGA(self.harmonic)
-        setattr(gpu_RFStation, "harmonic", harmonic)
-        setattr(gpu_RFStation, "dev_harmonic", dev_harmonic)
 
         # dphi_rf to gpu
-        from ..gpu.gpu_properties.properties_generator import dphi_rf,dev_dphi_rf
         self.dphi_rf_obj = CGA(self.dphi_rf)
-        setattr(gpu_RFStation, "dphi_rf", dphi_rf)
-        setattr(gpu_RFStation, "dev_dphi_rf", dev_dphi_rf)
         self.__class__ = gpu_RFStation
 
     def eta_tracking(self, beam, counter, dE):

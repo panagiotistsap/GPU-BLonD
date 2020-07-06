@@ -47,6 +47,26 @@ from ..impedances.impedance import (TotalInducedVoltage, _InducedVoltage,
                             
 class gpu_TotalInducedVoltage(TotalInducedVoltage):
 
+    ## induced voltage
+
+    @property
+    def induced_voltage(self):
+        return self.induced_voltage_obj.my_array
+
+    @induced_voltage.setter
+    def induced_voltage(self, value):
+        self.induced_voltage_obj.my_array = value
+
+
+    @property
+    def dev_induced_voltage(self):
+        return self.induced_voltage_obj.dev_my_array
+
+
+    @dev_induced_voltage.setter
+    def dev_induced_voltage(self, value):
+        self.induced_voltage_obj.dev_my_array = value
+
 
     def induced_voltage_sum(self):
         """
@@ -100,6 +120,49 @@ def iv_update_funcs(obj, is_ii=False):
                 gpu_induced_voltage_mtw, obj)
 
 class gpu_InducedVoltage(_InducedVoltage):
+
+    ## mtw_memory
+
+    @property
+    def mtw_memory(self):
+        return self.mtw_memory_obj.my_array
+
+    @mtw_memory.setter
+    def mtw_memory(self, value):
+        self.mtw_memory_obj.my_array = value
+
+
+    @property
+    def dev_mtw_memory(self):
+        return self.mtw_memory_obj.dev_my_array
+
+
+    @dev_mtw_memory.setter
+    def dev_mtw_memory(self, value):
+        self.mtw_memory_obj.dev_my_array = value
+
+    ## total_impedance
+
+
+    @property
+    def total_impedance(self):
+        return self.total_impedance_obj.my_array
+
+    @total_impedance.setter
+    def total_impedance(self, value):
+        self.total_impedance_obj.my_array = value
+
+
+    @property
+    def dev_total_impedance(self):
+        return self.total_impedance_obj.dev_my_array
+
+
+    @dev_total_impedance.setter
+    def dev_total_impedance(self, value):
+        self.total_impedance_obj.dev_my_array = value
+
+
 
     def induced_voltage_1turn(self, beam_spectrum_dict={}):
         """

@@ -428,41 +428,25 @@ class Profile(object):
         if OtherSlicesOptions.direct_slicing:
             self.track()
 
-    def prepare_gpu(self):
-        self.bin_centers_copy = self.bin_centers
-        self.n_macroparticles_copy = self.n_macroparticles
-        self.beam_spectrum_copy = self.beam_spectrum
-        self.beam_spectrum_freq_copy = self.beam_spectrum_freq
-
+    
     def use_gpu(self):
         from ..gpu.cpu_gpu_array import CGA
         from ..gpu.gpu_profile import gpu_Profile
-        
+        if (self.__class__ == gpu_Profile):
+            return 
         old_slice = self._slice
 
         # bin_centers to gpu
-        from ..gpu.gpu_properties.properties_generator import bin_centers,dev_bin_centers
         self.bin_centers_obj = CGA(self.bin_centers)
-        setattr(gpu_Profile, "bin_centers", bin_centers)
-        setattr(gpu_Profile, "dev_bin_centers", dev_bin_centers)
 
         # n_macroparticles to gpu
-        from ..gpu.gpu_properties.properties_generator import n_macroparticles,dev_n_macroparticles
         self.n_macroparticles_obj = CGA(self.n_macroparticles, dtype2=np.int32)
-        setattr(gpu_Profile, "n_macroparticles", n_macroparticles)
-        setattr(gpu_Profile, "dev_n_macroparticles", dev_n_macroparticles)
 
         # beam_spectrum to gpu
-        from ..gpu.gpu_properties.properties_generator import beam_spectrum,dev_beam_spectrum
         self.beam_spectrum_obj = CGA(self.beam_spectrum)
-        setattr(gpu_Profile, "beam_spectrum", beam_spectrum)
-        setattr(gpu_Profile, "dev_beam_spectrum", dev_beam_spectrum)
 
         # beam_spectrum_freq to gpu
-        from ..gpu.gpu_properties.properties_generator import beam_spectrum_freq,dev_beam_spectrum_freq
         self.beam_spectrum_freq_obj = CGA(self.beam_spectrum_freq)
-        setattr(gpu_Profile, "beam_spectrum_freq", beam_spectrum_freq)
-        setattr(gpu_Profile, "dev_beam_spectrum_freq", dev_beam_spectrum_freq)
         self.__class__ = gpu_Profile
 
         for i in range(len(self.operations)):

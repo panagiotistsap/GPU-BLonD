@@ -16,31 +16,32 @@ Example script to take into account intensity effects from impedance tables
 from __future__ import division, print_function
 from builtins import str, range, bytes
 import numpy as np
-from blond.input_parameters.ring import Ring
-from blond.input_parameters.rf_parameters import RFStation
-from blond.trackers.tracker import RingAndRFTracker
-from blond.beam.beam import Beam, Proton
-from blond.beam.distributions import bigaussian
-from blond.beam.profile import CutOptions, Profile
-from blond.monitors.monitors import BunchMonitor
-from blond.plots.plot import Plot
-from blond.plots.plot_impedance import plot_impedance_vs_frequency, plot_induced_voltage_vs_bin_centers
-from blond.impedances.impedance_sources import InputTable
-from blond.impedances.impedance import InductiveImpedance, InducedVoltageFreq, TotalInducedVoltage
+from gpublond.input_parameters.ring import Ring
+from gpublond.input_parameters.rf_parameters import RFStation
+from gpublond.trackers.tracker import RingAndRFTracker
+from gpublond.beam.beam import Beam, Proton
+from gpublond.beam.distributions import bigaussian
+from gpublond.beam.profile import CutOptions, Profile
+from gpublond.monitors.monitors import BunchMonitor
+from gpublond.plots.plot import Plot
+from gpublond.plots.plot_impedance import plot_impedance_vs_frequency, plot_induced_voltage_vs_bin_centers
+from gpublond.impedances.impedance_sources import InputTable
+from gpublond.impedances.impedance import InductiveImpedance, InducedVoltageFreq, TotalInducedVoltage
 from scipy.constants import m_p, e, c
 import os
-from blond.utils import input_parser
-args = input_parser.parse()
+from gpublond.utils import bmath as bm
+from gpublond.utils.mpi_config import worker, mpiprint
+bm.use_mpi()
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 
 try:
-    os.mkdir(this_directory + '../output_files')
+    os.mkdir(this_directory + '../mpi_output_files')
 except:
     pass
 try:
-    os.mkdir(this_directory + '../output_files/EX_02_fig')
+    os.mkdir(this_directory + '../mpi_output_files/EX_02_fig')
 except:
     pass
 
@@ -58,7 +59,7 @@ gamma_transition = 4.4  # [1]
 C = 2 * np.pi * radius  # [m]       
       
 # Tracking details
-n_turns = 1000      
+n_turns = 2         
 n_turns_between_two_plots = 1          
 
 # Derived parameters
@@ -93,10 +94,6 @@ bigaussian(general_params, RF_sct_par, my_beam, sigma_dt, seed=1)
 slice_beam = Profile(my_beam, CutOptions(cut_left= -5.72984173562e-7, 
                     cut_right=5.72984173562e-7, n_slices=100))       
 
-# MONITOR----------------------------------------------------------------------
-
-bunchmonitor = BunchMonitor(general_params, RF_sct_par, my_beam, 
-                            this_directory + '../output_files/EX_02_output_data', buffer_time=1)
 
 # LOAD IMPEDANCE TABLES--------------------------------------------------------
 
@@ -153,70 +150,46 @@ ind_volt_freq = InducedVoltageFreq(my_beam, slice_beam, imp_list,
 total_induced_voltage = TotalInducedVoltage(my_beam, slice_beam,
                                       [ind_volt_freq, steps, dir_space_charge])
 
-# PLOTS
-
-format_options = {'dirname': this_directory + '../output_files/EX_02_fig', 'linestyle': '.'}
-plots = Plot(general_params, RF_sct_par, my_beam, 1, n_turns, 0, 
-             5.72984173562e-7, - my_beam.sigma_dE * 4.2, my_beam.sigma_dE * 4.2, xunit= 's',
-             separatrix_plot= True, Profile = slice_beam, h5file = this_directory + '../output_files/EX_02_output_data', 
-             histograms_plot = True, format_options = format_options)
- 
-# For testing purposes
-test_string = ''
-test_string += '{:<17}\t{:<17}\t{:<17}\t{:<17}\n'.format(
-    'mean_dE', 'std_dE', 'mean_dt', 'std_dt')
-test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-    np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))
-
-
 # ACCELERATION MAP-------------------------------------------------------------
-# import argparse
-# parser = argparse.ArgumentParser()
-# parser.add_argument('-g', default = False, action='store_true')
-# parser.add_argument('-d', default = False, action='store_true')
-# args = parser.parse_args()
-# print(args)
-if (args['gpu'] == 1):
-    import blond.utils.bmath as bm
-    bm.use_gpu()
-    total_induced_voltage.use_gpu()
-    ring_RF_section.use_gpu()
-    slice_beam.use_gpu()
 
-#map_ = [total_induced_voltage] + [ring_RF_section] + [slice_beam] #+ [bunchmonitor] + [plots]
-map_ = [ring_RF_section] + [slice_beam]
+map_ = [total_induced_voltage] + [ring_RF_section] + [slice_beam]
+
+if worker.isMaster:
+    # MONITOR----------------------------------------------------------------------
+    bunchmonitor = BunchMonitor(general_params, RF_sct_par, my_beam,
+                                this_directory + '../mpi_output_files/EX_02_output_data', buffer_time=1)
+
+
+    # PLOTS
+
+    format_options = {'dirname': this_directory + '../mpi_output_files/EX_02_fig', 'linestyle': '.'}
+    plots = Plot(general_params, RF_sct_par, my_beam, 1, n_turns, 0, 
+                 5.72984173562e-7, - my_beam.sigma_dE * 4.2, my_beam.sigma_dE * 4.2, xunit= 's',
+                 separatrix_plot= True, Profile = slice_beam, h5file = this_directory + '../mpi_output_files/EX_02_output_data', 
+                 histograms_plot = True, format_options = format_options)
+    map_ += [bunchmonitor] + [plots]
+
+
 # TRACKING + PLOTS-------------------------------------------------------------
+my_beam.split()
+
 
 for i in range(1, n_turns+1):
     
-    # print(i)
+    mpiprint(i)
     
     for m in map_:
         m.track()
     
-    # # Plots
-    # if (i% n_turns_between_two_plots) == 0:
+    # Plots
+    if (i% n_turns_between_two_plots) == 0:
         
-    #     plot_impedance_vs_frequency(i, general_params, ind_volt_freq, 
-    #       option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum", dirname = this_directory + '../output_files/EX_02_fig')
+        plot_impedance_vs_frequency(i, general_params, ind_volt_freq, 
+          option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum", dirname = this_directory + '../mpi_output_files/EX_02_fig')
          
-    #     plot_induced_voltage_vs_bin_centers(i, general_params, total_induced_voltage, style = '.', dirname = this_directory + '../output_files/EX_02_fig')
+        plot_induced_voltage_vs_bin_centers(i, general_params, total_induced_voltage, style = '.', dirname = this_directory + '../mpi_output_files/EX_02_fig')
 
-# For testing purposes
-# if (args.d):
-#     print(np.std(my_beam.dE))
+my_beam.gather()
+worker.finalize()
 
-print('dE mean: ', np.mean(my_beam.dE))
-print('dE std: ', np.std(my_beam.dE))
-print('profile mean: ', np.mean(slice_beam.n_macroparticles))
-print('profile std: ', np.std(slice_beam.n_macroparticles))
-
-
-test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-    np.mean(my_beam.dE), np.std(my_beam.dE), np.mean(my_beam.dt), np.std(my_beam.dt))
-with open(this_directory + '../output_files/EX_02_test_data.txt', 'w') as f:
-    f.write(test_string)
-    
-
-         
-print("Done!")
+mpiprint("Done!")

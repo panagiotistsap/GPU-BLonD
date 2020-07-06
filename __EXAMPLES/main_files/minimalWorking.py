@@ -138,28 +138,38 @@ def update_impedance(map_, turn):
     indFreq.freq = prof.beam_spectrum_freq
     indFreq.sum_impedances(indFreq.freq)
 
-#%%
+
+
+
 print("starting dE std",np.std(my_beam.dE))
+
 import cuprof 
 if (args.g):
     bm.use_gpu()
-    bm.enable_gpucache()
-    long_tracker.use_gpu()
+    my_beam.use_gpu()
+    my_beam.use_gpu()
     profile.use_gpu()
+    long_tracker.use_gpu()   
     totalInduced.use_gpu()
     tk = "gpu"
 else:
     tk = "cpu"
+
     
 cuprof.enable()
+
 with cuprof.region_timer("main_loop",tk) as rtn:
     for i in range(1000):
-        for m in map_:
-            m.track()
+        with cuprof.region_timer("ring",tk) as rtn:
+            full_ring.track()
+        with cuprof.region_timer("prof",tk) as rtn:
+            profile.track()
+        with cuprof.region_timer("tot",tk) as rtn:
+            totalInduced.track()
+        
         if (args.u):
             update_impedance(map_, i+1)
         else:
             pass
 cuprof.report()
-print(np.std(my_beam.dE))    
-    
+print(np.std(my_beam.dE))   

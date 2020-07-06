@@ -35,6 +35,86 @@ from ..beam.profile import Profile
 
 class gpu_Profile(Profile):
 
+    ## bin_centers
+
+    @property
+    def bin_centers(self):
+        return self.bin_centers_obj.my_array
+
+    @bin_centers.setter
+    def bin_centers(self, value):
+        self.bin_centers_obj.my_array = value
+
+
+    @property
+    def dev_bin_centers(self):
+        return self.bin_centers_obj.dev_my_array
+
+
+    @dev_bin_centers.setter
+    def dev_bin_centers(self, value):
+        self.bin_centers_obj.dev_my_array = value
+
+    ## n_macroparticles
+
+    @property
+    def n_macroparticles(self):
+        return self.n_macroparticles_obj.my_array
+
+    @n_macroparticles.setter
+    def n_macroparticles(self, value):
+        self.n_macroparticles_obj.my_array = value
+
+
+    @property
+    def dev_n_macroparticles(self):
+        return self.n_macroparticles_obj.dev_my_array
+
+
+    @dev_n_macroparticles.setter
+    def dev_n_macroparticles(self, value):
+        self.n_macroparticles_obj.dev_my_array = value
+
+    ## beam_spectrum
+
+    @property
+    def beam_spectrum(self):
+        return self.beam_spectrum_obj.my_array
+
+    @beam_spectrum.setter
+    def beam_spectrum(self, value):
+        self.beam_spectrum_obj.my_array = value
+
+
+    @property
+    def dev_beam_spectrum(self):
+        return self.beam_spectrum_obj.dev_my_array
+
+
+    @dev_beam_spectrum.setter
+    def dev_beam_spectrum(self, value):
+        self.beam_spectrum_obj.dev_my_array = value
+
+    ## beam_spectrum_freq
+
+    @property
+    def beam_spectrum_freq(self):
+        return self.beam_spectrum_freq_obj.my_array
+
+    @beam_spectrum_freq.setter
+    def beam_spectrum_freq(self, value):
+        self.beam_spectrum_freq_obj.my_array = value
+
+
+    @property
+    def dev_beam_spectrum_freq(self):
+        return self.beam_spectrum_freq_obj.dev_my_array
+
+
+    @dev_beam_spectrum_freq.setter
+    def dev_beam_spectrum_freq(self, value):
+        self.beam_spectrum_freq_obj.dev_my_array = value
+
     @timing.timeit(key='comp:histo')
     def _slice(self, reduce=True):
         """
@@ -43,9 +123,7 @@ class gpu_Profile(Profile):
 
         bm.slice(self.cut_left, self.cut_right, self.Beam, self)
         self.n_macroparticles_obj.invalidate_cpu()
-
-
-    
+   
 
     @timing.timeit(key='serial:beam_spectrum_gen')
     def beam_spectrum_generation(self, n_sampling_fft):

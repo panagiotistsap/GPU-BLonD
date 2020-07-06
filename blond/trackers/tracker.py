@@ -324,22 +324,9 @@ class RingAndRFTracker(object):
             warnings.warn('Setting interpolation to TRUE')
             # self.logger.warning("Setting interpolation to TRUE")
 
-    def prepare_gpu(self):
-        if (self.profile):
-            self.profile.prepare_gpu()
-        if (self.totalInducedVoltage != None):
-            self.totalInducedVoltage.prepare_gpu()
-        if (self.profile != None):
-            self.profile.prepare_gpu()
-        if (self.beam != None):
-            self.beam.prepare_gpu()
-        if (self.rf_params != None):
-            self.rf_params.prepare_gpu()
-
+    
     def use_gpu(self):
         from ..gpu.gpu_tracker import gpu_RingAndRFTracker
-        from pycuda.compiler import SourceModule
-        from pycuda import gpuarray
         
         self.__class__ = gpu_RingAndRFTracker
         if (self.profile):
@@ -352,7 +339,7 @@ class RingAndRFTracker(object):
             self.beamFB.use_gpu()
         if (self.rf_params != None):
             self.rf_params.use_gpu()
-        # self.dev_phi_modulation = self.rf_params.dev_phi_modulation
+        self.dev_phi_modulation = self.rf_params.dev_phi_modulation
 
 
     @timing.timeit(key='comp:kick')

@@ -82,23 +82,16 @@ class TotalInducedVoltage(object):
         self.time_array = self.profile.bin_centers
 
 
-    def prepare_gpu(self):
-        self.induced_voltage_copy = self.induced_voltage
-
-
+    
     def use_gpu(self):
+        
         from ..gpu.cpu_gpu_array import CGA
         from ..gpu.gpu_impedance import gpu_TotalInducedVoltage
-        global tiv_update_funcs, iv_update_funcs, ii_update_funcs,drv,gpuarray
-        from ..gpu.gpu_impedance import tiv_update_funcs, iv_update_funcs, ii_update_funcs
-
-
+        if (self.__class__==gpu_TotalInducedVoltage):
+            return
 
         # induced_voltage to gpu
-        from ..gpu.gpu_properties.properties_generator import induced_voltage,dev_induced_voltage
         self.induced_voltage_obj = CGA(self.induced_voltage)
-        setattr(gpu_TotalInducedVoltage, "induced_voltage", induced_voltage)
-        setattr(gpu_TotalInducedVoltage, "dev_induced_voltage", dev_induced_voltage)
         self.__class__ = gpu_TotalInducedVoltage
                    
         for obj in self.induced_voltage_list:
@@ -267,20 +260,18 @@ class _InducedVoltage(object):
 
     def use_gpu(self, child=False, new_class = None):
         from ..gpu.cpu_gpu_array import CGA
-        from ..gpu.gpu_impedance import gpu_InducedVoltage
         from pycuda import gpuarray
-
+        from ..gpu.gpu_impedance import (gpu_InducedVoltage, gpu_InducedVoltageFreq,
+                                gpu_InducedVoltageTime,gpu_InductiveImpedance)
+        
+        if (self.__class__ in [gpu_InducedVoltage, gpu_InducedVoltageFreq,
+                                gpu_InducedVoltageTime,gpu_InductiveImpedance]):
+            return 
         # mtw_memory to gpu
-        from ..gpu.gpu_properties.properties_generator import mtw_memory,dev_mtw_memory
         self.mtw_memory_obj = CGA(self.mtw_memory)
-        setattr(gpu_InducedVoltage, "mtw_memory", mtw_memory)
-        setattr(gpu_InducedVoltage, "dev_mtw_memory", dev_mtw_memory)
 
         # total_impedance to gpu
-        from ..gpu.gpu_properties.properties_generator import total_impedance,dev_total_impedance
         self.total_impedance_obj = CGA(self.total_impedance)
-        setattr(gpu_InducedVoltage, "total_impedance", total_impedance)
-        setattr(gpu_InducedVoltage, "dev_total_impedance", dev_total_impedance)
         
         if (child==False):
             self.__class__ = gpu_InducedVoltage

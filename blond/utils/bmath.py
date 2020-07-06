@@ -155,15 +155,12 @@ def use_gpu(comps=[], gpu_id=0):
     from ..gpu import gpu_physics_wrap
     from ..gpu import gpu_butils_wrap
     
-    for obj in comps:
-        if (hasattr(obj,"prepare_gpu")):
-            obj.prepare_gpu()
-            print("preparing gpu")
 
     for obj in comps:
         if (hasattr(obj, "use_gpu")):
             print("using gpu")
             obj.use_gpu()
+            
     _GPU_func_dict = {
         'rfft': gpu_butils_wrap.gpu_rfft,
         'irfft': gpu_butils_wrap.gpu_irfft,
