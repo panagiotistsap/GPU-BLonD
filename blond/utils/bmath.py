@@ -145,23 +145,25 @@ class GPUDev:
         update_active_dict(_CPU_func_dict)
 
 
-def use_gpu(gpu_id=0):
-    # import traceback
-    # import atexit
+def use_gpu(comps=[], gpu_id=0):
     from pycuda import driver as drv
 
     print("USING GPU")
     global __gpu_dev
     __gpu_dev = GPUDev(gpu_id)
-
-    # import pycuda.autoinit
+    globals()['device'] = 'GPU'
     from ..gpu import gpu_physics_wrap
     from ..gpu import gpu_butils_wrap
-
-    #ctx = dev.make_context()
-    #atexit.register(ctx.pop)
-   
     
+    for obj in comps:
+        if (hasattr(obj,"prepare_gpu")):
+            obj.prepare_gpu()
+            print("preparing gpu")
+
+    for obj in comps:
+        if (hasattr(obj, "use_gpu")):
+            print("using gpu")
+            obj.use_gpu()
     _GPU_func_dict = {
         'rfft': gpu_butils_wrap.gpu_rfft,
         'irfft': gpu_butils_wrap.gpu_irfft,

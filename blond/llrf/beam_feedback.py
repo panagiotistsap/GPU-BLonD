@@ -208,8 +208,8 @@ class BeamFeedback(object):
 
 
     def use_gpu(self):
-        from ..gpu.gpu_beam_feedback import bf_funcs_update
-        bf_funcs_update(self)
+        from ..gpu.gpu_beam_feedback import gpu_BeamFeedback
+        self.__class__ = gpu_BeamFeedback
 
     def track(self):
         '''

@@ -82,33 +82,27 @@ class TotalInducedVoltage(object):
         self.time_array = self.profile.bin_centers
 
 
+    def prepare_gpu(self):
+        self.induced_voltage_copy = self.induced_voltage
+
+
     def use_gpu(self):
         from ..gpu.cpu_gpu_array import CGA
-        
-        # global tiv_update_funcs, iv_update_funcs, ii_update_funcs
-        # ,drv,gpuarray
-        from ..gpu.gpu_impedance import tiv_update_funcs
-        from pycuda import gpuarray
-        # , driver as drv, tools
+        from ..gpu.gpu_impedance import gpu_TotalInducedVoltage
+        global tiv_update_funcs, iv_update_funcs, ii_update_funcs,drv,gpuarray
+        from ..gpu.gpu_impedance import tiv_update_funcs, iv_update_funcs, ii_update_funcs
 
-        # drv.init()
-        # dev = drv.Device(bm.gpuId())
 
 
         # induced_voltage to gpu
         from ..gpu.gpu_properties.properties_generator import induced_voltage,dev_induced_voltage
         self.induced_voltage_obj = CGA(self.induced_voltage)
-        setattr(TotalInducedVoltage, "induced_voltage", induced_voltage)
-        setattr(TotalInducedVoltage, "dev_induced_voltage", dev_induced_voltage)
-
-        tiv_update_funcs(self)
-        for obj in self.induced_voltage_list:
-            obj.mtw_memory_obj = CGA(obj.mtw_memory)
-            obj.total_impedance_obj = CGA(obj.total_impedance)
-            
+        setattr(gpu_TotalInducedVoltage, "induced_voltage", induced_voltage)
+        setattr(gpu_TotalInducedVoltage, "dev_induced_voltage", dev_induced_voltage)
+        self.__class__ = gpu_TotalInducedVoltage
+                   
         for obj in self.induced_voltage_list:
             obj.use_gpu()
-            #print(obj)
 
 
     def reprocess(self):
@@ -269,32 +263,37 @@ class _InducedVoltage(object):
 
         self.process()
         self.total_transfers = 0
-   
+  
 
-
-    def use_gpu(self, is_ii=False):
+    def use_gpu(self, child=False, new_class = None):
         from ..gpu.cpu_gpu_array import CGA
-
-        global gpuarray
+        from ..gpu.gpu_impedance import gpu_InducedVoltage
         from pycuda import gpuarray
-        from ..gpu.gpu_impedance import iv_update_funcs
 
-        iv_update_funcs(self,is_ii=is_ii)
-        
         # mtw_memory to gpu
         from ..gpu.gpu_properties.properties_generator import mtw_memory,dev_mtw_memory
-        
-        
-        #self.mtw_memory_obj = CGA(self.mtw_memory)
-        setattr(self, "mtw_memory", mtw_memory)
-        setattr(self, "dev_mtw_memory", dev_mtw_memory)
+        self.mtw_memory_obj = CGA(self.mtw_memory)
+        setattr(gpu_InducedVoltage, "mtw_memory", mtw_memory)
+        setattr(gpu_InducedVoltage, "dev_mtw_memory", dev_mtw_memory)
 
         # total_impedance to gpu
         from ..gpu.gpu_properties.properties_generator import total_impedance,dev_total_impedance
-        #self.total_impedance_obj = CGA(self.total_impedance)
-        setattr(self, "total_impedance", total_impedance)
-        setattr(self, "dev_total_impedance", dev_total_impedance)
-
+        self.total_impedance_obj = CGA(self.total_impedance)
+        setattr(gpu_InducedVoltage, "total_impedance", total_impedance)
+        setattr(gpu_InducedVoltage, "dev_total_impedance", dev_total_impedance)
+        
+        if (child==False):
+            self.__class__ = gpu_InducedVoltage
+        else:
+            self.__class__ = new_class
+        if self.multi_turn_wake:
+            self.induced_voltage_generation = self.induced_voltage_mtw
+            if (self.mtw_mode == 'freq'):
+                self.shift_trev = self.shift_trev_freq
+            else:
+                self.shift_trev = self.shift_trev_time
+        else:
+            self.induced_voltage_generation = self.induced_voltage_1turn
 
         if (hasattr(self, "time_mtw")):
             self.dev_time_mtw = gpuarray.to_gpu(self.time_mtw)
@@ -557,6 +556,11 @@ class InducedVoltageTime(_InducedVoltage):
         # frequency domain (padding zeros)
         self.total_impedance = bm.rfft(self.total_wake, self.n_fft)
 
+    def use_gpu(self):
+        from ..gpu.gpu_impedance import gpu_InducedVoltageTime
+        super().use_gpu(child=True, new_class = gpu_InducedVoltageTime)
+        
+
 
 class InducedVoltageFreq(_InducedVoltage):
     r"""
@@ -651,8 +655,9 @@ class InducedVoltageFreq(_InducedVoltage):
         self.total_impedance /= self.profile.bin_size
 
     def use_gpu(self):
-        super().use_gpu()
-
+        from ..gpu.gpu_impedance import gpu_InducedVoltageFreq
+        super().use_gpu(child=True, new_class = gpu_InducedVoltageFreq)
+        
 
 class InductiveImpedance(_InducedVoltage):
     """
@@ -691,8 +696,8 @@ class InductiveImpedance(_InducedVoltage):
         _InducedVoltage.__init__(self, Beam, Profile, RFParams=RFParams)
         
     def use_gpu(self):
-        #ii_update_funcs(self)
-        super().use_gpu(is_ii = True)
+        from ..gpu.gpu_impedance import gpu_InductiveImpedance
+        super().use_gpu(child=True, new_class = gpu_InductiveImpedance)
         
     @timing.timeit(key='serial:InductiveImped')
     def induced_voltage_1turn(self, beam_spectrum_dict={}):

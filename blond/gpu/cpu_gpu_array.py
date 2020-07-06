@@ -1,11 +1,6 @@
 import numpy as np
-# try:
-#     global gpuarray,drv
-#     import pycuda.autoinit
-#     from pycuda import gpuarray
-#     from  ..utils import bmath as bm   
-# except ModuleNotFoundError:
-#     pass
+from pycuda import gpuarray
+from  ..utils import bmath as bm   
 
 from pycuda import gpuarray
 # from  ..utils import bmath as bm   
@@ -18,17 +13,13 @@ class my_gpuarray(gpuarray.GPUArray):
 
     def __setitem__(self, key, value):
         p = self.parent
-        if (not self.parent.gpu_valid):
-            self.set(gpuarray.to_gpu(self.parent))
-            self.parent.gpu_valid = True
+        self.parent.gpu_validate()
         super().__setitem__(key, value)
         self.parent.cpu_valid = False
         return self
     
     def __getitem__(self, key):
-        if (not self.parent.gpu_valid):
-            self.set(gpuarray.to_gpu(self.parent))
-            self.parent.gpu_valid = True
+        self.parent.gpu_validate()
         return super(my_gpuarray, self).__getitem__(key)
 
 
@@ -60,7 +51,8 @@ class my_cpuarray(np.ndarray):
         return obj
   
     def cpu_validate(self):
-        if (not self.cpu_valid):
+        
+        if (not hasattr(self,"cpu_valid") or not self.cpu_valid):
             self.cpu_valid = True
             dummy = self.dev_array.get().reshape(self.sp).astype(self.dtype1)
             super().__setitem__(slice(None, None, None), dummy)
@@ -73,13 +65,17 @@ class my_cpuarray(np.ndarray):
         self.gpu_valid = True
             
     def __setitem__(self, key, value):
+    
         self.cpu_validate()
         self.gpu_valid = False
         super(my_cpuarray, self).__setitem__(key, value)
 
     def __getitem__(self, key):
         self.cpu_validate()
-        return super(my_cpuarray, self).__getitem__(key)
+        if (len(self.shape)==1):
+            return super(my_cpuarray, self).__getitem__(key)
+        else:
+            return np.array(super(my_cpuarray, self).__getitem__(key))
 
     
 ## example
@@ -101,7 +97,7 @@ class CGA():
     
     @my_array.setter
     def my_array(self, value):
-        if (self.array_obj.size!=0):
+        if (self.array_obj.size!=0 and value.dtype==self.array_obj.dtype1 and self.array_obj.shape == value.shape ):
            super(my_cpuarray, self.array_obj).__setitem__(slice(None, None, None), value)
         else:
             self.array_obj = my_cpuarray(value)
@@ -116,7 +112,7 @@ class CGA():
     
     @dev_my_array.setter
     def dev_my_array(self, value):
-        if (self.array_obj.dev_array.size!=0 and value.dtype==self.array_obj.dtype2):
+        if (self.array_obj.dev_array.size!=0 and value.dtype==self.array_obj.dtype2 and self.array_obj.dev_array.shape == value.shape):
             #super(my_gpuarray, self._dev_array).__setitem__(slice(None, None, None), value)
             self.array_obj.dev_array[:] = value
         else:
@@ -125,6 +121,7 @@ class CGA():
             self.array_obj.dev_array.__class__ = my_gpuarray
             self.array_obj.dev_array.set_parent(self.array_obj)
             self.array_obj.gpu_valid = True
+            self.array_obj.cpu_valid = False
 
         self.array_obj.cpu_valid = False
         self.array_obj.gpu_valid = True

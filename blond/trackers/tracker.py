@@ -324,29 +324,36 @@ class RingAndRFTracker(object):
             warnings.warn('Setting interpolation to TRUE')
             # self.logger.warning("Setting interpolation to TRUE")
 
+    def prepare_gpu(self):
+        if (self.profile):
+            self.profile.prepare_gpu()
+        if (self.totalInducedVoltage != None):
+            self.totalInducedVoltage.prepare_gpu()
+        if (self.profile != None):
+            self.profile.prepare_gpu()
+        if (self.beam != None):
+            self.beam.prepare_gpu()
+        if (self.rf_params != None):
+            self.rf_params.prepare_gpu()
+
     def use_gpu(self):
-        from ..gpu.gpu_tracker import tracker_funcs_update
+        from ..gpu.gpu_tracker import gpu_RingAndRFTracker
         from pycuda.compiler import SourceModule
         from pycuda import gpuarray
-        # , driver as drv, tools
-        import atexit
-        # drv.init()
-        # dev = drv.Device(bm.gpuId())
-
+        
+        self.__class__ = gpu_RingAndRFTracker
         if (self.profile):
             self.profile.use_gpu()
-        tracker_funcs_update(self)
         if (self.totalInducedVoltage != None):
             self.totalInducedVoltage.use_gpu()
-        if (self.profile != None):
-            self.profile.use_gpu()
         if (self.beam != None):
             self.beam.use_gpu()
         if (self.beamFB != None):
             self.beamFB.use_gpu()
         if (self.rf_params != None):
             self.rf_params.use_gpu()
-        self.dev_phi_modulation = self.rf_params.dev_phi_modulation
+        # self.dev_phi_modulation = self.rf_params.dev_phi_modulation
+
 
     @timing.timeit(key='comp:kick')
     def kick(self, beam_dt, beam_dE, index):
@@ -469,13 +476,13 @@ class RingAndRFTracker(object):
 
         # Update the RF phase of all systems for the next turn
         # Accumulated phase offset due to beam phase loop or frequency offset
-        self.rf_params.dphi_rf += 2.*np.pi*self.rf_params.harmonic[:,turn+1]* \
-                                  (self.rf_params.omega_rf[:,turn+1] -
-                                   self.rf_params.omega_rf_d[:,turn+1]) / \
-                                  self.rf_params.omega_rf_d[:,turn+1]
+        # self.rf_params.dphi_rf += 2.*np.pi*self.rf_params.harmonic[:,turn+1]* \
+        #                           (self.rf_params.omega_rf[:,turn+1] -
+        #                            self.rf_params.omega_rf_d[:,turn+1]) / \
+        #                           self.rf_params.omega_rf_d[:,turn+1]
 
         # Total phase offset
-        self.rf_params.phi_rf[:,turn+1] += self.rf_params.dphi_rf
+        # self.rf_params.phi_rf[:,turn+1] += self.rf_params.dphi_rf
 
         if self.periodicity:
             pass
