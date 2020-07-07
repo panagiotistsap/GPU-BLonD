@@ -1,19 +1,26 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Mar 22 16:11:42 2018
+
 @author: schwarz, kiliakis
 """
 
 import numpy as np
 import os
+try:
+    from pyprof import timing
+    from pyprof import mpiprof
+except ImportError:
+    from blond.utils import profile_mock as timing
+    mpiprof = timing
 
 import time
 from scipy.constants import c
 
-from SPSimpedanceModel.impedance_scenario import scenario, impedance2gpublond
+from SPSimpedanceModel.impedance_scenario import scenario, impedance2blond
 from impedance_reduction_dir.impedance_reduction import ImpedanceReduction
 
-# gpublond imports
+# BLonD imports
 from blond.beam.distributions import matched_from_distribution_function
 from blond.input_parameters.ring import Ring
 from blond.input_parameters.rf_parameters import RFStation
@@ -23,14 +30,18 @@ from blond.impedances.impedance import InducedVoltageFreq, TotalInducedVoltage
 from blond.impedances.impedance_sources import TravelingWaveCavity
 from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
 from blond.llrf.beam_feedback import BeamFeedback
+from blond.utils.input_parser import parse
 from blond.monitors.monitors import SlicesMonitor
+from blond.utils.mpi_config import worker, mpiprint
 from blond.utils import bmath as bm
-from blond.utils import input_parser
-args = input_parser.parse()
+
+bm.use_mpi()
+bm.use_fftw()
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
-
-
+worker.greet()
+if worker.isMaster:
+    worker.print_version()
 
 # --- Simulation parameters -------------------------------------
 
@@ -49,7 +60,7 @@ else:
 optics = 'Q22'
 intensity_pb = 1.7e11
 V1 = 2.0e6
-n_bunches = 1
+n_bunches = 72
 bunch_shift = 0  # how many degrees to displace the bunch [deg]
 
 INTENSITY_MODULATION = False
@@ -68,16 +79,34 @@ PL_2ndLoop = 'F_Loop'
 FB_strength = 'present'
 
 # simulation parameters
-n_particles = int(1e6)  # 4M macroparticles per bunch
-n_bins_rf = 2  # number of slices per RF-bucket
+n_particles = int(4e6)  # 4M macroparticles per bunch
+n_bins_rf = 256  # number of slices per RF-bucket
 nFrev = 2  # multiples of f_rev for frequency resolution
 
-n_iterations = 2000
+n_iterations = n_turns
 n_turns_reduce = 1
 seed = 0
+args = parse()
 
 
+n_iterations = n_iterations if args['turns'] == None else args['turns']
+n_particles = n_particles if args['particles'] == None else args['particles']
+n_bunches = n_bunches if args['bunches'] == None else args['bunches']
+n_turns_reduce = n_turns_reduce if args['reduce'] == None else args['reduce']
+seed = seed if args['seed'] == None else args['seed']
+approx = args['approx']
+timing.mode = args['time']
+os.environ['OMP_NUM_THREADS'] = str(args['omp'])
+withtp = bool(args['withtp'])
+precision = args['precision']
+bm.use_precision(precision)
 
+
+worker.initLog(bool(args['log']), args['logdir'])
+worker.initTrace(bool(args['trace']), args['tracefile'])
+worker.taskparallelism = withtp
+
+mpiprint(args)
 
 
 # initialize simulation
@@ -113,6 +142,8 @@ case += '_'+FB_strength+'FBstr'
 
 case += '_seed'+str(seed) + '_'+str(n_particles/1e6)+'Mmppb'
 case += '_'+str(n_bins_rf)+'binRF_' + str(nFrev)+'fRes'
+mpiprint('simulating case: '+case)
+mpiprint('saving in: '+save_folder)
 save_file_name = case + '_data'
 
 if INTENSITY_MODULATION:
@@ -193,6 +224,7 @@ n_shift = 0  # how many rf-buckets to shift beam
 
 
 # SPS --- Profile -------------------------------------------
+mpiprint('Setting up profile')
 
 profile_margin = 20 * t_rf
 
@@ -212,9 +244,11 @@ profile = Profile(beam, CutOptions=CutOptions(cut_left=cut_left,
                                               cut_right=cut_right, n_slices=n_slices))
 
 
+mpiprint('Profile set!')
 
 
 # SPS --- Impedance and induced voltage ------------------------------
+mpiprint('Setting up impedance')
 
 frequency_step = nFrev*ring.f_rev[0]
 
@@ -257,9 +291,9 @@ if SPS_IMPEDANCE == True:
                                           # BPH_shield=BPH_shield
                                           )
 
-    # Convert to formats known to gpublond
+    # Convert to formats known to BLonD
 
-    impedance_model = impedance2gpublond(impedance_scenario.table_impedance)
+    impedance_model = impedance2blond(impedance_scenario.table_impedance)
 
     # Induced voltage calculated by the 'frequency' method
 
@@ -274,6 +308,7 @@ if SPS_IMPEDANCE == True:
 
 #    induced_voltage = TotalInducedVoltage(beam, profile, [SPS_freq])
 
+mpiprint('SPS impedance model set!')
 
 R2 = 27.1e3  # series impedance [kOhm/m^2]
 vg = 0.0946*c  # group velocity [m/s]
@@ -351,6 +386,7 @@ else:
 
 if SPS_PHASELOOP is True:
 
+    mpiprint('Setting up phase-loop')
     PLgain = 5e3  # [1/s]
     try:
         PLalpha = -1/PLrange / t_rf
@@ -375,12 +411,14 @@ if SPS_PHASELOOP is True:
 
 # SPS --- Tracker Setup ----------------------------------------
 
+mpiprint('Setting up tracker')
 tracker = RingAndRFTracker(rf_station, beam, Profile=profile,
                            TotalInducedVoltage=inducedVoltage,
                            interpolation=True)
 fulltracker = FullRingAndRF([tracker])
 
 
+mpiprint('Creating SPS bunch from PS bunch')
 # create 72 bunches from PS bunch
 
 beginIndex = 0
@@ -404,6 +442,15 @@ for copy in range(n_bunches):
     beam.dE[beginIndex:endIndex] = PS_beam.dE
     beginIndex = endIndex
 
+mpiprint('dE mean: ', np.mean(beam.dE))
+mpiprint('dE std: ', np.std(beam.dE))
+# profile.track()
+# profile.reduce_histo()
+# mpiprint('profile sum: ', np.sum(profile.n_macroparticles))
+
+
+beam.split(random=False)
+
 # do profile on inital beam
 
 
@@ -413,9 +460,23 @@ FBtime = max(longCavityImpedanceReduction.FB_time,
              shortCavityImpedanceReduction.FB_time)/tRev
 
 
+mpiprint("Ready for tracking!\n")
 
-delta = 0
-# if you want to use the GPU uncomment the following lines
+if args['monitor'] > 0 and worker.isMaster:
+    if args.get('monitorfile', None):
+        filename = args['monitorfile']
+    else:
+        filename = 'monitorfiles/sps-t{}-p{}-b{}-sl{}-approx{}-prec{}-r{}-m{}-se{}-w{}'.format(
+            n_iterations, n_particles, n_bunches, n_slices, approx, args['precision'],
+            n_turns_reduce, args['monitor'], seed, worker.workers)
+    slicesMonitor = SlicesMonitor(filename=filename,
+                                  n_turns=np.ceil(
+                                      n_iterations / args['monitor']),
+                                  profile=profile,
+                                  rf=rf_station,
+                                  Nbunches=n_bunches)
+
+
 if args['gpu'] == 1:
     bm.use_gpu()
     profile.use_gpu()
@@ -423,44 +484,108 @@ if args['gpu'] == 1:
     phaseLoop.use_gpu()
     bm.enable_gpucache()
 
+worker.initDLB(args['loadbalance'], args['loadbalancearg'], n_iterations)
 
-print("Loop started")
+delta = 0
+worker.sync()
+timing.reset()
+start_t = time.time()
+
 # for turn in range(ring.n_turns):
 for turn in range(n_iterations):
 
-    profile.track()
-    inducedVoltage.induced_voltage_sum()    
+    if ring.n_turns <= 450 and turn % 10 == 0:
+        mpiprint('turn: '+str(turn))
+    elif turn % 1000 == 0:
+        mpiprint('turn: '+str(turn))
+
+    # Update profile
+    if (approx == 0):
+        profile.track()
+        worker.sync()
+        profile.reduce_histo()
+    elif (approx == 1) and (turn % n_turns_reduce == 0):
+        profile.track()
+        worker.sync()
+        profile.reduce_histo()
+    elif (approx == 2):
+        profile.track()
+        profile.scale_histo()
+
+    # applying this voltage is done by tracker if interpolation=True
+    if worker.isFirst:
+        # reduce impedance, poor man's feedback
+        if (turn < 8*int(FBtime)):
+            longCavityImpedanceReduction.track()
+            shortCavityImpedanceReduction.track()
+
+        if (approx == 0) or (approx == 2):
+            inducedVoltage.induced_voltage_sum()
+        elif (approx == 1) and (turn % n_turns_reduce == 0):
+            inducedVoltage.induced_voltage_sum()
+
+    if worker.isLast:
+        if SPS_PHASELOOP is True:
+            phaseLoop.track()
+        tracker.pre_track()
+
+    worker.intraSync()
+    worker.sendrecv(inducedVoltage.induced_voltage, tracker.rf_voltage)
+
+    tracker.track_only()
 
     if SPS_PHASELOOP is True:
-        phaseLoop.track()
-    tracker.track()
+        if turn % PL_save_turns == 0 and turn > 0:
+            with timing.timed_region('serial:binShift') as tr:
 
-    # if SPS_PHASELOOP is False:
-    #     if turn % PL_save_turns == 0 and turn > 0:
-        
-    #         # present beam position
-    #         beamPosFromPhase = (phaseLoop.phi_beam - rf_station.phi_rf[0, turn])\
-    #             / rf_station.omega_rf[0, turn] + t_batch_begin
-    #         # how much to shift the bin_centers
-    #         delta = beamPosPrev - beamPosFromPhase
-    #         beamPosPrev = beamPosFromPhase
+                # present beam position
+                beamPosFromPhase = (phaseLoop.phi_beam - rf_station.phi_rf[0, turn])\
+                    / rf_station.omega_rf[0, turn] + t_batch_begin
+                # how much to shift the bin_centers
+                delta = beamPosPrev - beamPosFromPhase
+                beamPosPrev = beamPosFromPhase
 
-    #         profile.bin_centers -= delta
-    #         profile.cut_left -= delta
-    #         profile.cut_right -= delta
-    #         profile.edges -= delta
+                profile.bin_centers -= delta
+                profile.cut_left -= delta
+                profile.cut_right -= delta
+                profile.edges -= delta
 
-    #         # shift time_offset of phase loop as well, so that it starts at correct
-    #         # bin_center corresponding to time_offset
-    #         if phaseLoop.alpha != 0:
-    #             phaseLoop.time_offset -= deltas
+                # shift time_offset of phase loop as well, so that it starts at correct
+                # bin_center corresponding to time_offset
+                if phaseLoop.alpha != 0:
+                    phaseLoop.time_offset -= delta
+
+    if (args['monitor'] > 0) and (turn % args['monitor'] == 0):
+        beam.statistics()
+        beam.gather_statistics()
+        profile.fwhm_multibunch(n_bunches, bunch_spacing,
+                                rf_station.t_rf[0, turn], bucket_tolerance=0)
+                                # shiftX=rf_station.phi_rf[0, turn]/rf_station.omega_rf[0, turn])
+
+        if worker.isMaster:
+            # profile.fwhm()
+            slicesMonitor.track(turn)
+
+    worker.DLB(turn, beam)
 
 
+beam.gather()
+end_t = time.time()
+mpiprint('Total time: ', end_t - start_t)
 
+timing.report(total_time=1e3*(end_t-start_t),
+              out_dir=args['timedir'],
+              out_file='worker-{}.csv'.format(worker.rank))
 
-print('dE mean: ', np.mean(beam.dE))
-print('dE std: ', np.std(beam.dE))
-print('profile mean: ', np.mean(profile.n_macroparticles))
-print('profile std: ', np.std(profile.n_macroparticles))
+worker.finalize()
 
-print('Done!')
+if args['monitor'] > 0:
+    slicesMonitor.close()
+
+mpiprint('dE mean: ', np.mean(beam.dE))
+mpiprint('dE std: ', np.std(beam.dE))
+mpiprint('profile sum: ', np.sum(profile.n_macroparticles))
+
+# --- Saving results ----------------------------------------------------
+
+mpiprint('Done!')

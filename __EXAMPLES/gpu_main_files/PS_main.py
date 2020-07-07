@@ -6,11 +6,17 @@ import numpy as np
 import time
 import os
 from scipy.constants import c
-import sys
-
+try:
+    from pyprof import timing
+    from pyprof import mpiprof
+except ImportError:
+    from blond.utils import profile_mock as timing
+    mpiprof = timing
 
 # BLonD imports
 #from blond.beams.distributions import matched_from_line_density
+from blond.utils.input_parser import parse
+from blond.utils.mpi_config import worker, mpiprint
 from blond.beam.beam import Proton, Beam
 from blond.input_parameters.ring import Ring, RingOptions
 from blond.input_parameters.rf_parameters import RFStation
@@ -20,17 +26,7 @@ from blond.trackers.tracker import RingAndRFTracker, FullRingAndRF
 from blond.impedances.impedance import InducedVoltageTime, InducedVoltageFreq, TotalInducedVoltage, InductiveImpedance
 from blond.impedances.impedance_sources import Resonators
 from blond.monitors.monitors import SlicesMonitor
-# from blond.utils.bmath import use_gpu,get_exec_mode
 from blond.utils import bmath as bm
-from blond.utils import input_parser
-
-args = input_parser.parse()
-
-try:
-    from blond.utils.bmath import enable_gpucache
-except:
-    pass
-
 # Other imports
 from colormap import colormap
 # LoCa imports
@@ -40,12 +36,15 @@ import LoCa.Base.Bare_RF as brf
 # Impedance scenario import
 from PS_impedance.impedance_scenario import scenario
 cmap = colormap.cmap_white_blue_red
-
+bm.use_mpi()
+bm.use_fftw()
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 inputDir = os.path.join(this_directory, '../input_files/PS/')
 
-
+worker.greet()
+if worker.isMaster:
+    worker.print_version()
 
 
 # Simulation parameters -------------------------------------------------------
@@ -103,7 +102,7 @@ harmonic_ratio = 4
 
 
 # Beam parameters
-n_bunches = 1
+n_bunches = 21
 n_particles = 1e6
 #exponent = 1.0
 
@@ -114,12 +113,39 @@ n_slices = 2**7
 n_turns_memory = 100
 n_turns_reduce = 1
 n_turns = 378708
-n_iterations = 2000
+n_iterations = n_turns
 seed = 0 
+args = parse()
 
 
+n_iterations = n_iterations if args['turns'] == None else args['turns']
+n_particles = n_particles if args['particles'] == None else args['particles']
+n_bunches = n_bunches if args['bunches'] == None else args['bunches']
+n_slices = n_slices if args['slices'] == None else args['slices']
+n_turns_memory = n_turns_memory if args['mtw'] == None else args['mtw']
+n_turns_reduce = n_turns_reduce if args['reduce'] == None else args['reduce']
+seed = seed if args['seed'] == None else args['seed']
+approx = args['approx']
+timing.mode = args['time']
+os.environ['OMP_NUM_THREADS'] = str(args['omp'])
+withtp = bool(args['withtp'])
+precision = args['precision']
+bm.use_precision(precision)
 
 
+worker.initLog(bool(args['log']), args['logdir'])
+worker.initTrace(bool(args['trace']), args['tracefile'])
+worker.taskparallelism = withtp
+
+mpiprint(args)
+
+# mpiprint({'n_iterations': n_iterations, 'particles_per_bunch': n_particles,
+#        'n_slices': n_slices,
+#        'n_turns_memory': n_turns_memory,
+#        'timing.mode': timing.mode, 'n_bunches': n_bunches,
+#        'n_turns_reduce': n_turns_reduce,
+#        'seed': seed, 'log': log,
+#        'approx': approx, 'withtp': withtp})
 
 
 n_macroparticles = n_bunches * n_particles
@@ -281,6 +307,7 @@ close_group_1 = {'enable': False, 'time': 2769e-3, 'n_cavities': 1}
 
 real_c_time = ring.cycle_time + c_time_start
 
+
 def generate_gap_prog(close_group):
 
     gap_prog_group = np.ones(n_turns+1)
@@ -370,25 +397,65 @@ match_beam_from_distribution(beam, full_tracker, ring,
                              bunch_spacing_buckets,
                              main_harmonic_option='lowest_freq',
                              TotalInducedVoltage=PS_longitudinal_intensity,
-                             n_iterations=2,
+                             n_iterations=10,
                              n_points_potential=int(1e3),
                              dt_margin_percent=0.1, seed=seed)
 
+mpiprint('dE mean:', np.mean(beam.dE))
+mpiprint('dE std:', np.std(beam.dE))
+
+beam.split(random=False)
+
 # Tracking -------------------------------------------------------------------
-print("Tracking starts")
 
-# if you want to use gpu 
+
+mpiprint("Ready for tracking!\n")
+
+if args['monitor'] > 0 and worker.isMaster:
+    if args.get('monitorfile', None):
+        filename = args['monitorfile']
+    else:
+        filename = 'monitorfiles/ps-t{}-p{}-b{}-sl{}-approx{}-prec{}-r{}-m{}-se{}-w{}'.format(
+            n_iterations, n_particles, n_bunches, n_slices, approx, args['precision'],
+            n_turns_reduce, args['monitor'], seed, worker.workers)
+    slicesMonitor = SlicesMonitor(filename=filename,
+                                  n_turns=np.ceil(
+                                      n_iterations / args['monitor']),
+                                  profile=profile,
+                                  rf=rf_params,
+                                  Nbunches=n_bunches)
+
+
 if args['gpu'] == 1:
-  bm.use_gpu()
-  PS_longitudinal_intensity.use_gpu()
-  tracker.use_gpu()
-  bm.enable_gpucache()
+    bm.use_gpu()
+    PS_longitudinal_intensity.use_gpu()
+    tracker.use_gpu()
+    bm.enable_gpucache()
 
+worker.initDLB(args['loadbalance'], args['loadbalancearg'], n_iterations)
+
+worker.sync()
+timing.reset()
+start_t = time.time()
+
+
+# for i in range(n_iterations):
 for turn in range(n_iterations):
 
     # if (i > 0) and (i % datamatrix_output_step) == 0:
     #     t0 = time.time()
-    profile.track()
+
+    if (approx == 0):
+        profile.track()
+        worker.sync()
+        profile.reduce_histo()
+    elif (approx == 1) and (turn % n_turns_reduce == 0):
+        profile.track()
+        worker.sync()
+        profile.reduce_histo()
+    elif (approx == 2):
+        profile.track()
+        profile.scale_histo()
 
     # Change impedance of 10 MHz only if it changes
     # if (i > 0) and (R_S_program_10MHz[i] != R_S_program_10MHz[i-1]):
@@ -396,12 +463,49 @@ for turn in range(n_iterations):
     #         R_S_10MHz_save * R_S_program_10MHz[i]
     #     PS_intensity_freq_10MHz.sum_impedances(PS_intensity_freq_10MHz.freq)
 
-    PS_longitudinal_intensity.induced_voltage_sum()
-    tracker.track()
 
-print('dE mean: ', np.mean(beam.dE))
-print('dE std: ', np.std(beam.dE))
-print('profile mean: ', np.mean(profile.n_macroparticles))
-print('profile std: ', np.std(profile.n_macroparticles))
-print('Done!')
+    if worker.isFirst:
+        if (approx == 0) or (approx == 2):
+            PS_longitudinal_intensity.induced_voltage_sum()
+        elif (approx == 1) and (turn % n_turns_reduce == 0):
+            PS_longitudinal_intensity.induced_voltage_sum()
+    if worker.isLast:
+        tracker.pre_track()
 
+    worker.intraSync()
+    worker.sendrecv(PS_longitudinal_intensity.induced_voltage, tracker.rf_voltage)
+
+    tracker.track_only()
+
+    if (args['monitor'] > 0) and (turn % args['monitor'] == 0):
+        beam.statistics()
+        beam.gather_statistics()
+        profile.fwhm_multibunch(n_bunches, bunch_spacing_buckets,
+                                rf_params.t_rf[0, turn], bucket_tolerance=0)
+                                # shiftX=rf_params.phi_rf[0, turn]/rf_params.omega_rf[0, turn])
+
+        if worker.isMaster:
+            # profile.fwhm()
+            slicesMonitor.track(turn)
+    
+    worker.DLB(turn, beam)
+
+beam.gather()
+end_t = time.time()
+timing.report(total_time=1e3*(end_t-start_t),
+              out_dir=args['timedir'],
+              out_file='worker-{}.csv'.format(worker.rank))
+
+worker.finalize()
+
+if args['monitor'] > 0:
+    slicesMonitor.close()
+
+mpiprint('dE mean: ', np.mean(beam.dE))
+mpiprint('dE std: ', np.std(beam.dE))
+mpiprint('profile mean: ', np.mean(profile.n_macroparticles))
+mpiprint('profile std: ', np.std(profile.n_macroparticles))
+
+mpiprint('Done!')
+
+# Analysis
