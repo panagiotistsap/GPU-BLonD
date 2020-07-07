@@ -152,7 +152,7 @@ if args['gpu'] == 1:
     profile.use_gpu()
     timing_kind = "gpu"
 
-worker.initDLB(args['loadbalance'], args['loadbalancearg'], n_iterations)
+worker.initDLB(args['loadbalance'], n_iterations)
 
 worker.sync()
 timing.reset()
