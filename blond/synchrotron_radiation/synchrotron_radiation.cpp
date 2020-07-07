@@ -12,8 +12,8 @@ Project website: http://blond.web.cern.ch/
 // damping term
 // Author: Juan F. Esteban Mueller, Konstantinos Iliakis
 
-#include <math.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdlib>
 #include <random>
 #include <thread>
 #include <chrono>

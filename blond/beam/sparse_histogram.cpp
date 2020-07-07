@@ -11,7 +11,7 @@ Project website: http://blond.web.cern.ch/
 // Optimised C++ routine that calculates the histogram for a sparse beam
 // Author: Juan F. Esteban Mueller, Danilo Quartullo, Alexandre Lasheen
 
-#include <stdio.h>
+#include <cstdio>
 
 extern "C" void sparse_histogram(const double * __restrict__ input,
 		    double * __restrict__ output,
