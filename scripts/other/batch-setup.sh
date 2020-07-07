@@ -26,7 +26,7 @@ else
 fi
 
 
-module purge		# clean up loaded modules 
+# module purge		# clean up loaded modules 
 ## LOAD MODULES ##
 source $HOME/.bashrc
 

@@ -10,6 +10,7 @@ from ..utils import butils_wrap
 from ..utils import bphysics_wrap
 from numpy import fft
 
+precision = butils_wrap.precision
 
 __exec_mode = 'single_node'
 __gpu_dev = None
@@ -78,6 +79,15 @@ def use_fftw():
     '''
     globals().update(_FFTW_func_dict)
 
+
+# precision can be single or double
+def use_precision(_precision='double'):
+    global precision
+    if _precision == 'single':
+        print('WARNING: Only double precision supported')
+        _precision = 'double'
+    butils_wrap.precision = butils_wrap.Precision(_precision)
+    precision = butils_wrap.precision
 
 
 def use_mpi():
