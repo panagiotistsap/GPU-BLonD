@@ -79,7 +79,7 @@ libs = []
 # EXAMPLE FLAGS: -Ofast -std=c++11 -fopt-info-vec -march=native
 #                -mfma4 -fopenmp -ftree-vectorizer-verbose=1
 cflags = ['-O3', '-ffast-math', '-std=gnu++11', '-shared',
-          '-mavx', '-march=native', '-I', '/usr/include']
+          '-mavx', '-march=ivybridge']
 
 cpp_files = [
     os.path.join(basepath, 'cpp_routines/kick.cpp'),
@@ -129,13 +129,13 @@ if (__name__ == "__main__"):
         if 'win' in sys.platform:
             libs += ['-lfftw3-3']
         else:
-            libs += ['-lfftw3']
+            libs += ['-lfftw3', '-lfftw3f']
             if args.with_fftw_omp:
                 cflags += ['-DFFTW3PARALLEL']
-                libs += ['-lfftw3_omp']
+                libs += ['-lfftw3_omp', '-lfftw3f_omp']
             elif args.with_fftw_threads:
                 cflags += ['-DFFTW3PARALLEL']
-                libs += ['-lfftw3_threads']
+                libs += ['-lfftw3_threads', '-lfftw3f_threads']
 
     if ('posix' in os.name):
         cflags += ['-fPIC']
