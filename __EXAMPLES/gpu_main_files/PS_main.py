@@ -432,7 +432,7 @@ if args['gpu'] == 1:
     tracker.use_gpu()
     bm.enable_gpucache()
 
-worker.initDLB(args['loadbalance'], args['loadbalancearg'], n_iterations)
+worker.initDLB(args['loadbalance'], n_iterations)
 
 worker.sync()
 timing.reset()

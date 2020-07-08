@@ -12,8 +12,7 @@ Project website: http://blond.web.cern.ch/
 
 // Optimised C++ routine that calculates the kick of a voltage array on particles
 
-#include <stdlib.h>
-#include <math.h>
+#include <cstdlib>
 #include <cmath>
 #include "openmp.h"
 

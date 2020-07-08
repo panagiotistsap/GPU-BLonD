@@ -484,7 +484,7 @@ if args['gpu'] == 1:
     phaseLoop.use_gpu()
     bm.enable_gpucache()
 
-worker.initDLB(args['loadbalance'], args['loadbalancearg'], n_iterations)
+worker.initDLB(args['loadbalance'], n_iterations)
 
 delta = 0
 worker.sync()

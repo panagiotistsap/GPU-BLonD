@@ -8,8 +8,8 @@
 ####################################
 
 #SBATCH --job-name=compile    # Job name
-#SBATCH --output=compile.%j.out # Stdout (%j expands to jobId)
-#SBATCH --error=compile.%j.err # Stderr (%j expands to jobId)
+#SBATCH --output=compile.out # Stdout (%j expands to jobId)
+#SBATCH --error=compile.err # Stderr (%j expands to jobId)
 #SBATCH --ntasks=1     # Number of tasks(processes)
 #SBATCH --nodes=1     # Number of nodes requested
 #SBATCH --ntasks-per-node=1     # Tasks per node
@@ -25,9 +25,10 @@ else
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 fi
 
-source ~/.bashrc
-## LOAD MODULES ##
+
 # module purge		# clean up loaded modules 
+## LOAD MODULES ##
+source $HOME/.bashrc
 
 # # load necessary modules
 # module load gnu/4.9.2
@@ -38,9 +39,13 @@ source ~/.bashrc
 # ## RUN YOUR PROGRAM ##
 # srun <EXECUTABLE> <EXECUTABLE ARGUMENTS> 
 
+# locate features.h
+# ls /usr/lib/x86_64-redhat-linux5E/include
+# ls /usr/*
+# ls /usr/
+# ls /usr/local/
 
 INSTALL_DIR=$HOME/install
 cd $HOME/git/GPU-BLonD
-
 
 python blond/compile.py --with-fftw --with-fftw-threads --with-fftw-lib=$INSTALL_DIR/lib/ --with-fftw-header=$INSTALL_DIR/include/ -p
