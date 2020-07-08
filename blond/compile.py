@@ -51,6 +51,11 @@ parser.add_argument('-c', '--compiler', type=str, default='g++',
 parser.add_argument('--with-fftw', action='store_true',
                     help='Use the FFTs from FFTW3.')
 
+
+parser.add_argument('--gpu', action='store_true',
+                    help='Compile the GPU kernels too.'
+                    'Default: Only compile the C++ library.')
+
 parser.add_argument('--with-fftw-threads', action='store_true',
                     help='Use the multi-threaded FFTs from FFTW3.')
 
@@ -167,6 +172,7 @@ if (__name__ == "__main__"):
     print('C++ Compiler: ', compiler)
     print('Compiler flags: ', ' '.join(cflags))
     print('Extra libraries: ', ' '.join(libs))
+    print('Compile the GPU kernels: ', args.gpu)
     subprocess.call([compiler, '--version'])
 
     try:
@@ -182,3 +188,17 @@ if (__name__ == "__main__"):
     except Exception as e:
         print('\nCompilation failed.')
         print(e)
+
+    # Compile the GPU library
+    if args.gpu:
+        libname = os.path.join(basepath, 'gpu/kernels.cubin')
+        command = ['nvcc', '--cubin', '-arch', 'sm_35', '-o', libname,
+                   os.path.join(basepath, 'gpu/kernels.cu')]
+        subprocess.call(command)
+        # try:
+        #     libblond = ctypes.CDLL(libname)
+        #     print('\nThe blond library has been successfully compiled.')
+        # except Exception as e:
+        #     print('\nCompilation failed.')
+        #     print(e)
+        

@@ -9,6 +9,7 @@ import numpy as np
 from ..utils import butils_wrap
 from ..utils import bphysics_wrap
 from numpy import fft
+import os
 
 precision = butils_wrap.precision
 
@@ -143,12 +144,20 @@ class GPUDev:
         self.id = _gpu_num
         self.dev = drv.Device(self.id)
         self.ctx = self.dev.make_context()
+        this_dir = os.path.dirname(os.path.realpath(__file__)) + "/"
+
+        self.mod = drv.module_from_file(os.path.join(this_dir, '../gpu/kernels.cubin'))
+
+
 
     def report_attributes(self):
         # Saves into a file all the device attributes 
         with open(f'{self.dev.name()}-attributes.txt', 'w') as f:
             for k, v in self.dev.get_attributes().items():
                 f.write(f"{k}:{v}\n")
+
+    def func(self, name):
+        return self.mod.get_function(name)
 
     def __del__(self):
         self.ctx.pop()
