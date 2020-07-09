@@ -486,8 +486,8 @@ class Profile(object):
         bm.slice(self.Beam.dt, self.n_macroparticles, self.cut_left,
                 self.cut_right, self.Beam)
         
-        if bm.mpiMode():
-            self.reduce_histo()
+        # if bm.mpiMode():
+            # self.reduce_histo()
          
     def reduce_histo(self, dtype=np.uint32):
         if not bm.mpiMode():
@@ -495,8 +495,8 @@ class Profile(object):
                 'ERROR: Cannot use this routine unless in MPI Mode')
 
         from ..utils.mpi_config import worker
-        worker.sync()
         if self.Beam.is_splitted:
+            worker.sync()
 
             with timing.timed_region('serial:conversion'):
                 # with mpiprof.traced_region('serial:conversion'):
