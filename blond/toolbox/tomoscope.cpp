@@ -11,8 +11,8 @@ Project website: http://blond.web.cern.ch/
 // Generation of particle distribution from probability density
 // Author: Helga Timko
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 using uint = unsigned int;
 
 double randd() {

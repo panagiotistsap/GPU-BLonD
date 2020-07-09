@@ -11,8 +11,8 @@
 // Optimised C++ routine that calculates the impedance of a resonator.
 // Author:  Simon Albright, Konstantinos Iliakis, Danilo Quartullo
 
-#include <stdlib.h>
-#include <math.h>
+#include <cstdlib>
+#include <cmath>
 
 
 extern "C" void fast_resonator_real_imag(double *__restrict__ impedanceReal,

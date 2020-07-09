@@ -14,11 +14,19 @@ No intensity effects
 :Authors: **Helga Timko**
 '''
 #  General Imports
-from __future__ import division, print_function
-from builtins import range
+# from __future__ import division, print_function
+# from builtins import range
 import numpy as np
-
-#  gpublond Imports
+import os
+import time
+try:
+    from pyprof import timing
+    from pyprof import mpiprof
+except ImportError:
+    from blond.utils import profile_mock as timing
+    mpiprof = timing
+#  BLonD Imports
+from blond.monitors.monitors import SlicesMonitor
 from blond.input_parameters.ring import Ring
 from blond.input_parameters.rf_parameters import RFStation
 from blond.trackers.tracker import RingAndRFTracker
@@ -27,25 +35,19 @@ from blond.beam.distributions import bigaussian
 from blond.beam.profile import CutOptions, FitOptions, Profile
 from blond.monitors.monitors import BunchMonitor
 from blond.plots.plot import Plot
-from blond.utils import input_parser
-import os
+from blond.utils.input_parser import parse
+from blond.utils import bmath as bm
+from blond.utils.mpi_config import worker, mpiprint
+bm.use_mpi()
 
-args = input_parser.parse()
+
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 
-try:
-    os.mkdir(this_directory + '../output_files')
-except:
-    pass
-try:
-    os.mkdir(this_directory + '../output_files/EX_01_fig')
-except:
-    pass
 
 # Simulation parameters -------------------------------------------------------
 # Bunch parameters
 N_b = 1e9           # Intensity
-N_p = 5000000         # Macro-particles
+n_particles = 1e6         # Macro-particles
 tau_0 = 0.4e-9          # Initial bunch length, 4 sigma [s]
 
 # Machine and RF parameters
@@ -59,54 +61,89 @@ gamma_t = 55.759505  # Transition gamma
 alpha = 1./gamma_t/gamma_t        # First order mom. comp. factor
 
 # Tracking details
-N_t = 2000           # Number of turns to track
-dt_plt = 200         # Time steps between plots
+n_turns = 1000000           # Number of turns to track
+dt_plt = 1000         # Time steps between plots
+n_slices = 100
+n_bunches = 1
+n_turns_reduce = 1
+n_iterations = n_turns
+seed = 0
+worker.greet()
+if worker.isMaster:
+    worker.print_version()
+
+# mpiprint('Done!')
+# worker.finalize()
+# exit()
+
+args = parse()
+
+n_iterations = n_iterations if args['turns'] == None else args['turns']
+n_particles = n_particles if args['particles'] == None else args['particles']
+n_bunches = n_bunches if args['bunches'] == None else args['bunches']
+n_turns_reduce = n_turns_reduce if args['reduce'] == None else args['reduce']
+timing.mode = args['time']
+os.environ['OMP_NUM_THREADS'] = str(args['omp'])
+withtp = bool(args['withtp'])
+seed = seed if args['seed'] == None else args['seed']
+approx = args['approx']
+precision = args['precision']
+bm.use_precision(precision)
+
+worker.initLog(bool(args['log']), args['logdir'])
+worker.initTrace(bool(args['trace']), args['tracefile'])
+worker.taskparallelism = withtp
+
+mpiprint(args)
 
 
 # Simulation setup ------------------------------------------------------------
-print("Setting up the simulation...")
-print("")
+mpiprint("Setting up the simulation...")
 
 
 # Define general parameters
-ring = Ring(C, alpha, np.linspace(p_i, p_f, 2001), Proton(), N_t)
+ring = Ring(C, alpha, np.linspace(p_i, p_f, n_turns+1), Proton(), n_turns)
 
 # Define beam and distribution
-beam = Beam(ring, N_p, N_b)
+beam = Beam(ring, n_particles, N_b)
 
 
 # Define RF station parameters and corresponding tracker
 rf = RFStation(ring, [h], [V], [dphi])
-long_tracker = RingAndRFTracker(rf, beam)
 
 
-bigaussian(ring, rf, beam, tau_0/4, reinsertion=True, seed=1)
+bigaussian(ring, rf, beam, tau_0/4, reinsertion=True, seed=seed)
 
 
 # Need slices for the Gaussian fit
-profile = Profile(beam, CutOptions(n_slices=100),
-                  FitOptions(fit_option='gaussian'))
+# TODO add the gaussian fit
+profile = Profile(beam, CutOptions(n_slices=n_slices))
+# FitOptions(fit_option='gaussian'))
 
-# Define what to save in file
-bunchmonitor = BunchMonitor(ring, rf, beam,
-                            this_directory + '../output_files/EX_01_output_data', Profile=profile)
+long_tracker = RingAndRFTracker(rf, beam)
 
-format_options = {'dirname': this_directory + '../output_files/EX_01_fig'}
-plots = Plot(ring, rf, beam, dt_plt, N_t, 0, 0.0001763*h,
-             -400e6, 400e6, xunit='rad', separatrix_plot=True,
-             Profile=profile, h5file=this_directory + '../output_files/EX_01_output_data',
-             format_options=format_options)
+# beam.split_random()
+beam.split()
 
-# For testing purposes
-test_string = ''
-test_string += '{:<17}\t{:<17}\t{:<17}\t{:<17}\n'.format(
-    'mean_dE', 'std_dE', 'mean_dt', 'std_dt')
-test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-    np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
 
-timing_kind = "cpu"
+if args['monitor'] > 0 and worker.isMaster:
+    if args.get('monitorfile', None):
+        filename = args['monitorfile']
+    else:
+        filename = 'monitorfiles/ex01-t{}-p{}-b{}-sl{}-approx{}-prec{}-r{}-m{}-se{}-w{}'.format(
+            n_iterations, n_particles, n_bunches, n_slices, approx, args['precision'],
+            n_turns_reduce, args['monitor'], seed, worker.workers)
+    slicesMonitor = SlicesMonitor(filename=filename,
+                                  n_turns=np.ceil(
+                                      n_iterations / args['monitor']),
+                                  profile=profile,
+                                  rf=rf,
+                                  Nbunches=n_bunches)
 
-### to use gpu uncomment the following lines
+# Accelerator map
+# map_ = [long_tracker, profile]
+mpiprint("Map set")
+
 if args['gpu'] == 1:
     import blond.utils.bmath as bm
     bm.use_gpu()
@@ -115,46 +152,80 @@ if args['gpu'] == 1:
     profile.use_gpu()
     timing_kind = "gpu"
 
-# Accelerator map
-map_ = [long_tracker] + [profile] #+ [bunchmonitor] + [plots]
-print("Map set")
-print("")
+worker.initDLB(args['loadbalance'], n_iterations)
+
+worker.sync()
+timing.reset()
+start_t = time.time()
 
 
-# Tracking --------------------------------------------------------------------
-for i in range(1, N_t+1):
+for turn in range(n_iterations):
 
     # Plot has to be done before tracking (at least for cases with separatrix)
-    # if (i % dt_plt) == 0:
-    #     print("Outputting at time step %d..." % i)
-    #     print("   Beam momentum %.6e eV" % beam.momentum)
-    #     print("   Beam gamma %3.3f" % beam.gamma)
-    #     print("   Beam beta %3.3f" % beam.beta)
-    #     print("   Beam energy %.6e eV" % beam.energy)
-    #     print("   Four-times r.m.s. bunch length %.4e s" % (4.*beam.sigma_dt))
-    #     print("   Gaussian bunch length %.4e s" % profile.bunchLength)
-    #     print("")
+    if (turn % dt_plt) == 0:
+        mpiprint("Outputting at time step %d..." % turn)
+        mpiprint("   Beam momentum %.6e eV" % beam.momentum)
+        mpiprint("   Beam gamma %3.3f" % beam.gamma)
+        mpiprint("   Beam beta %3.3f" % beam.beta)
+        mpiprint("   Beam energy %.6e eV" % beam.energy)
+        mpiprint("   Four-times r.m.s. bunch length %.4e s" %
+                 (4.*beam.sigma_dt))
+        mpiprint("   Gaussian bunch length %.4e s" % profile.bunchLength)
+        mpiprint("")
 
     # Track
-    for m in map_:
-        m.track()
-    
-    # Define losses according to separatrix and/or longitudinal position
-    # these two operations are quite slow in the gpu
-    # beam.losses_separatrix(ring, rf)
-    # beam.losses_longitudinal_cut(0., 2.5e-9)
+    long_tracker.track()
 
-print('dE mean: ', np.mean(beam.dE))
-print('dE std: ', np.std(beam.dE))
-print('profile mean: ', np.mean(profile.n_macroparticles))
-print('profile std: ', np.std(profile.n_macroparticles))
+    # Update profile
+    if (approx == 0):
+        profile.track()
+        profile.reduce_histo()
+    elif (approx == 1) and (turn % n_turns_reduce == 0):
+        profile.track()
+        profile.reduce_histo()
+    elif (approx == 2):
+        profile.track()
+        profile.scale_histo()
 
-# For testing purposes
-test_string += '{:+10.10e}\t{:+10.10e}\t{:+10.10e}\t{:+10.10e}\n'.format(
-    np.mean(beam.dE), np.std(beam.dE), np.mean(beam.dt), np.std(beam.dt))
-with open(this_directory + '../output_files/EX_01_test_data.txt', 'w') as f:
-    f.write(test_string)
-beam.statistics()
-# print(beam.mean_dt)
-# print(beam.sigma_dt)
-print("Done!")
+    worker.DLB(turn, beam)
+
+    if (args['monitor'] > 0) and (turn % args['monitor'] == 0):
+        beam.statistics()
+        beam.gather_statistics()
+        if worker.isMaster:
+            # profile.fwhm()
+            slicesMonitor.track(turn)
+
+        # mpiprint('dE mean: ', beam.mean_dE)
+        # mpiprint('dE std: ', beam.sigma_dE)
+        # mpiprint('dE min: ', beam.min_dE)
+        # mpiprint('dE max: ', beam.max_dE)
+
+        # mpiprint('dt mean: ', beam.mean_dt)
+        # mpiprint('dt std: ', beam.sigma_dt)
+        # mpiprint('dt min: ', beam.min_dt)
+        # mpiprint('dt max: ', beam.max_dt)
+
+
+beam.gather()
+
+# mpiprint('real dE std: ', np.std(beam.dE))
+# mpiprint('real dt std: ', np.std(beam.dt))
+
+end_t = time.time()
+
+timing.report(total_time=1e3*(end_t-start_t),
+              out_dir=args['timedir'],
+              out_file='worker-{}.csv'.format(worker.rank))
+worker.finalize()
+
+
+if args['monitor'] > 0:
+    slicesMonitor.close()
+
+mpiprint('dE mean: ', np.mean(beam.dE))
+mpiprint('dE std: ', np.std(beam.dE))
+mpiprint('profile mean: ', np.mean(profile.n_macroparticles))
+mpiprint('profile std: ', np.std(profile.n_macroparticles))
+
+mpiprint('Done!')

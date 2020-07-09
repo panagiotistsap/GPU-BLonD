@@ -51,6 +51,11 @@ parser.add_argument('-c', '--compiler', type=str, default='g++',
 parser.add_argument('--with-fftw', action='store_true',
                     help='Use the FFTs from FFTW3.')
 
+
+parser.add_argument('--gpu', action='store_true',
+                    help='Compile the GPU kernels too.'
+                    'Default: Only compile the C++ library.')
+
 parser.add_argument('--with-fftw-threads', action='store_true',
                     help='Use the multi-threaded FFTs from FFTW3.')
 
@@ -78,7 +83,8 @@ libs = []
 
 # EXAMPLE FLAGS: -Ofast -std=c++11 -fopt-info-vec -march=native
 #                -mfma4 -fopenmp -ftree-vectorizer-verbose=1
-cflags = ['-O3', '-ffast-math', '-std=c++11', '-shared']
+cflags = ['-O3', '-ffast-math', '-std=gnu++11', '-shared',
+          '-mavx', '-march=ivybridge']
 
 cpp_files = [
     os.path.join(basepath, 'cpp_routines/kick.cpp'),
@@ -128,13 +134,13 @@ if (__name__ == "__main__"):
         if 'win' in sys.platform:
             libs += ['-lfftw3-3']
         else:
-            libs += ['-lfftw3']
+            libs += ['-lfftw3', '-lfftw3f']
             if args.with_fftw_omp:
                 cflags += ['-DFFTW3PARALLEL']
-                libs += ['-lfftw3_omp']
+                libs += ['-lfftw3_omp', '-lfftw3f_omp']
             elif args.with_fftw_threads:
                 cflags += ['-DFFTW3PARALLEL']
-                libs += ['-lfftw3_threads']
+                libs += ['-lfftw3_threads', '-lfftw3f_threads']
 
     if ('posix' in os.name):
         cflags += ['-fPIC']
@@ -166,6 +172,7 @@ if (__name__ == "__main__"):
     print('C++ Compiler: ', compiler)
     print('Compiler flags: ', ' '.join(cflags))
     print('Extra libraries: ', ' '.join(libs))
+    print('Compile the GPU kernels: ', args.gpu)
     subprocess.call([compiler, '--version'])
 
     try:
@@ -181,3 +188,17 @@ if (__name__ == "__main__"):
     except Exception as e:
         print('\nCompilation failed.')
         print(e)
+
+    # Compile the GPU library
+    if args.gpu:
+        libname = os.path.join(basepath, 'gpu/kernels.cubin')
+        command = ['nvcc', '--cubin', '-arch', 'sm_35', '-o', libname,
+                   os.path.join(basepath, 'gpu/kernels.cu')]
+        subprocess.call(command)
+        # try:
+        #     libblond = ctypes.CDLL(libname)
+        #     print('\nThe blond library has been successfully compiled.')
+        # except Exception as e:
+        #     print('\nCompilation failed.')
+        #     print(e)
+        

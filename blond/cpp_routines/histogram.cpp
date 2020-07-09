@@ -11,9 +11,9 @@
 // Optimised C++ routine that calculates the histogram
 // Author: Danilo Quartullo, Alexandre Lasheen, Konstantinos Iliakis
 
-#include <string.h>     // memset()
-#include <stdlib.h>     // mmalloc()
-#include <math.h>
+#include <cstring>     // memset()
+#include <cstdlib>     // mmalloc()
+#include <cmath>
 #include "openmp.h"
 
 extern "C" void histogram(const double *__restrict__ input,
