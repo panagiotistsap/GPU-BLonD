@@ -191,10 +191,18 @@ if (__name__ == "__main__"):
 
     # Compile the GPU library
     if args.gpu:
-        libname = os.path.join(basepath, 'gpu/kernels.cubin')
-        command = ['nvcc', '--cubin', '-arch', 'sm_35', '-o', libname,
-                   os.path.join(basepath, 'gpu/kernels.cu')]
-        subprocess.call(command)
+        libname = os.path.join(basepath, 'gpu/cuda_kernels/kernels.cubin')
+        try:
+            command = ['nvcc', '--cubin', '-arch', 'sm_35', '-O3', '--use_fast_math', '-o', libname,
+                '-I/home/panagiotis/.local/lib/python3.8/site-packages/pycuda/cuda',
+                os.path.join(basepath, 'gpu/cuda_kernels/kernels_aa.cu')]
+            subprocess.call(command)
+        except:
+            command = ['nvcc', '--cubin', '-arch', 'sm_35', '-O3', '--use_fast_math', '-o', libname,
+                '-I/home/panagiotis/.local/lib/python3.8/site-packages/pycuda/cuda',
+                os.path.join(basepath, 'gpu/cuda_kernels/kernels_na.cu')]
+            subprocess.call(command)
+            
         # try:
         #     libblond = ctypes.CDLL(libname)
         #     print('\nThe blond library has been successfully compiled.')

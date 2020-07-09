@@ -20,11 +20,9 @@ from ..utils import bmath as bm
 from ..gpu import block_size, grid_size
 from .gpu_butils_wrap import set_zero_int
 # drv.init()
+
 my_gpu = bm.gpuDev()
-
-from .gpu_kernels_from_sm import physics_ker, beam_phase_sum_ker,synch_rad_ker
-
-ker = physics_ker
+ker = bm.getMod()
 
 
 drift_simple = ker.get_function("drift_simple")
@@ -40,10 +38,10 @@ gm_linear_interp_kick_help = ker.get_function("lik_only_gm_copy")
 gm_linear_interp_kick_comp = ker.get_function("lik_only_gm_comp")
 halve_edges = ker.get_function("halve_edges")
 beam_phase_v2 = ker.get_function("beam_phase_v2")
-beam_phase_sum = beam_phase_sum_ker.get_function("beam_phase_sum")
+beam_phase_sum = ker.get_function("beam_phase_sum")
 
-synch_rad = synch_rad_ker.get_function("synchrotron_radiation")
-synch_rad_full = synch_rad_ker.get_function("synchrotron_radiation_full")
+synch_rad = ker.get_function("synchrotron_radiation")
+synch_rad_full = ker.get_function("synchrotron_radiation_full")
 
 # beam phase kernels
 

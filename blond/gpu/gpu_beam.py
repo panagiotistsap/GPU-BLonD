@@ -21,14 +21,13 @@ from pycuda import gpuarray
 # , driver as drv, tools
 from types import MethodType
 from ..gpu.gpu_butils_wrap import stdKernel, sum_non_zeros, mean_non_zeros
-from ..gpu.gpu_kernels_from_sm import beam_ker
 from ..gpu import grid_size, block_size
 
 from ..beam.beam import Beam
 
-gllc = beam_ker.get_function("gpu_losses_longitudinal_cut")
-glec = beam_ker.get_function("gpu_losses_energy_cut")
-glbe = beam_ker.get_function("gpu_losses_energy_cut")
+gllc = bm.getMod().get_function("gpu_losses_longitudinal_cut")
+glec = bm.getMod().get_function("gpu_losses_energy_cut")
+glbe = bm.getMod().get_function("gpu_losses_energy_cut")
 
 class gpu_Beam(Beam):
 

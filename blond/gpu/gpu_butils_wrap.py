@@ -7,15 +7,13 @@ import pycuda.elementwise as elw
 import pycuda.reduction as red
 from ..gpu.cucache import get_gpuarray
 from pycuda import gpuarray,driver as drv
-# , driver as drv, tools
 from ..gpu import grid_size, block_size
 from ..utils import bmath as bm
 from pycuda.tools import dtype_to_ctype, VectorArg, ScalarArg
 
 get_precompiled = True
 create_cu_files = False
-range_kernel = None
-no_range_kernel = None
+
 
 
 ### get precompiled Source Modules
@@ -24,34 +22,58 @@ if (get_precompiled):
     basedir = os.path.dirname(os.path.realpath(__file__))+"/cuda_kernels/"
     ## Elementwise
 
-    range_kernel = drv.module_from_file(basedir+"range_elem_kernels.cubin")
-    no_range_kernel = drv.module_from_file(basedir+"no_range_elem_kernels.cubin")
-
+    central_mod = bm.getMod()
+    
     def custom_get_elwise_range_module(arguments, operation,
         name="kernel", keep=False, options=None,
         preamble="", loop_prep="", after_loop=""):
         #print(name, " range")
-        return range_kernel
+        return central_mod
 
     def custom_get_elwise_no_range_module(arguments, operation,
         name="kernel", keep=False, options=None,
         preamble="", loop_prep="", after_loop=""):
         #print(name, " no range")
-        return no_range_kernel
+        return central_mod
+
+    def custom_get_elwise_kernel_and_types(arguments, operation,
+        name="kernel", keep=False, options=None, use_range=False, **kwargs):
+        if isinstance(arguments, str):
+            from pycuda.tools import parse_c_arg
+            arguments = [parse_c_arg(arg) for arg in arguments.split(",")]
+
+        if use_range:
+            arguments.extend([
+                ScalarArg(np.intp, "start"),
+                ScalarArg(np.intp, "stop"),
+                ScalarArg(np.intp, "step"),
+                ])
+        else:
+            arguments.append(ScalarArg(np.uintp, "n"))
+
+        if use_range:
+            module_builder = custom_get_elwise_range_module
+        else:
+            module_builder = custom_get_elwise_no_range_module
+
+        mod = module_builder(arguments, operation, name,
+                keep, options, **kwargs)
+
+        func = mod.get_function(name+use_range*"_range")
+        func.prepare("".join(arg.struct_char for arg in arguments))
+
+        return mod, func, arguments
 
     elw.get_elwise_range_module = custom_get_elwise_range_module
     elw.get_elwise_module = custom_get_elwise_no_range_module
+    elw.get_elwise_kernel_and_types = custom_get_elwise_kernel_and_types
 
-    ## Reduction
-
-    ReductionMods = {}
+    
     def get_reduction_module(out_type, block_size,
         neutral, reduce_expr, map_expr, arguments,
         name="reduce_kernel", keep=False, options=None, preamble=""):
-        if (name not in ReductionMods):
-            ReductionMods[name] =  drv.module_from_file(basedir+name+".cubin")
-        # print(name)
-        return ReductionMods[name]
+        return central_mod
+
     red.get_reduction_module = get_reduction_module
 
 ElementwiseKernel = elw.ElementwiseKernel
@@ -222,10 +244,7 @@ if (create_cu_files):
 
 ReductionKernel = red.ReductionKernel
 
-
-from .gpu_kernels_from_sm import trapz_ker,butils_ker
-
-ker = butils_ker
+ker = bm.getMod()
 
 
 
@@ -269,7 +288,7 @@ mean_non_zeros = ReductionKernel(np.float64, neutral="0",
 # gpu_profile
 cugradient = ker.get_function("cugradient")
 
-custom_gpu_trapz = trapz_ker.get_function("gpu_trapz_custom")
+custom_gpu_trapz = ker.get_function("gpu_trapz_custom")
 
 gpu_diff = ElementwiseKernel("int *a, double *b, double c",
                              "b[i] = (a[i+1]-a[i])/c", "gpu_diff")
