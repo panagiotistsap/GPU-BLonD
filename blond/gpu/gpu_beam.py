@@ -15,30 +15,20 @@ statistics
 """
 
 from __future__ import division
-# from builtins import object
 import numpy as np
-# from time import sleep
-# import traceback
 from ..utils import bmath as bm
-from pycuda.compiler import SourceModule
-# import pycuda.reduction as reduce
 from pycuda import gpuarray
 # , driver as drv, tools
 from types import MethodType
 from ..gpu.gpu_butils_wrap import stdKernel, sum_non_zeros, mean_non_zeros
+from ..gpu.gpu_kernels_from_sm import beam_ker
 from ..gpu import grid_size, block_size
 
 from ..beam.beam import Beam
 
-# def funcs_update(obj):
-#         if (bm.gpuMode()):
-#             obj.losses_longitudinal_cut = MethodType(
-#                 gpu_losses_longitudinal_cut, obj)
-#             obj.losses_energy_cut = MethodType(gpu_losses_energy_cut, obj)
-#             obj.losses_below_energy = MethodType(gpu_losses_below_energy, obj)
-#             obj.statistics = MethodType(gpu_statistics, obj)
-#             setattr(type(obj), "n_macroparticles_lost", gpu_n_macroparticles_lost)
-#         obj.dev_id = gpuarray.to_gpu(obj.id.astype(np.float64))
+gllc = beam_ker.get_function("gpu_losses_longitudinal_cut")
+glec = beam_ker.get_function("gpu_losses_energy_cut")
+glbe = beam_ker.get_function("gpu_losses_energy_cut")
 
 class gpu_Beam(Beam):
 
@@ -110,22 +100,7 @@ class gpu_Beam(Beam):
 
     def losses_longitudinal_cut(self, dt_min, dt_max):
 
-        beam_ker = SourceModule("""
-        __global__ void gpu_losses_longitudinal_cut(
-                        double *dt, 
-                        double *dev_id, 
-                        const int size,
-                        const double min_dt,
-                        const double max_dt)
-        {
-                int tid = threadIdx.x + blockDim.x*blockIdx.x;
-                for (int i = tid; i<size; i += blockDim.x*gridDim.x)
-                    if ((dt[i]-min_dt)*(max_dt-dt[i])<0)
-                        dev_id[i]=0;
-        }   
-
-        """)
-        gllc = beam_ker.get_function("gpu_losses_longitudinal_cut")
+        
         gllc(self.dev_dt, self.dev_id, np.int32(self.n_macroparticles), np.float64(dt_min), np.float64(dt_max),
             grid=grid_size, block=block_size)
         self.id_obj.invalidate_cpu()
@@ -133,22 +108,7 @@ class gpu_Beam(Beam):
 
     def losses_energy_cut(self, dE_min, dE_max):
 
-        beam_ker = SourceModule("""
-        __global__ void gpu_losses_energy_cut(
-                        double *dE, 
-                        double *dev_id, 
-                        const int size,
-                        const double min_dE,
-                        const double max_dE)
-        {
-                int tid = threadIdx.x + blockDim.x*blockIdx.x;
-                for (int i = tid; i<size; i += blockDim.x*gridDim.x)
-                    if ((dE[i]-min_dE)*(max_dE-dE[i])<0)
-                        dev_id[i]=0;
-        }   
-
-        """)
-        glec = beam_ker.get_function("gpu_losses_energy_cut")
+        
         glec(self.dev_dE, self.dev_id, np.int32(self.n_macroparticles), np.float64(dE_min), np.float64(dE_max),
             grid=grid_size, block=block_size)
         self.id_obj.invalidate_cpu()
@@ -156,21 +116,7 @@ class gpu_Beam(Beam):
 
     def losses_below_energy(self, dE_min):
 
-        beam_ker = SourceModule("""
-        __global__ void gpu_losses_below_energy(
-                        double *dE, 
-                        double *dev_id, 
-                        const int size,
-                        const double min_dE)
-        {
-                int tid = threadIdx.x + blockDim.x*blockIdx.x;
-                for (int i = tid; i<size; i += blockDim.x*gridDim.x)
-                    if (dE[i]-min_dE < 0)
-                        dev_id[i]=0;
-        }   
-
-        """)
-        glbe = beam_ker.get_function("gpu_losses_energy_cut")
+        
         glbe(self.dev_dE, self.dev_id, np.int32(self.n_macroparticles), np.float64(dE_min),
             grid=grid_size, block=block_size)
         self.id_obj.invalidate_cpu()

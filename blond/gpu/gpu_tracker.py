@@ -7,7 +7,6 @@ from ..gpu.cucache import get_gpuarray
 from ..gpu.gpu_butils_wrap import gpu_copy_d2d, first_kernel_tracker, second_kernel_tracker,\
     copy_column, rf_voltage_calculation_kernel, cavityFB_case, add_kernel, gpu_rf_voltage_calc_mem_ops
 
-from pycuda.compiler import SourceModule
 from pycuda import gpuarray
 # , driver as drv, tools
 try:
@@ -74,8 +73,6 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
             if self.rf_params.empty is False:
                 if self.interpolation:
                     self.rf_voltage_calculation()
-
-
 
     def track_only(self):
         turn = self.counter[0]

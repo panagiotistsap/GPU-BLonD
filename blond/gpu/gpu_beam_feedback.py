@@ -5,8 +5,8 @@ import numpy as np
 from ..toolbox.next_regular import next_regular
 from ..utils import bmath as bm
 from types import MethodType
-from ..gpu.gpu_butils_wrap import gpu_copy_one, set_zero, triple_kernel,\
-    first_kernel_x, second_kernel_x, third_kernel_x, indexing_double, indexing_int, sincos_mul_add, mul_d, gpu_trapz_2, sincos_mul_add_2
+from ..gpu.gpu_butils_wrap import gpu_copy_one, triple_kernel,\
+    first_kernel_x, second_kernel_x, third_kernel_x, indexing_double, indexing_int, sincos_mul_add, mul_d, sincos_mul_add_2
 from ..gpu.cucache import get_gpuarray
 from ..utils.bphysics_wrap import beam_phase as cpu_beamphase
 import pycuda.cumath as cm
@@ -137,7 +137,7 @@ class gpu_BeamFeedback(BeamFeedback):
         '''
         # Main RF frequency at the present turn
         turn = self.rf_station.counter[0]
-        dummy = gpuarray.zeros(1, dtype=np.float64)
+        dummy = gpuarray.empty(1, dtype=np.float64)
         gpu_copy_one(dummy, self.rf_station.dev_omega_rf,
                     self.rf_station.counter[0], slice=slice(0, 1))
         # self.rf_station.omega_rf[0, self.rf_station.counter[0]]

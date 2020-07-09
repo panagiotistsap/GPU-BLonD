@@ -1,15 +1,18 @@
 import numpy as np
-from pycuda.compiler import SourceModule
 from pycuda import gpuarray
-# , driver as drv, tools
-import atexit
 from ..utils import bmath as bm
 
-# drv.init()
-#assert ( driver.Device.count() >= 1)
-# dev = drv.Device(bm.gpuId())
-# ctx = dev.make_context()
-# atexit.register(ctx.pop)
+def fill(self, value):
+    from .gpu_butils_wrap import set_zero_int, set_zero_double, set_zero_complex
+    if (self.dtype in [np.int, np.int32]):
+        set_zero_int(self)
+    elif (self.dtype in [np.float, np.float64]):
+        set_zero_double(self)
+    else:
+        set_zero_complex(self)
+
+   
+gpuarray.GPUArray.fill = fill
 
 dtype_to_bytes_dict = {np.float64: 64,
                        np.float32: 32, np.complex128: 128, np.int32: 32}
@@ -26,10 +29,8 @@ class gpuarray_cache:
         self.curr_capacity = 0
 
     def add_array(self, key):
-        # if (not dtype_to_bytes_dict[key[1]]*key[0] + self.curr_capacity <= self.capacity):
-        #    print("need to free array")
-        #    pass
-        self.gpuarray_dict[key] = gpuarray.zeros(key[0], dtype=key[1])
+
+        self.gpuarray_dict[key] = gpuarray.empty(key[0], dtype=key[1])
         self.curr_capacity += dtype_to_bytes_dict[key[1]]*key[0]
 
     def get_array(self, key, zero_fills):
@@ -41,7 +42,9 @@ class gpuarray_cache:
                     self.gpuarray_dict[key].fill(0)
             return self.gpuarray_dict[key]
         else:
-            return gpuarray.zeros(key[0], dtype=key[1])
+            to_ret = gpuarray.empty(key[0], dtype=key[1])
+            to_ret.fill(0)
+            return to_ret
     # def free_space(self)
 
     def enable(self):

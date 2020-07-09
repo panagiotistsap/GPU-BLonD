@@ -4,13 +4,9 @@ import numpy as np
 from types import MethodType
 from ..utils import bmath as bm
 from ..gpu.cucache import get_gpuarray
-from pycuda.compiler import SourceModule
-# import pycuda.reduction as reduce
-from pycuda.elementwise import ElementwiseKernel
 from ..gpu.gpu_butils_wrap import gpu_diff, cugradient, gpu_copy_d2d, gpu_interp
 
 from pycuda import gpuarray
-# , driver as drv, tools
 from ..gpu import grid_size, block_size
 try:
     from pyprof import timing
@@ -149,7 +145,7 @@ class gpu_Profile(Profile):
                 derivative = get_gpuarray(
                     (x.size, np.float64, caller_id, 'der'), True)
             else:
-                derivative = gpuarray.zeros(x.size, dtype=np.float64)
+                derivative = gpuarray.empty(x.size, dtype=np.float64)
             cugradient(np.float64(dist_centers), self.dev_n_macroparticles,
                     derivative, np.int32(x.size), block=block_size, grid=(16, 1, 1))
         elif mode == 'diff':
@@ -157,7 +153,7 @@ class gpu_Profile(Profile):
                 derivative = get_gpuarray(
                     (x.size, np.float64, caller_id, 'der'), True)
             else:
-                derivative = gpuarray.zeros(
+                derivative = gpuarray.empty(
                     self.dev_n_macroparticles.size-1, np.float64)
             gpu_diff(self.dev_n_macroparticles, derivative, dist_centers)
             diffCenters = get_gpuarray(
