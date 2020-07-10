@@ -275,6 +275,7 @@ class RingAndRFTracker(object):
         self.eta_2 = RFStation.eta_2
         self.alpha_order = RFStation.alpha_order
         self.acceleration_kick = - RFStation.delta_E
+        self.rf_voltage = 0
 
         self.total_transfers = 0
         # Other imports
