@@ -126,7 +126,8 @@ def gpuDev():
 def gpuCtx():
     return __gpu_dev.ctx
 
-
+def getMod():
+    return __gpu_dev.my_mod()
 # def stop_gpu():
 #     __gpu_ctx.pop()
 #     update_active_dict(_CPU_func_dict)
@@ -146,7 +147,7 @@ class GPUDev:
         self.ctx = self.dev.make_context()
         this_dir = os.path.dirname(os.path.realpath(__file__)) + "/"
 
-        self.mod = drv.module_from_file(os.path.join(this_dir, '../gpu/kernels.cubin'))
+        self.mod = drv.module_from_file(os.path.join(this_dir, '../gpu/cuda_kernels/kernels.cubin'))
 
 
 
@@ -163,6 +164,9 @@ class GPUDev:
         self.ctx.pop()
         update_active_dict(_CPU_func_dict)
 
+    def my_mod(self):
+        return self.mod
+    
 
 def use_gpu(comps=[], gpu_id=0):
     from pycuda import driver as drv
