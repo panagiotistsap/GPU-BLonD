@@ -5,9 +5,9 @@ slurm:
         
         # CPU only experiments
         # Strong scaling
-        - 'approx0-strong-scaling'
-        - 'tp-approx0-strong-scaling'
-        - 'lb-tp-approx0-strong-scaling'
+        # - 'approx0-strong-scaling'
+        # - 'tp-approx0-strong-scaling'
+        # - 'lb-tp-approx0-strong-scaling'
         # - 'lb-tp-approx1-strong-scaling'
         # - 'lb-tp-approx2-strong-scaling'
         
@@ -119,8 +119,8 @@ slurm:
         # Weak scaling
         'lb-tp-approx0-weak-scaling': {
             'exe': ['SPS_main.py'],
-            'particles': [500000, 1000000, 1000000, 2000000],
-            'bunches': [36, 36, 72, 72],  # 72
+            'particles': [500000, 1000000, 1000000], # 2000000],
+            'bunches': [36, 36, 72], #72],
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -135,7 +135,7 @@ slurm:
             'artificialdelay': ['off'],
             'precision': ['double'],
             'timing': ['timing'],
-            'workers': [2, 4, 8, 16],
+            'workers': [2, 4, 8], #16],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
@@ -144,8 +144,8 @@ slurm:
 
         'tp-approx0-weak-scaling': {
             'exe': ['SPS_main.py'],
-            'particles': [500000, 1000000, 1000000, 2000000],
-            'bunches': [36, 36, 96, 96],  # 96
+            'particles': [500000, 1000000, 1000000], # 2000000],
+            'bunches': [36, 36, 72], #72],
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -160,7 +160,7 @@ slurm:
             'artificialdelay': ['off'],
             'precision': ['double'],
             'timing': ['timing'],
-            'workers': [2, 4, 8, 16],
+            'workers': [2, 4, 8], #16],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
@@ -170,8 +170,8 @@ slurm:
 
         'approx0-weak-scaling': {
             'exe': ['SPS_main.py'],
-            'particles': [500000, 1000000, 1000000, 2000000],
-            'bunches': [36, 36, 96, 96],  # 96
+            'particles': [500000, 1000000, 1000000], # 2000000],
+            'bunches': [36, 36, 72], #72],
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -186,7 +186,7 @@ slurm:
             'artificialdelay': ['off'],
             'precision': ['double'],
             'timing': ['timing'],
-            'workers': [2, 4, 8, 16],
+            'workers': [2, 4, 8], #16],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
@@ -354,7 +354,7 @@ local:
         'lb-tp-approx0-weak-scaling': {
             'exe': ['SPS_main.py', 'SPS_main.py', 'SPS_main.py', 'SPS_main.py'],
             'particles': [500000, 1000000, 1000000, 2000000],
-            'bunches': [1, 1, 2, 2],  # 96
+            'bunches': [1, 1, 2, 2],  # 72
             'slices': [1408, 1408, 1408, 1408],
             'turns': [5000, 5000, 5000, 5000],
             'monitor': [0, 0, 0, 0],
@@ -377,7 +377,7 @@ local:
         'lb-tp-approx1-weak-scaling': {
             'exe': ['SPS_main.py', 'SPS_main.py', 'SPS_main.py', 'SPS_main.py'],
             'particles': [500000, 1000000, 1000000, 2000000],
-            'bunches': [1, 1, 2, 2],  # 96
+            'bunches': [1, 1, 2, 2],  # 72
             'slices': [1408, 1408, 1408, 1408],
             'turns': [5000, 5000, 5000, 5000],
             'monitor': [0, 0, 0, 0],
@@ -400,7 +400,7 @@ local:
         'lb-tp-approx2-weak-scaling': {
             'exe': ['SPS_main.py', 'SPS_main.py', 'SPS_main.py', 'SPS_main.py'],
             'particles': [500000, 1000000, 1000000, 2000000],
-            'bunches': [1, 1, 2, 2],  # 96
+            'bunches': [1, 1, 2, 2],  # 72
             'slices': [1408, 1408, 1408, 1408],
             'turns': [5000, 5000, 5000, 5000],
             'monitor': [0, 0, 0, 0],
@@ -425,7 +425,7 @@ local:
         'approx0-interm': {
             'exe': ['SPS_main.py'],
             'particles': [2000000],
-            'bunches': [2],  # 96
+            'bunches': [2],  # 72
             'slices': [1408],
             'turns': [5000],
             'monitor': [0],
@@ -448,7 +448,7 @@ local:
         'approx1-interm': {
             'exe': ['SPS_main.py'],
             'particles': [2000000],
-            'bunches': [2],  # 96
+            'bunches': [2],  # 72
             'slices': [1408],
             'turns': [5000],
             'monitor': [0],
@@ -471,7 +471,7 @@ local:
         'approx2-interm': {
             'exe': ['SPS_main.py'],
             'particles': [2000000],
-            'bunches': [2],  # 96
+            'bunches': [2],  # 72
             'slices': [1408],
             'turns': [5000],
             'monitor': [0],
@@ -494,7 +494,7 @@ local:
         'tp-approx0-interm': {
             'exe': ['SPS_main.py'],
             'particles': [2000000],
-            'bunches': [2],  # 96
+            'bunches': [2],  # 72
             'slices': [1408],
             'turns': [5000],
             'monitor': [0],
@@ -517,7 +517,7 @@ local:
         'lb-tp-approx0-interm': {
             'exe': ['SPS_main.py'],
             'particles': [2000000],
-            'bunches': [2],  # 96
+            'bunches': [2],  # 72
             'slices': [1408],
             'turns': [5000],
             'monitor': [0],
@@ -540,7 +540,7 @@ local:
         'lb-tp-approx1-interm': {
             'exe': ['SPS_main.py'],
             'particles': [2000000],
-            'bunches': [2],  # 96
+            'bunches': [2],  # 72
             'slices': [1408],
             'turns': [5000],
             'withtp': [1],
@@ -563,7 +563,7 @@ local:
         'lb-tp-approx2-interm': {
             'exe': ['SPS_main.py'],
             'particles': [2000000],
-            'bunches': [2],  # 96
+            'bunches': [2],  # 72
             'slices': [1408],
             'turns': [5000],
             'monitor': [0],
@@ -587,7 +587,7 @@ local:
         'approx0-workers': {
             'exe': ['SPS_main.py', 'SPS_main.py', 'SPS_main.py'],
             'particles': [2000000, 2000000, 2000000],
-            'bunches': [2, 2, 2],  # 96
+            'bunches': [2, 2, 2],  # 72
             'slices': [1408, 1408, 1408],
             'turns': [5000, 5000, 5000],
             'monitor': [0, 0, 0],

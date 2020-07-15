@@ -12,8 +12,8 @@ slurm:
         
         # Weak Scaling
         # - 'lb-tp-approx0-weak-scaling'
-        # - 'approx0-weak-scaling'
-        # - 'tp-approx0-weak-scaling'
+        - 'approx0-weak-scaling'
+        - 'tp-approx0-weak-scaling'
         - 'lb-tp-approx0-weak-scaling'
 
         # - 'lb-tp-approx1-weak-scaling'
@@ -118,8 +118,8 @@ slurm:
         # Weak scaling
         'lb-tp-approx0-weak-scaling': {
             'exe': ['LHC_main.py'],
-            'particles': [500000, 1000000, 1000000, 2000000],
-            'bunches': [48, 48, 96, 96],  # 96
+            'particles': [500000, 1000000, 1000000], #, 2000000],
+            'bunches': [48, 48, 96], #96],
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -135,17 +135,17 @@ slurm:
             'precision': ['double'],
             'timing': ['timing'],
             # 'workers': [2, 4, 8, 16],
-            'workers': [2, 4, 8, 16],
+            'workers': [2, 4, 8],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 1
+            'repeats': 4
         },
 
         'tp-approx0-weak-scaling': {
             'exe': ['LHC_main.py'],
-            'particles': [500000, 1000000, 1000000, 2000000],
-            'bunches': [48, 48, 96, 96],  # 96
+            'particles': [500000, 1000000, 1000000], #, 2000000],
+            'bunches': [48, 48, 96], #96],  # 96
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -160,7 +160,7 @@ slurm:
             'artificialdelay': ['off'],
             'precision': ['double'],
             'timing': ['timing'],
-            'workers': [2, 4, 8, 16],
+            'workers': [2, 4, 8],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
@@ -170,8 +170,8 @@ slurm:
 
         'approx0-weak-scaling': {
             'exe': ['LHC_main.py'],
-            'particles': [500000, 1000000, 1000000, 2000000],
-            'bunches': [48, 48, 96, 96],  # 96
+            'particles': [500000, 1000000, 1000000], #, 2000000],
+            'bunches': [48, 48, 96], #, 96],  # 96
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -186,7 +186,7 @@ slurm:
             'artificialdelay': ['off'],
             'precision': ['double'],
             'timing': ['timing'],
-            'workers': [2, 4, 8, 16],
+            'workers': [2, 4, 8],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
