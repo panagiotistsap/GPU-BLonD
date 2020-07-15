@@ -219,7 +219,9 @@ def collect_reports(input, outfile, filename):
             prec = config.split('_prec')[1].split('_')[0]
             mpiv = config.split('_mpi')[1].split('_')[0]
             lb = config.split('_lb')[1].split('_')[0]
-            lba = config.split('_lba')[1].split('_')[0]
+            artdel = config.split('_lb')[1].split('_')[0]
+            gpu = config.split('_gpu')[1].split('_')[0]
+            # lba = config.split('_lba')[1].split('_')[0]
             tp = config.split('_tp')[1].split('_')[0]
 
             data = np.genfromtxt(os.path.join(dirs, filename),
@@ -230,7 +232,8 @@ def collect_reports(input, outfile, filename):
             data_head, data = data[0], data[1:]
             for r in data:
                 records.append([ps, bs, ss, ts, ws, Ns, oss, rs,
-                                mtw, seed, approx, prec, mpiv, lb, lba, tp] + list(r))
+                                mtw, seed, approx, prec, mpiv, lb, tp,
+                                artdel, gpu] + list(r))
         except:
             print('[Error] dir ', dirs)
             continue
@@ -239,7 +242,8 @@ def collect_reports(input, outfile, filename):
                                     int(a[9]), a[11]))
         writer = csv.writer(outfile, delimiter='\t')
         header = ['ppb', 'b', 's', 't', 'n', 'N', 'omp',
-                  'red', 'mtw', 'seed', 'approx', 'prec', 'mpi', 'lb', 'lba', 'tp'] + list(data_head)
+                  'red', 'mtw', 'seed', 'approx', 'prec', 'mpi', 'lb', 'tp', 
+                  'artdel', 'gpu'] + list(data_head)
         writer.writerow(header)
         writer.writerows(records)
         if records:
