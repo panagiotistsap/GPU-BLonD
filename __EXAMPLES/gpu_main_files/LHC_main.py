@@ -32,7 +32,7 @@ from blond.utils.input_parser import parse
 from blond.utils import bmath as bm
 
 bm.use_mpi()
-bm.use_fftw()
+#bm.use_fftw()
 
 REAL_RAMP = True    # track full ramp
 MONITORING = False   # turn off plots and monitors
@@ -55,8 +55,8 @@ os.system("gcc --version")
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
 N_b = 1.2e9          # Intensity
-n_particles = 250000         # Macro-particles
-n_bunches = 48              # Number of bunches
+n_particles = 1000000         # Macro-particles
+n_bunches = 1        # Number of bunches
 freq_res = 2.09e5
 # freq_res = 4.e5
 # Machine and RF parameters
@@ -253,6 +253,8 @@ worker.sync()
 timing.reset()
 start_t = time.time()
 
+
+
 for turn in range(n_iterations):
     # After the first 2/3 of the ramp, regulate down the bunch length
     if turn == 9042249:
@@ -280,7 +282,10 @@ for turn in range(n_iterations):
         tracker.pre_track()
 
     worker.intraSync()
-    worker.sendrecv(totVoltage.induced_voltage, tracker.rf_voltage)
+    if (args['gpu'] == 1):
+        worker.sendrecv(totVoltage.induced_voltage, tracker.dev_rf_voltage.get())
+    else:
+        worker.sendrecv(totVoltage.induced_voltage, tracker.rf_voltage)
 
     tracker.track_only()
 
@@ -294,6 +299,7 @@ for turn in range(n_iterations):
             slicesMonitor.track(turn)
 
     worker.DLB(turn, beam)
+
 
 beam.gather()
 end_t = time.time()
