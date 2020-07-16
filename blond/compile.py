@@ -52,7 +52,7 @@ parser.add_argument('--with-fftw', action='store_true',
                     help='Use the FFTs from FFTW3.')
 
 
-parser.add_argument('--gpu', action='store_true',
+parser.add_argument('-gpu', '--gpu', action='store_true',
                     help='Compile the GPU kernels too.'
                     'Default: Only compile the C++ library.')
 
