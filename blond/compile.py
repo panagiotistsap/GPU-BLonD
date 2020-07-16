@@ -193,21 +193,23 @@ if (__name__ == "__main__"):
 
     # Compile the GPU library
     if args.gpu:
+        print('\nCompiling the CUDA library.')
         libname = os.path.join(basepath, 'gpu/cuda_kernels/kernels.cubin')
         # we need to get the header files location
-        output = subprocess.run(
-            'pip show pycuda | grep Location', shell=True, capture_output=True, text=True)
-        pycudaloc = os.path.join(output.stdout.split('Location:')[1].strip(), 'pycuda/cuda')
+        output = subprocess.run('pip show pycuda | grep Location', shell=True,
+                                stdout=subprocess.PIPE,
+                                encoding='utf-8')
+        pycudaloc = os.path.join(output.stdout.split(
+            'Location:')[1].strip(), 'pycuda/cuda')
         try:
             command = nvccflags + ['-o', libname, '-I'+pycudaloc,
-                       os.path.join(basepath, 'gpu/cuda_kernels/kernels_aa.cu')]
+                                   os.path.join(basepath, 'gpu/cuda_kernels/kernels_aa.cu')]
             subprocess.call(command)
         except:
             command = nvccflags + ['-o', libname, '-I'+pycudaloc,
-                       os.path.join(basepath, 'gpu/cuda_kernels/kernels_na.cu')]
+                                   os.path.join(basepath, 'gpu/cuda_kernels/kernels_na.cu')]
             subprocess.call(command)
         if os.path.isfile(libname):
             print('\nThe CUDA library has been compiled.')
         else:
             print('\nThe CUDA library compilation failed.')
-
