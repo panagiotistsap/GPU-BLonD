@@ -18,7 +18,6 @@
 #SBATCH --mem=56G   # memory per NODE
 #SBATCH --partition=gpu    # Partition
 #SBATCH --account=pa200702    # Replace with your system project
-#SBATCH --gres=gpu:2		# For srun, allow access to 2 GPUs
 
 if [ x$SLURM_CPUS_PER_TASK == x ]; then
   export OMP_NUM_THREADS=1
@@ -44,38 +43,17 @@ source $HOME/.bashrc
 # ls /usr/*
 # ls /usr/
 # ls /usr/local/
-
-# export CUDA_MPS_PIPE_DIRECTORY=$HOME/tmp/scratch/nvidia-mps
-# if [ -d $CUDA_MPS_PIPE_DIRECTORY ]
-# then
-#    rm -rf $CUDA_MPS_PIPE_DIRECTORY
-# fi
-# mkdir -p $CUDA_MPS_PIPE_DIRECTORY
-
-# export CUDA_MPS_LOG_DIRECTORY=$HOME/tmp/scratch/nvidia-log
-# if [ -d $CUDA_MPS_LOG_DIRECTORY ]
-# then
-#    rm -rf $CUDA_MPS_LOG_DIRECTORY
-# fi
-# mkdir -p $CUDA_MPS_LOG_DIRECTORY
-
-# nvidia-smi -i 2 -c EXCLUSIVE_PROCESS
-
-# # Start user-space daemon
-# nvidia-cuda-mps-control -d
-
 which python
 gcc --version
-mpirun --version
+which mpicc
 nvcc --version
 nvidia-smi
 # INSTALL_DIR=$HOME/install
 export PYTHONPATH="./:$PYTHONPATH"
 export CUDA_VISIBLE_DEVICES=0,1
-cd $HOME/kostis/GPU-BLonD
-# cd $HOME/git/GPU-BLonD/scripts/other
-# python dummy.py
+cd $HOME/panos/GPU-BLonD
+#cd $HOME/git/GPU-BLonD/scripts/other
+#python hello_gpu.py
 # python blond/compile.py --with-fftw --with-fftw-threads --with-fftw-lib=$INSTALL_DIR/lib/ --with-fftw-header=$INSTALL_DIR/include/ -p
-# srun python __EXAMPLES/gpu_main_files/test_EX_01_Acceleration.py -t 100 -gpu 1
-# python __EXAMPLES/gpu_main_files/test_EX_01_Acceleration.py -t 100 -gpu 1
-srun python __EXAMPLES/gpu_main_files/hello_gpu.py
+surn -n 2 python __EXAMPLES/gpu_main_files/LHC_main.py -gpu 1 -t 1000
+# python __EXAMPLES/gpu_main_files/hello_gpu.py
