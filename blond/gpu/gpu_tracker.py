@@ -22,6 +22,25 @@ from ..trackers.tracker import RingAndRFTracker
 
 class gpu_RingAndRFTracker(RingAndRFTracker):
 
+    @property
+    def rf_voltage(self):
+        return self.rf_voltage_obj.my_array
+
+    @rf_voltage.setter
+    def rf_voltage(self, value):
+        self.rf_voltage_obj.my_array = value
+
+
+    @property
+    def dev_rf_voltage(self):
+        return self.rf_voltage_obj.dev_my_array
+
+
+    @dev_rf_voltage.setter
+    def dev_rf_voltage(self, value):
+        self.rf_voltage_obj.dev_my_array = value
+
+
     def pre_track(self):
         """Tracking method for the section. Applies first the kick, then the 
         drift. Calls also RF/beam feedbacks if applicable. Updates the counter
@@ -130,7 +149,6 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
         else:
             if self.rf_params.empty is False:
                 if self.interpolation:
-                    # self.rf_voltage_calculation()
                     self.dev_total_voltage = get_gpuarray(
                         (self.dev_rf_voltage.size, np.float64, id(self), "dtv"))
                     if self.totalInducedVoltage is not None:
