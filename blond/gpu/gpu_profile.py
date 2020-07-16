@@ -167,3 +167,37 @@ class gpu_Profile(Profile):
             raise RuntimeError('Option for derivative is not recognized.')
 
         return x, derivative
+
+
+    def reduce_histo(self, dtype=np.uint32):
+        if not bm.mpiMode():
+            raise RuntimeError(
+                'ERROR: Cannot use this routine unless in MPI Mode')
+
+        from ..utils.mpi_config import worker
+        worker.sync()
+        if self.Beam.is_splitted:
+
+            with timing.timed_region('serial:conversion'):
+                # with mpiprof.traced_region('serial:conversion'):
+                my_n_macroparticles = self.n_macroparticles.astype(
+                    np.uint32, order='C')
+
+            worker.allreduce(my_n_macroparticles, dtype=np.uint32, operator='custom_sum')
+
+            with timing.timed_region('serial:conversion'):
+                # with mpiprof.traced_region('serial:conversion'):
+                self.n_macroparticles = my_n_macroparticles.astype(dtype=np.float64, order='C', copy=False)
+
+
+    @timing.timeit(key='serial:scale_histo')
+    # @mpiprof.traceit(key='serial:scale_histo')
+    def scale_histo(self):
+        if not bm.mpiMode():
+            raise RuntimeError(
+                'ERROR: Cannot use this routine unless in MPI Mode')
+
+        from ..utils.mpi_config import worker
+        if self.Beam.is_splitted:
+            bm.mul(self.n_macroparticles, worker.workers, self.n_macroparticles)
+            self.n_macroparticles_obj.invalidate_gpu()
