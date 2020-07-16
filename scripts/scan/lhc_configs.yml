@@ -228,7 +228,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 4
+            'repeats': 1
         },
 
         'tp-approx0-weak-scaling-cpu-gpu': {
@@ -253,7 +253,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 4
+            'repeats': 1
         },
 
 
@@ -279,7 +279,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 4
+            'repeats': 1
         },
 
 

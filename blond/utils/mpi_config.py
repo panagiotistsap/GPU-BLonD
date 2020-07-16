@@ -102,11 +102,11 @@ class Worker:
 
     @property
     def isFirst(self):
-        return (self.intrarank == 0) or (self.taskparallelism is False)
+        return (self.intrarank == 0) #or (self.taskparallelism is False)
 
     @property
     def isLast(self):
-        return (self.intrarank == self.intraworkers-1) or (self.taskparallelism is False)
+        return (self.intrarank == self.intraworkers-1) #or (self.taskparallelism is False)
 
     # Define the begin and size numbers in order to split a variable of length size
 
