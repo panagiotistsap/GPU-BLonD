@@ -32,7 +32,7 @@ from blond.utils.input_parser import parse
 from blond.utils import bmath as bm
 
 bm.use_mpi()
-#bm.use_fftw()
+bm.use_fftw()
 
 REAL_RAMP = True    # track full ramp
 MONITORING = False   # turn off plots and monitors
@@ -239,7 +239,7 @@ if args['monitor'] > 0 and worker.isMaster:
                                   rf=rf,
                                   Nbunches=n_bunches)
 
-if args['gpu'] == 1 and worker.isMaster:
+if args['gpu'] == 1 and worker.isFirst:
     bm.use_gpu()
     tracker.use_gpu()
     totVoltage.use_gpu()
