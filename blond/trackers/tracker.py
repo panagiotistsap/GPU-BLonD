@@ -328,7 +328,9 @@ class RingAndRFTracker(object):
     
     def use_gpu(self):
         from ..gpu.gpu_tracker import gpu_RingAndRFTracker
+        from ..gpu.cpu_gpu_array import CGA
         
+        self.rf_voltage_obj = CGA(np.array([]))
         self.__class__ = gpu_RingAndRFTracker
         if (self.profile):
             self.profile.use_gpu()
@@ -391,19 +393,12 @@ class RingAndRFTracker(object):
 
         """
 
-        if (bm.gpuMode()):
-            bm.drift(self.solver, self.t_rev[index],
-                     self.length_ratio, self.alpha_order, self.eta_0[index],
-                     self.eta_1[index], self.eta_2[index], self.alpha_0[index],
-                     self.alpha_1[index], self.alpha_2[index],
-                     self.rf_params.beta[index], self.rf_params.energy[index], self.beam)
-        else:
-            bm.drift(beam_dt, beam_dE, self.solver, self.t_rev[index],
-                     self.length_ratio, self.alpha_order, self.eta_0[index],
-                     self.eta_1[index], self.eta_2[index], self.alpha_0[index],
-                     self.alpha_1[index], self.alpha_2[index],
-                     self.rf_params.beta[index], self.rf_params.energy[index])
-            self.beam.gpu_valid = False
+       
+        bm.drift(beam_dt, beam_dE, self.solver, self.t_rev[index],
+                    self.length_ratio, self.alpha_order, self.eta_0[index],
+                    self.eta_1[index], self.eta_2[index], self.alpha_0[index],
+                    self.alpha_1[index], self.alpha_2[index],
+                    self.rf_params.beta[index], self.rf_params.energy[index])
 
             
     @timing.timeit(key='serial:RFVCalc')
