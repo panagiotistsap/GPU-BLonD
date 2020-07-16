@@ -55,7 +55,7 @@ os.system("gcc --version")
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
 N_b = 1.2e9          # Intensity
-n_particles = 1000000         # Macro-particles
+n_particles = 10000         # Macro-particles
 n_bunches = 1        # Number of bunches
 freq_res = 2.09e5
 # freq_res = 4.e5
@@ -71,9 +71,9 @@ dt_plt = 10000      # Time steps between plots
 dt_mon = 1           # Time steps between monitoring
 dt_save = 1000000    # Time steps between saving coordinates
 if REAL_RAMP:
-    n_turns = 14000000       # Number of turns to track; full ramp: 8700001
+    n_turns = 14000       # Number of turns to track; full ramp: 8700001
 else:
-    n_turns = 500000
+    n_turns = 5000
 bl_target = 1.25e-9  # 4 sigma r.m.s. target bunch length in [ns]
 
 n_turns_reduce = 1
@@ -239,7 +239,7 @@ if args['monitor'] > 0 and worker.isMaster:
                                   rf=rf,
                                   Nbunches=n_bunches)
 
-if args['gpu'] == 1:
+if args['gpu'] == 1 and worker.isMaster:
     bm.use_gpu()
     tracker.use_gpu()
     totVoltage.use_gpu()
@@ -282,7 +282,7 @@ for turn in range(n_iterations):
         tracker.pre_track()
 
     worker.intraSync()
-    if (args['gpu'] == 1):
+    if (bm.gpuMode()):
         worker.sendrecv(totVoltage.induced_voltage, tracker.dev_rf_voltage.get())
     else:
         worker.sendrecv(totVoltage.induced_voltage, tracker.rf_voltage)
