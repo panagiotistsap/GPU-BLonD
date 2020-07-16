@@ -102,6 +102,8 @@ cpp_files = [
     os.path.join(basepath, 'beam/sparse_histogram.cpp'),
 ]
 
+nvccflags = ['nvcc', '--cubin', '-arch', 'sm_35', '-O3', '--use_fast_math']
+
 
 if (__name__ == "__main__"):
     args = parser.parse_args()
@@ -192,21 +194,20 @@ if (__name__ == "__main__"):
     # Compile the GPU library
     if args.gpu:
         libname = os.path.join(basepath, 'gpu/cuda_kernels/kernels.cubin')
+        # we need to get the header files location
+        output = subprocess.run(
+            'pip show pycuda | grep Location', shell=True, capture_output=True, text=True)
+        pycudaloc = os.path.join(output.stdout.split('Location:')[1].strip(), 'pycuda/cuda')
         try:
-            command = ['nvcc', '--cubin', '-arch', 'sm_35', '-O3', '--use_fast_math', '-o', libname,
-                '-I/home/panagiotis/.local/lib/python3.8/site-packages/pycuda/cuda',
-                os.path.join(basepath, 'gpu/cuda_kernels/kernels_aa.cu')]
+            command = nvccflags + ['-o', libname, '-I'+pycudaloc,
+                       os.path.join(basepath, 'gpu/cuda_kernels/kernels_aa.cu')]
             subprocess.call(command)
         except:
-            command = ['nvcc', '--cubin', '-arch', 'sm_35', '-O3', '--use_fast_math', '-o', libname,
-                '-I/home/panagiotis/.local/lib/python3.8/site-packages/pycuda/cuda',
-                os.path.join(basepath, 'gpu/cuda_kernels/kernels_na.cu')]
+            command = nvccflags + ['-o', libname, '-I'+pycudaloc,
+                       os.path.join(basepath, 'gpu/cuda_kernels/kernels_na.cu')]
             subprocess.call(command)
-            
-        # try:
-        #     libblond = ctypes.CDLL(libname)
-        #     print('\nThe blond library has been successfully compiled.')
-        # except Exception as e:
-        #     print('\nCompilation failed.')
-        #     print(e)
-        
+        if os.path.isfile(libname):
+            print('\nThe CUDA library has been compiled.')
+        else:
+            print('\nThe CUDA library compilation failed.')
+
