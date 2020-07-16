@@ -55,5 +55,5 @@ cd $HOME/panos/GPU-BLonD
 #cd $HOME/git/GPU-BLonD/scripts/other
 #python hello_gpu.py
 # python blond/compile.py --with-fftw --with-fftw-threads --with-fftw-lib=$INSTALL_DIR/lib/ --with-fftw-header=$INSTALL_DIR/include/ -p
-surn -n 2 python __EXAMPLES/gpu_main_files/LHC.py -gpu 1 -t 1000
+surn -n 2 python __EXAMPLES/gpu_main_files/LHC_main.py -gpu 1 -t 1000
 # python __EXAMPLES/gpu_main_files/hello_gpu.py

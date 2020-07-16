@@ -502,11 +502,11 @@ for turn in range(n_iterations):
     # Update profile
     if (approx == 0):
         profile.track()
-        worker.sync()
+        # worker.sync()
         profile.reduce_histo()
     elif (approx == 1) and (turn % n_turns_reduce == 0):
         profile.track()
-        worker.sync()
+        # worker.sync()
         profile.reduce_histo()
     elif (approx == 2):
         profile.track()
