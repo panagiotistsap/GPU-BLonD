@@ -50,7 +50,7 @@ def sequential_wrap(f, beam, split_args={}, gather_args={}):
 class Worker:
     @timing.timeit(key='serial:init')
     # @mpiprof.traceit(key='serial:init')
-    def __init__(self, num_gpus=0):
+    def __init__(self):
         self.start_turn = 100
         self.start_interval = 500
         self.indices = {}
@@ -81,7 +81,15 @@ class Worker:
         # tempcomm.Free()
         self.log = False
         self.trace = False
-
+        
+        # Assign default values
+        self.gpucomm = None
+        self.gpucommworkers = 0
+        self.gpucommrank = 0
+        self.gpu_id = -1
+        self.hasGPU = False
+    
+    def assignGPUs(self, num_gpus=0):
         # Here goes the gpu assignment
         if num_gpus > 0:
             # Divide all workers into almost equal sized groups
@@ -108,13 +116,6 @@ class Worker:
             else:
                 self.hasGPU = False
 
-        else:
-            # Assign default values
-            self.gpucomm = None
-            self.gpucommworkers = 0
-            self.gpucommrank = 0
-            self.gpu_id = -1
-            self.hasGPU = False
 
     def initLog(self, log, logdir):
         self.log = log

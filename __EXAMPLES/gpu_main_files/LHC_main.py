@@ -88,7 +88,9 @@ withtp = bool(args['withtp'])
 precision = args['precision']
 bm.use_precision(precision)
 
-bm.use_mpi(gpu=args['gpu'])
+bm.use_mpi()
+worker.assignGPUs(num_gpus=args['gpu'])
+
 worker.greet()
 if worker.isMaster:
     worker.print_version()
