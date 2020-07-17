@@ -275,8 +275,10 @@ class RingAndRFTracker(object):
         self.eta_2 = RFStation.eta_2
         self.alpha_order = RFStation.alpha_order
         self.acceleration_kick = - RFStation.delta_E
-        self.rf_voltage = np.zeros((Profile.n_slices), dtype=float)
-
+        if Profile:
+            self.rf_voltage = np.zeros((Profile.n_slices), dtype=float)
+        else:
+            self.rf_voltage = None
         self.total_transfers = 0
         # Other imports
         self.beam = Beam
