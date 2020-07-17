@@ -239,7 +239,7 @@ if args['monitor'] > 0 and worker.isMaster:
                                   rf=rf,
                                   Nbunches=n_bunches)
 
-if args['gpu'] == 1 and worker.isFirst:
+if args['gpu'] == 1 and worker.isMaster:
     bm.use_gpu()
     tracker.use_gpu()
     totVoltage.use_gpu()
@@ -282,10 +282,7 @@ for turn in range(n_iterations):
         tracker.pre_track()
 
     worker.intraSync()
-    if (bm.gpuMode()):
-        worker.sendrecv(totVoltage.induced_voltage, tracker.dev_rf_voltage.get())
-    else:
-        worker.sendrecv(totVoltage.induced_voltage, tracker.rf_voltage)
+    worker.sendrecv(totVoltage.induced_voltage, tracker.rf_voltage)
 
     tracker.track_only()
 
