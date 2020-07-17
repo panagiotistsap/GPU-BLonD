@@ -75,15 +75,15 @@ class Worker:
         self.nodeworkers = self.nodecomm.size
 
         # Break the hostcomm in neighboring pairs
-        self.intracomm = tempcomm.Split(temprank//2, temprank)
+        self.intracomm = self.nodecomm.Split(self.noderank//2, self.noderank)
         self.intraworkers = self.intracomm.size
         self.intrarank = self.intracomm.rank
-        tempcomm.Free()
+        # tempcomm.Free()
         self.log = False
         self.trace = False
 
         # Here goes the gpu assignment
-        if num_gpu > 0:
+        if num_gpus > 0:
             # Divide all workers into almost equal sized groups
             split_groups = np.array_split(np.arange(self.nodeworkers), num_gpus)
             
@@ -129,8 +129,9 @@ class Worker:
             mpiprof.init(logfile=tracefile)
 
     def __del__(self):
+        pass
         # if self.trace:
-        mpiprof.finalize()
+        # mpiprof.finalize()
 
     @property
     def isMaster(self):
