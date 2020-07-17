@@ -8,7 +8,7 @@ import os
 from scipy.constants import c
 try:
     from pyprof import timing
-    from pyprof import mpiprof
+    # from pyprof import mpiprof
 except ImportError:
     from blond.utils import profile_mock as timing
     mpiprof = timing
@@ -36,15 +36,12 @@ import LoCa.Base.Bare_RF as brf
 # Impedance scenario import
 from PS_impedance.impedance_scenario import scenario
 cmap = colormap.cmap_white_blue_red
-bm.use_mpi()
+
 bm.use_fftw()
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 inputDir = os.path.join(this_directory, '../input_files/PS/')
 
-worker.greet()
-if worker.isMaster:
-    worker.print_version()
 
 
 # Simulation parameters -------------------------------------------------------
@@ -132,6 +129,12 @@ withtp = bool(args['withtp'])
 precision = args['precision']
 bm.use_precision(precision)
 
+bm.use_mpi()
+worker.assignGPUs(num_gpus=args['gpu'])
+
+worker.greet()
+if worker.isMaster:
+    worker.print_version()
 
 worker.initLog(bool(args['log']), args['logdir'])
 worker.initTrace(bool(args['trace']), args['tracefile'])
@@ -426,8 +429,8 @@ if args['monitor'] > 0 and worker.isMaster:
                                   Nbunches=n_bunches)
 
 
-if args['gpu'] == 1:
-    bm.use_gpu()
+if args['gpu'] > 0:
+    bm.use_gpu(gpu_id=worker.gpu_id)
     PS_longitudinal_intensity.use_gpu()
     tracker.use_gpu()
     bm.enable_gpucache()
@@ -463,18 +466,35 @@ for turn in range(n_iterations):
     #         R_S_10MHz_save * R_S_program_10MHz[i]
     #     PS_intensity_freq_10MHz.sum_impedances(PS_intensity_freq_10MHz.freq)
 
+    # If we are in a gpu group, with tp
+    if withtp and worker.gpu_id >= 0:
+        if worker.hasGPU:
+            if (approx == 0) or (approx == 2):
+                PS_longitudinal_intensity.induced_voltage_sum()
+            elif (approx == 1) and (turn % n_turns_reduce == 0):
+                PS_longitudinal_intensity.induced_voltage_sum()
+            tracker.pre_track()
+        
+        worker.gpuSync()
+        
+        # Here I need to broadcast the calculated stuff
+        PS_longitudinal_intensity.induced_voltage = worker.broadcast(PS_longitudinal_intensity.induced_voltage)
+        tracker.rf_voltage = worker.broadcast(tracker.rf_voltage)
+    # else just do the normal task-parallelism
+    elif withtp:
+        if worker.isFirst:
+            if (approx == 0) or (approx == 2):
+                PS_longitudinal_intensity.induced_voltage_sum()
+            elif (approx == 1) and (turn % n_turns_reduce == 0):
+                PS_longitudinal_intensity.induced_voltage_sum()
+        if worker.isLast:
+            tracker.pre_track()
 
-    if worker.isFirst:
-        if (approx == 0) or (approx == 2):
-            PS_longitudinal_intensity.induced_voltage_sum()
-        elif (approx == 1) and (turn % n_turns_reduce == 0):
-            PS_longitudinal_intensity.induced_voltage_sum()
-    if worker.isLast:
+        worker.intraSync()
+        worker.sendrecv(PS_longitudinal_intensity.induced_voltage, tracker.rf_voltage)
+    else:
         tracker.pre_track()
-
-    worker.intraSync()
-    worker.sendrecv(PS_longitudinal_intensity.induced_voltage, tracker.rf_voltage)
-
+        
     tracker.track_only()
 
     if (args['monitor'] > 0) and (turn % args['monitor'] == 0):

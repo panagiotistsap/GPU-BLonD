@@ -252,7 +252,7 @@ if args['gpu'] > 0:
     PL.use_gpu()
     bm.enable_gpucache()
 
-print(f'Glob rank: [{worker.rank}], Node rank: [{worker.noderank}], Intra rank: [{worker.intrarank}, GPU rank: [{worker.gpucommrank}, hasGPU: {worker.hasGPU}]')
+print(f'Glob rank: [{worker.rank}], Node rank: [{worker.noderank}], Intra rank: [{worker.intrarank}], GPU rank: [{worker.gpucommrank}], hasGPU: {worker.hasGPU}')
 
 worker.initDLB(args['loadbalance'], n_iterations)
 
@@ -280,8 +280,8 @@ for turn in range(n_iterations):
         profile.track()
         profile.scale_histo()
 
-    # If we are in a gpu group
-    if worker.gpu_id >= 0:
+    # If we are in a gpu group, with tp
+    if withtp and worker.gpu_id >= 0:
         if worker.hasGPU:
             if (approx == 0) or (approx == 2):
                 totVoltage.induced_voltage_sum()
@@ -294,9 +294,8 @@ for turn in range(n_iterations):
         # Here I need to broadcast the calculated stuff
         totVoltage.induced_voltage = worker.broadcast(totVoltage.induced_voltage)
         tracker.rf_voltage = worker.broadcast(tracker.rf_voltage)
-    
     # else just do the normal task-parallelism
-    else:
+    elif withtp:
         if worker.isFirst:
             if (approx == 0) or (approx == 2):
                 totVoltage.induced_voltage_sum()
@@ -307,7 +306,9 @@ for turn in range(n_iterations):
 
         worker.intraSync()
         worker.sendrecv(totVoltage.induced_voltage, tracker.rf_voltage)
-
+    else:
+        tracker.pre_track()
+        
     tracker.track_only()
 
     if (args['monitor'] > 0) and (turn % args['monitor'] == 0):
