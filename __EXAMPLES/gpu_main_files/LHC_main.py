@@ -245,7 +245,7 @@ if args['monitor'] > 0 and worker.isMaster:
 # bm.GPU(args['gpu'])
 if args['gpu'] > 0:
     # Here we pass the gpu_id, if this is < 0, means don't use the gpu
-    bm.use_gpu(worker.gpu_id)
+    bm.use_gpu(gpu_id=worker.gpu_id)
     tracker.use_gpu()
     totVoltage.use_gpu()
     beam.use_gpu()
