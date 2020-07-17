@@ -435,6 +435,9 @@ if args['gpu'] > 0:
     tracker.use_gpu()
     bm.enable_gpucache()
 
+print(f'Glob rank: [{worker.rank}], Node rank: [{worker.noderank}], Intra rank: [{worker.intrarank}], GPU rank: [{worker.gpucommrank}], hasGPU: {worker.hasGPU}')
+
+
 worker.initDLB(args['loadbalance'], n_iterations)
 
 worker.sync()
