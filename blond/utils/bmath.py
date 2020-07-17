@@ -13,8 +13,9 @@ import os
 
 precision = butils_wrap.precision
 
-__exec_mode = 'single_node'
+__exec_mode = 'single_node' # can also be multi-node, when mpi is on
 __gpu_dev = None
+__gpu_id = -1
 
 # dictionary storing the CPU versions of the desired functions #
 _CPU_func_dict = {
@@ -168,10 +169,14 @@ class GPUDev:
         return self.mod
     
 
+
 def use_gpu(comps=[], gpu_id=0):
+    if gpu_id < 0:
+        return
+
+    print(''.join(['#']*30) + ' Using GPU: {} '.format(gpu_id) + ''.join(['#']*30))
     from pycuda import driver as drv
 
-    print("USING GPU")
     global __gpu_dev
     __gpu_dev = GPUDev(gpu_id)
     globals()['device'] = 'GPU'

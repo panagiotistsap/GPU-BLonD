@@ -89,8 +89,10 @@ class SynchrotronRadiation(object):
                 self.track = self.track_SR_C
 
     def use_gpu(self):
-        from ..gpu.gpu_synchrotron_radiation import update_synch_rad
-        update_synch_rad(self)
+        # There has to be a previous call to bm.use_gpu() to enable gpu mode
+        if bm.gpuMode():
+            from ..gpu.gpu_synchrotron_radiation import update_synch_rad
+            update_synch_rad(self)
 
     # Method to compute the SR parameters
     def calculate_SR_params(self):

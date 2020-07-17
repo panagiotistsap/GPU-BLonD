@@ -327,22 +327,24 @@ class RingAndRFTracker(object):
 
     
     def use_gpu(self):
-        from ..gpu.gpu_tracker import gpu_RingAndRFTracker
-        from ..gpu.cpu_gpu_array import CGA
-        
-        self.rf_voltage_obj = CGA(np.array([]))
-        self.__class__ = gpu_RingAndRFTracker
-        if (self.profile):
-            self.profile.use_gpu()
-        if (self.totalInducedVoltage != None):
-            self.totalInducedVoltage.use_gpu()
-        if (self.beam != None):
-            self.beam.use_gpu()
-        if (self.beamFB != None):
-            self.beamFB.use_gpu()
-        if (self.rf_params != None):
-            self.rf_params.use_gpu()
-        self.dev_phi_modulation = self.rf_params.dev_phi_modulation
+        # There has to be a previous call to bm.use_gpu() to enable gpu mode
+        if bm.gpuMode():
+            from ..gpu.gpu_tracker import gpu_RingAndRFTracker
+            from ..gpu.cpu_gpu_array import CGA
+            
+            self.rf_voltage_obj = CGA(np.array([]))
+            self.__class__ = gpu_RingAndRFTracker
+            if (self.profile):
+                self.profile.use_gpu()
+            if (self.totalInducedVoltage != None):
+                self.totalInducedVoltage.use_gpu()
+            if (self.beam != None):
+                self.beam.use_gpu()
+            if (self.beamFB != None):
+                self.beamFB.use_gpu()
+            if (self.rf_params != None):
+                self.rf_params.use_gpu()
+            self.dev_phi_modulation = self.rf_params.dev_phi_modulation
 
 
     @timing.timeit(key='comp:kick')
