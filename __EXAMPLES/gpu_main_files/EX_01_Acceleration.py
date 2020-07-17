@@ -21,7 +21,7 @@ import os
 import time
 try:
     from pyprof import timing
-    from pyprof import mpiprof
+    # from pyprof import mpiprof
 except ImportError:
     from blond.utils import profile_mock as timing
     mpiprof = timing
@@ -38,7 +38,7 @@ from blond.plots.plot import Plot
 from blond.utils.input_parser import parse
 from blond.utils import bmath as bm
 from blond.utils.mpi_config import worker, mpiprint
-bm.use_mpi()
+
 
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
@@ -68,9 +68,7 @@ n_bunches = 1
 n_turns_reduce = 1
 n_iterations = n_turns
 seed = 0
-worker.greet()
-if worker.isMaster:
-    worker.print_version()
+
 
 # mpiprint('Done!')
 # worker.finalize()
@@ -89,6 +87,13 @@ seed = seed if args['seed'] == None else args['seed']
 approx = args['approx']
 precision = args['precision']
 bm.use_precision(precision)
+
+bm.use_mpi()
+worker.assignGPUs(num_gpus=args['gpu'])
+
+worker.greet()
+if worker.isMaster:
+    worker.print_version()
 
 worker.initLog(bool(args['log']), args['logdir'])
 worker.initTrace(bool(args['trace']), args['tracefile'])
@@ -144,13 +149,12 @@ if args['monitor'] > 0 and worker.isMaster:
 # map_ = [long_tracker, profile]
 mpiprint("Map set")
 
-if args['gpu'] == 1:
-    import blond.utils.bmath as bm
-    bm.use_gpu()
+if args['gpu'] > 0 :
+    bm.use_gpu(gpu_id=worker.gpu_id)
     bm.enable_gpucache()
     long_tracker.use_gpu()
     profile.use_gpu()
-    timing_kind = "gpu"
+    # timing_kind = "gpu"
 
 worker.initDLB(args['loadbalance'], n_iterations)
 
