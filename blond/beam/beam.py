@@ -164,21 +164,23 @@ class Beam(object):
     
             
     def use_gpu(self):
-        
-        from ..gpu.cpu_gpu_array import CGA
-        from ..gpu import gpu_beam as gb
-        if (self.__class__==gb.gpu_Beam):
-            return
 
-        # dE to gpu
-        self.dE_obj = CGA(self.dE)
+        # There has to be a previous call to bm.use_gpu() to enable gpu mode
+        if bm.gpuMode():
+            from ..gpu.cpu_gpu_array import CGA
+            from ..gpu import gpu_beam as gb
+            if (self.__class__==gb.gpu_Beam):
+                return
 
-        # dt to gpu
-        self.dt_obj = CGA(self.dt)
+            # dE to gpu
+            self.dE_obj = CGA(self.dE)
 
-        # id to gpu
-        self.id_obj = CGA(self.id, dtype2=np.float64)
-        self.__class__ = gb.gpu_Beam
+            # dt to gpu
+            self.dt_obj = CGA(self.dt)
+
+            # id to gpu
+            self.id_obj = CGA(self.id, dtype2=np.float64)
+            self.__class__ = gb.gpu_Beam
 
     @property
     def n_macroparticles_lost(self):

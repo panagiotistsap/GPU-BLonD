@@ -9,7 +9,7 @@ import numpy as np
 import os
 try:
     from pyprof import timing
-    from pyprof import mpiprof
+    # from pyprof import mpiprof
 except ImportError:
     from blond.utils import profile_mock as timing
     mpiprof = timing
@@ -35,13 +35,10 @@ from blond.monitors.monitors import SlicesMonitor
 from blond.utils.mpi_config import worker, mpiprint
 from blond.utils import bmath as bm
 
-bm.use_mpi()
 bm.use_fftw()
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
-worker.greet()
-if worker.isMaster:
-    worker.print_version()
+
 
 # --- Simulation parameters -------------------------------------
 
@@ -101,6 +98,12 @@ withtp = bool(args['withtp'])
 precision = args['precision']
 bm.use_precision(precision)
 
+bm.use_mpi()
+worker.assignGPUs(num_gpus=args['gpu'])
+
+worker.greet()
+if worker.isMaster:
+    worker.print_version()
 
 worker.initLog(bool(args['log']), args['logdir'])
 worker.initTrace(bool(args['trace']), args['tracefile'])
@@ -477,12 +480,15 @@ if args['monitor'] > 0 and worker.isMaster:
                                   Nbunches=n_bunches)
 
 
-if args['gpu'] == 1:
-    bm.use_gpu()
+if args['gpu'] > 0:
+    bm.use_gpu(gpu_id=worker.gpu_id)
     profile.use_gpu()
     tracker.use_gpu()
     phaseLoop.use_gpu()
     bm.enable_gpucache()
+
+print(f'Glob rank: [{worker.rank}], Node rank: [{worker.noderank}], Intra rank: [{worker.intrarank}], GPU rank: [{worker.gpucommrank}], hasGPU: {worker.hasGPU}')
+
 
 worker.initDLB(args['loadbalance'], n_iterations)
 
@@ -512,25 +518,40 @@ for turn in range(n_iterations):
         profile.track()
         profile.scale_histo()
 
-    # applying this voltage is done by tracker if interpolation=True
-    if worker.isFirst:
-        # reduce impedance, poor man's feedback
-        if (turn < 8*int(FBtime)):
-            longCavityImpedanceReduction.track()
-            shortCavityImpedanceReduction.track()
+    # If we are in a gpu group, with tp
+    if withtp and worker.gpu_id >= 0:
+        if worker.hasGPU:
+            if (turn < 8*int(FBtime)):
+                longCavityImpedanceReduction.track()
+                shortCavityImpedanceReduction.track()
+            if (approx == 0) or (approx == 2):
+                inducedVoltage.induced_voltage_sum()
+            elif (approx == 1) and (turn % n_turns_reduce == 0):
+                inducedVoltage.induced_voltage_sum()
+            tracker.pre_track()
+        
+        worker.gpuSync()
+        
+        # Here I need to broadcast the calculated stuff
+        inducedVoltage.induced_voltage = worker.broadcast(inducedVoltage.induced_voltage)
+        tracker.rf_voltage = worker.broadcast(tracker.rf_voltage)
+    # else just do the normal task-parallelism
+    elif withtp:
+        if worker.isFirst:
+            if (turn < 8*int(FBtime)):
+                longCavityImpedanceReduction.track()
+                shortCavityImpedanceReduction.track()
+            if (approx == 0) or (approx == 2):
+                inducedVoltage.induced_voltage_sum()
+            elif (approx == 1) and (turn % n_turns_reduce == 0):
+                inducedVoltage.induced_voltage_sum()
+        if worker.isLast:
+            tracker.pre_track()
 
-        if (approx == 0) or (approx == 2):
-            inducedVoltage.induced_voltage_sum()
-        elif (approx == 1) and (turn % n_turns_reduce == 0):
-            inducedVoltage.induced_voltage_sum()
-
-    if worker.isLast:
-        if SPS_PHASELOOP is True:
-            phaseLoop.track()
+        worker.intraSync()
+        worker.sendrecv(inducedVoltage.induced_voltage, tracker.rf_voltage)
+    else:
         tracker.pre_track()
-
-    worker.intraSync()
-    worker.sendrecv(inducedVoltage.induced_voltage, tracker.rf_voltage)
 
     tracker.track_only()
 

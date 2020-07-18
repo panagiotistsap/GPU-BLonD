@@ -389,10 +389,11 @@ class Resonators(_ImpedanceObject):
         pass
 
     def use_gpu(self):
-        global gpuarray, autoinit, drv
-        from pycuda import autoinit, driver as drv, gpuarray
-        self.dev_R_S = gpuarray.to_gpu(self.R_S)
-        self.dev_q = gpuarray.to_gpu(self.Q)
+        # There has to be a previous call to bm.use_gpu() to enable gpu mode
+        if bm.gpuMode():
+            from pycuda import gpuarray
+            self.dev_R_S = gpuarray.to_gpu(self.R_S)
+            self.dev_q = gpuarray.to_gpu(self.Q)
 
 class TravelingWaveCavity(_ImpedanceObject):
     r"""

@@ -31,8 +31,7 @@ from blond.utils.mpi_config import worker, mpiprint
 from blond.utils.input_parser import parse
 from blond.utils import bmath as bm
 
-bm.use_mpi()
-#bm.use_fftw()
+bm.use_fftw()
 
 REAL_RAMP = True    # track full ramp
 MONITORING = False   # turn off plots and monitors
@@ -47,10 +46,6 @@ if MONITORING:
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 inputDir = os.path.join(this_directory, '../input_files/LHC/')
 
-worker.greet()
-if worker.isMaster:
-    worker.print_version()
-os.system("gcc --version")
 
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
@@ -92,6 +87,14 @@ os.environ['OMP_NUM_THREADS'] = str(args['omp'])
 withtp = bool(args['withtp'])
 precision = args['precision']
 bm.use_precision(precision)
+
+bm.use_mpi()
+worker.assignGPUs(num_gpus=args['gpu'])
+
+worker.greet()
+if worker.isMaster:
+    worker.print_version()
+    # os.system("gcc --version")
 
 
 worker.initLog(bool(args['log']), args['logdir'])
@@ -239,13 +242,17 @@ if args['monitor'] > 0 and worker.isMaster:
                                   rf=rf,
                                   Nbunches=n_bunches)
 
-if args['gpu'] == 1 and worker.isMaster:
-    bm.use_gpu()
+# bm.GPU(args['gpu'])
+if args['gpu'] > 0:
+    # Here we pass the gpu_id, if this is < 0, means don't use the gpu
+    bm.use_gpu(gpu_id=worker.gpu_id)
     tracker.use_gpu()
     totVoltage.use_gpu()
     beam.use_gpu()
     PL.use_gpu()
     bm.enable_gpucache()
+
+print(f'Glob rank: [{worker.rank}], Node rank: [{worker.noderank}], Intra rank: [{worker.intrarank}], GPU rank: [{worker.gpucommrank}], hasGPU: {worker.hasGPU}')
 
 worker.initDLB(args['loadbalance'], n_iterations)
 
@@ -273,20 +280,35 @@ for turn in range(n_iterations):
         profile.track()
         profile.scale_histo()
 
-    if worker.isFirst:
-        if (approx == 0) or (approx == 2):
-            totVoltage.induced_voltage_sum()
-        elif (approx == 1) and (turn % n_turns_reduce == 0):
-            totVoltage.induced_voltage_sum()
-    if worker.isLast:
-        tracker.pre_track()
+    # If we are in a gpu group, with tp
+    if withtp and worker.gpu_id >= 0:
+        if worker.hasGPU:
+            if (approx == 0) or (approx == 2):
+                totVoltage.induced_voltage_sum()
+            elif (approx == 1) and (turn % n_turns_reduce == 0):
+                totVoltage.induced_voltage_sum()
+            tracker.pre_track()
+        
+        worker.gpuSync()
+        
+        # Here I need to broadcast the calculated stuff
+        totVoltage.induced_voltage = worker.broadcast(totVoltage.induced_voltage)
+        tracker.rf_voltage = worker.broadcast(tracker.rf_voltage)
+    # else just do the normal task-parallelism
+    elif withtp:
+        if worker.isFirst:
+            if (approx == 0) or (approx == 2):
+                totVoltage.induced_voltage_sum()
+            elif (approx == 1) and (turn % n_turns_reduce == 0):
+                totVoltage.induced_voltage_sum()
+        if worker.isLast:
+            tracker.pre_track()
 
-    worker.intraSync()
-    if (bm.gpuMode()):
-        worker.sendrecv(totVoltage.induced_voltage, tracker.dev_rf_voltage.get())
-    else:
+        worker.intraSync()
         worker.sendrecv(totVoltage.induced_voltage, tracker.rf_voltage)
-
+    else:
+        tracker.pre_track()
+        
     tracker.track_only()
 
     if (args['monitor'] > 0) and (turn % args['monitor'] == 0):

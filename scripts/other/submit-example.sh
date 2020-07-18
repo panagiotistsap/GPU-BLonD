@@ -7,17 +7,18 @@
 #                                  #
 ####################################
 
-#SBATCH --job-name=ex01    # Job name
-#SBATCH --output=ex01.out # Stdout (%j expands to jobId)
-#SBATCH --error=ex01.err # Stderr (%j expands to jobId)
-#SBATCH --ntasks=1     # Number of tasks(processes)
+#SBATCH --job-name=example    # Job name
+#SBATCH --output=example.out # Stdout (%j expands to jobId)
+#SBATCH --error=example.err # Stderr (%j expands to jobId)
+#SBATCH --ntasks=2     # Number of tasks(processes)
 #SBATCH --nodes=1     # Number of nodes requested
-#SBATCH --ntasks-per-node=1     # Tasks per node
+#SBATCH --ntasks-per-node=2     # Tasks per node
 #SBATCH --cpus-per-task=1     # Threads per task
 #SBATCH --time=00:05:00   # walltime
 #SBATCH --mem=56G   # memory per NODE
 #SBATCH --partition=gpu    # Partition
 #SBATCH --account=pa200702    # Replace with your system project
+#SBATCH --gres=gpu:2		# For srun, allow access to 2 GPUs
 
 if [ x$SLURM_CPUS_PER_TASK == x ]; then
   export OMP_NUM_THREADS=1
@@ -51,9 +52,10 @@ nvidia-smi
 # INSTALL_DIR=$HOME/install
 export PYTHONPATH="./:$PYTHONPATH"
 export CUDA_VISIBLE_DEVICES=0,1
-cd $HOME/panos/GPU-BLonD
+# cd $HOME/panos/GPU-BLonD
+# cd $HOME/kostis/GPU-BLonD
 #cd $HOME/git/GPU-BLonD/scripts/other
 #python hello_gpu.py
 # python blond/compile.py --with-fftw --with-fftw-threads --with-fftw-lib=$INSTALL_DIR/lib/ --with-fftw-header=$INSTALL_DIR/include/ -p
-surn -n 2 python __EXAMPLES/gpu_main_files/LHC_main.py -gpu 1 -t 1000
+srun python __EXAMPLES/gpu_main_files/LHC_main.py -gpu 1 -t 10
 # python __EXAMPLES/gpu_main_files/hello_gpu.py

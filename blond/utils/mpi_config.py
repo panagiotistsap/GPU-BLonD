@@ -70,15 +70,52 @@ class Worker:
         # Create communicator with processes on the same host
         color = np.dot(np.array(self.hostip.split('.'), int)
                        [1:], [1, 256, 256**2])
-        tempcomm = self.intercomm.Split(color, self.rank)
-        temprank = tempcomm.rank
+        self.nodecomm = self.intercomm.Split(color, self.rank)
+        self.noderank = self.nodecomm.rank
+        self.nodeworkers = self.nodecomm.size
+
         # Break the hostcomm in neighboring pairs
-        self.intracomm = tempcomm.Split(temprank//2, temprank)
+        self.intracomm = self.nodecomm.Split(self.noderank//2, self.noderank)
         self.intraworkers = self.intracomm.size
         self.intrarank = self.intracomm.rank
-        tempcomm.Free()
+        # tempcomm.Free()
         self.log = False
         self.trace = False
+        
+        # Assign default values
+        self.gpucomm = None
+        self.gpucommworkers = 0
+        self.gpucommrank = 0
+        self.gpu_id = -1
+        self.hasGPU = False
+    
+    def assignGPUs(self, num_gpus=0):
+        # Here goes the gpu assignment
+        if num_gpus > 0:
+            # Divide all workers into almost equal sized groups
+            split_groups = np.array_split(np.arange(self.nodeworkers), num_gpus)
+            
+            # Find in which group this worker belongs
+            mygroup = 0
+            for i, a in enumerate(split_groups):
+                if self.noderank in a:
+                    mygroup = i
+                    break
+
+            # Save the group, it will be used to get access to the specific gpu
+            self.gpu_id = mygroup
+
+            # Create a communicator per group
+            self.gpucomm = self.nodecomm.Split(mygroup, self.noderank)
+            self.gpucommworkers = self.gpucomm.size
+            self.gpucommrank = self.gpucomm.rank
+
+            # If you are the first in the group, you get access to the gpu
+            if self.gpucommrank == 0:
+                self.hasGPU = True
+            else:
+                self.hasGPU = False
+
 
     def initLog(self, log, logdir):
         self.log = log
@@ -93,8 +130,9 @@ class Worker:
             mpiprof.init(logfile=tracefile)
 
     def __del__(self):
+        pass
         # if self.trace:
-        mpiprof.finalize()
+        # mpiprof.finalize()
 
     @property
     def isMaster(self):
@@ -183,6 +221,22 @@ class Worker:
             self.intercomm.Scatterv(sendbuf, recvbuf, root=0)
 
         return recvbuf
+
+    @timing.timeit(key='comm:broadcast')
+    # @mpiprof.traceit(key='comm:scatter')
+    def broadcast(self, var):
+        if self.log:
+            self.logger.debug('broadcast')
+
+        if self.gpucommrank == 0:
+            recvbuf = self.gpucomm.bcast(var, root=0)
+        else:
+            recvbuf = None
+            recvbuf = self.gpucomm.bcast(recvbuf, root=0)
+
+        return recvbuf
+
+
 
     @timing.timeit(key='comm:reduce')
     # @mpiprof.traceit(key='comm:reduce')
@@ -321,6 +375,13 @@ class Worker:
         if self.log:
             self.logger.debug('intraSync')
         self.intracomm.Barrier()
+
+    @timing.timeit(key='serial:gpuSync')
+    # @mpiprof.traceit(key='serial:gpuSync')
+    def gpuSync(self):
+        if self.log:
+            self.logger.debug('gpuSync')
+        self.gpucomm.Barrier()
 
     @timing.timeit(key='serial:finalize')
     # @mpiprof.traceit(key='serial:finalize')
@@ -549,8 +610,8 @@ class Worker:
         tcomp_new = timing.get(['comp:'])
         tcomm_new = timing.get(['comm:'])
         tconst_new = timing.get(['serial:'], exclude_lst=[
-                                'serial:sync', 'serial:intraSync'])
-        tsync_new = timing.get(['serial:sync', 'serial:intraSync'])
+                                'serial:sync', 'serial:intraSync', 'serial:gpuSync'])
+        tsync_new = timing.get(['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
         if self.lb_type != 'reportonly':
             intv = self.redistribute(turn, beam,
                                      tcomp=tcomp_new-self.dlb['tcomp'],

@@ -66,8 +66,8 @@ parser.add_argument('-seed', '--seed', type=int, default=0,
                     help='Seed value for the particle distribution generation.'
                     '\nDefault: None')
 
-parser.add_argument('-gpu', '--gpu', type=int, choices=[0, 1], default=0,
-                    help='Use the GPU to run the computational core: 0 (OFF), 1 (ON)'
+parser.add_argument('-gpu', '--gpu', type=int, default=0,
+                    help='Use the GPU to run the computational core: 0 (OFF), num (ON, number of gpus to use)'
                     'Default: 0 (OFF)')
 
 

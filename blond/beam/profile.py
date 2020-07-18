@@ -430,40 +430,44 @@ class Profile(object):
 
     
     def use_gpu(self):
-        from ..gpu.cpu_gpu_array import CGA
-        from ..gpu.gpu_profile import gpu_Profile
-        if (self.__class__ == gpu_Profile):
-            return 
-        old_slice = self._slice
+        # There has to be a previous call to bm.use_gpu() to enable gpu mode
+        if bm.gpuMode():
 
-        # bin_centers to gpu
-        self.bin_centers_obj = CGA(self.bin_centers)
+            from ..gpu.cpu_gpu_array import CGA
+            from ..gpu.gpu_profile import gpu_Profile
+            if (self.__class__ == gpu_Profile):
+                return 
+            old_slice = self._slice
 
-        # n_macroparticles to gpu
-        self.n_macroparticles_obj = CGA(self.n_macroparticles, dtype2=np.int32)
+            # bin_centers to gpu
+            self.bin_centers_obj = CGA(self.bin_centers)
 
-        # beam_spectrum to gpu
-        self.beam_spectrum_obj = CGA(self.beam_spectrum)
+            # n_macroparticles to gpu
+            self.n_macroparticles_obj = CGA(self.n_macroparticles, dtype2=np.int32)
 
-        # beam_spectrum_freq to gpu
-        self.beam_spectrum_freq_obj = CGA(self.beam_spectrum_freq)
-        self.__class__ = gpu_Profile
+            # beam_spectrum to gpu
+            self.beam_spectrum_obj = CGA(self.beam_spectrum)
 
-        for i in range(len(self.operations)):
-            if (self.operations[i] == old_slice):
-                self.operations[i] = self._slice
+            # beam_spectrum_freq to gpu
+            self.beam_spectrum_freq_obj = CGA(self.beam_spectrum_freq)
+            self.__class__ = gpu_Profile
 
-        self.dev_n_macroparticles
+            for i in range(len(self.operations)):
+                if (self.operations[i] == old_slice):
+                    self.operations[i] = self._slice
+
+            self.dev_n_macroparticles
         
     def stop_gpu(self):
-        delattr(Profile, "bin_centers") 
-        delattr(Profile, "n_macroparticles") 
-        delattr(Profile, "beam_spectrum") 
-        delattr(Profile, "beam_spectrum_freq") 
-        delattr(Profile, "dev_bin_centers") 
-        delattr(Profile, "dev_n_macroparticles") 
-        delattr(Profile, "dev_beam_spectrum") 
-        delattr(Profile, "dev_beam_spectrum_freq") 
+        if bm.gpuMode():
+            delattr(Profile, "bin_centers") 
+            delattr(Profile, "n_macroparticles") 
+            delattr(Profile, "beam_spectrum") 
+            delattr(Profile, "beam_spectrum_freq") 
+            delattr(Profile, "dev_bin_centers") 
+            delattr(Profile, "dev_n_macroparticles") 
+            delattr(Profile, "dev_beam_spectrum") 
+            delattr(Profile, "dev_beam_spectrum_freq") 
 
     def set_slices_parameters(self):
         self.n_slices, self.cut_left, self.cut_right, self.n_sigma, \

@@ -208,8 +208,10 @@ class BeamFeedback(object):
 
 
     def use_gpu(self):
-        from ..gpu.gpu_beam_feedback import gpu_BeamFeedback
-        self.__class__ = gpu_BeamFeedback
+        # There has to be a previous call to bm.use_gpu() to enable gpu mode
+        if bm.gpuMode():
+            from ..gpu.gpu_beam_feedback import gpu_BeamFeedback
+            self.__class__ = gpu_BeamFeedback
 
     def track(self):
         '''

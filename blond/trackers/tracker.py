@@ -275,8 +275,10 @@ class RingAndRFTracker(object):
         self.eta_2 = RFStation.eta_2
         self.alpha_order = RFStation.alpha_order
         self.acceleration_kick = - RFStation.delta_E
-        self.rf_voltage = np.zeros((Profile.n_slices), dtype=float)
-
+        if Profile:
+            self.rf_voltage = np.zeros((Profile.n_slices), dtype=float)
+        else:
+            self.rf_voltage = None
         self.total_transfers = 0
         # Other imports
         self.beam = Beam
@@ -327,22 +329,24 @@ class RingAndRFTracker(object):
 
     
     def use_gpu(self):
-        from ..gpu.gpu_tracker import gpu_RingAndRFTracker
-        from ..gpu.cpu_gpu_array import CGA
-        
-        self.rf_voltage_obj = CGA(np.array([]))
-        self.__class__ = gpu_RingAndRFTracker
-        if (self.profile):
-            self.profile.use_gpu()
-        if (self.totalInducedVoltage != None):
-            self.totalInducedVoltage.use_gpu()
-        if (self.beam != None):
-            self.beam.use_gpu()
-        if (self.beamFB != None):
-            self.beamFB.use_gpu()
-        if (self.rf_params != None):
-            self.rf_params.use_gpu()
-        self.dev_phi_modulation = self.rf_params.dev_phi_modulation
+        # There has to be a previous call to bm.use_gpu() to enable gpu mode
+        if bm.gpuMode():
+            from ..gpu.gpu_tracker import gpu_RingAndRFTracker
+            from ..gpu.cpu_gpu_array import CGA
+            
+            self.rf_voltage_obj = CGA(np.array([]))
+            self.__class__ = gpu_RingAndRFTracker
+            if (self.profile):
+                self.profile.use_gpu()
+            if (self.totalInducedVoltage != None):
+                self.totalInducedVoltage.use_gpu()
+            if (self.beam != None):
+                self.beam.use_gpu()
+            if (self.beamFB != None):
+                self.beamFB.use_gpu()
+            if (self.rf_params != None):
+                self.rf_params.use_gpu()
+            self.dev_phi_modulation = self.rf_params.dev_phi_modulation
 
 
     @timing.timeit(key='comp:kick')
