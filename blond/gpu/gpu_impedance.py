@@ -246,7 +246,11 @@ class gpu_InducedVoltage(_InducedVoltage):
         frequency domain
         """
         t_rev = self.RFParams.t_rev[self.RFParams.counter[0]]
-        self.dev_mtw_memory = gpu_interp(self.dev_time_mtw + t_rev,
+        inc_dev_time_mtw = get_gpuarray((self.dev_time_mtw, np.float64, id(self), "time_mtw"))
+        gpu_copy_d2d(inc_dev_time_mtw,self.dev_time_mtw)
+        increase_by_value(inc_dev_time_mtw,t_rev)
+        increase_by_value(self.dev_time_mtw)
+        self.dev_mtw_memory = gpu_interp(inc_dev_time_mtw,
                                         self.dev_time_mtw, self.dev_mtw_memory,
                                         left=0, right=0, caller_id=id(self))
 
