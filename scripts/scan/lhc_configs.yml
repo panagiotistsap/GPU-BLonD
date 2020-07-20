@@ -37,15 +37,15 @@ slurm:
         # 'approx0-openmpi3-impl'
 
         # GPU only experiments
-        # - 'approx0-weak-scaling'
-        # - 'tp-approx0-weak-scaling'
-        # - 'lb-tp-approx0-weak-scaling'
+        - 'approx0-weak-scaling-gpu'
+        # - 'tp-approx0-weak-scaling-gpu'
+        # - 'lb-tp-approx0-weak-scaling-gpu'
 
 
         # CPU-GPU experiments 
-        - 'approx0-weak-scaling-cpu-gpu'
-        - 'tp-approx0-weak-scaling-cpu-gpu'
-        - 'lb-tp-approx0-weak-scaling-cpu-gpu'
+        # - 'approx0-weak-scaling-cpu-gpu'
+        # - 'tp-approx0-weak-scaling-cpu-gpu'
+        # - 'lb-tp-approx0-weak-scaling-cpu-gpu'
 
 
     configs: {
@@ -204,6 +204,35 @@ slurm:
             'repeats': 4
         },
 
+        # GPU only experiments
+        # Weak scaling
+        'approx0-weak-scaling-gpu': {
+            'exe': ['LHC_main.py'],
+            'particles': [500000, 1000000, 1000000], #, 2000000],
+            'bunches': [48, 48, 96], #96],
+            'slices': [1000],
+            'turns': [5000],
+            'monitor': [0],
+            'seed': [0],
+            'mtw': [0],
+            'withtp': [0],
+            'reduce': [2],
+            'approx': [0],
+            'log': [1],
+            'loadbalance': ['reportonly,,,,'],
+            'gpu': [1, 1, 1, 2, 2, 2],
+            'artificialdelay': ['off'],
+            'precision': ['double'],
+            'timing': ['timing'],
+            'workers': [1, 2, 4, 
+                        2, 4, 8],
+            'omp': [20, 20, 20, 10, 10, 10],
+            'mpi': ['openmpi4'],
+            'time': [180],
+            'repeats': 4
+        },
+
+        # CPU-GPU experiments
         # Weak scaling
         'lb-tp-approx0-weak-scaling-cpu-gpu': {
             'exe': ['LHC_main.py'],
@@ -228,7 +257,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 1
+            'repeats': 4
         },
 
         'tp-approx0-weak-scaling-cpu-gpu': {
@@ -253,7 +282,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 1
+            'repeats': 4
         },
 
 
@@ -279,7 +308,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 1
+            'repeats': 4
         },
 
 
