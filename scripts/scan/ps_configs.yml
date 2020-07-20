@@ -309,6 +309,7 @@ slurm:
             'time': [180],
             'repeats': 4
         },
+    }
 
 
 local: 
