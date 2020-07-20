@@ -38,14 +38,14 @@ slurm:
         # 'approx0-openmpi3-impl'
         
         # GPU only experiments
-        - 'approx0-weak-scaling-gpu'
+        # - 'approx0-weak-scaling-gpu'
         # - 'tp-approx0-weak-scaling-gpu'
         # - 'lb-tp-approx0-weak-scaling-gpu'
 
 
         # CPU-GPU experiments 
         # - 'approx0-weak-scaling-cpu-gpu'
-        # - 'tp-approx0-weak-scaling-cpu-gpu'
+        - 'tp-approx0-weak-scaling-cpu-gpu'
         # - 'lb-tp-approx0-weak-scaling-cpu-gpu'
 
     configs: {
@@ -282,7 +282,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 4
+            'repeats': 1
         },
 
         'approx0-weak-scaling-cpu-gpu': {
