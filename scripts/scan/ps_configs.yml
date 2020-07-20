@@ -15,9 +15,9 @@ slurm:
         
         # Weak Scaling
         # - 'lb-tp-approx0-weak-scaling'
-        - 'approx0-weak-scaling'
-        - 'tp-approx0-weak-scaling'
-        - 'lb-tp-approx0-weak-scaling'
+        # - 'approx0-weak-scaling'
+        # - 'tp-approx0-weak-scaling'
+        # - 'lb-tp-approx0-weak-scaling'
 
 
         # Intermediate stages
@@ -36,7 +36,17 @@ slurm:
         # 'approx0-impl'
         # 'approx0-mvapich2-impl'
         # 'approx0-openmpi3-impl'
+        
+        # GPU only experiments
+        # - 'approx0-weak-scaling-gpu'
+        # - 'tp-approx0-weak-scaling-gpu'
+        # - 'lb-tp-approx0-weak-scaling-gpu'
 
+
+        # CPU-GPU experiments 
+        # - 'approx0-weak-scaling-cpu-gpu'
+        - 'tp-approx0-weak-scaling-cpu-gpu'
+        # - 'lb-tp-approx0-weak-scaling-cpu-gpu'
 
     configs: {
         # Strong scaling
@@ -196,6 +206,110 @@ slurm:
             'repeats': 4
         },
 
+        # GPU Only experiments
+        'approx0-weak-scaling-gpu': {
+            'exe': ['PS_main.py'],
+            'particles': [50000, 100000, 200000], #, 400000],
+            'bunches': [21],  # 96
+            'slices': [256],
+            'turns': [5000],
+            'monitor': [0],
+            'seed': [0],
+            'mtw': [50],
+            'withtp': [0],
+            'reduce': [2],
+            'approx': [0],
+            'log': [1],
+            'loadbalance': ['reportonly,,,,'],
+            'artificialdelay': ['off'],
+            'precision': ['double'],
+            'gpu': [1, 1, 1, 2, 2, 2],
+            'timing': ['timing'],
+            'workers': [1, 2, 4, 2, 4, 8], #, 16],
+            'omp': [20, 20, 20, 10, 10, 10],
+            'mpi': ['openmpi4'],
+            'time': [180],
+            'repeats': 4
+        },
+
+        # CPU-GPU experiments
+        # Weak scaling
+        'lb-tp-approx0-weak-scaling-cpu-gpu': {
+            'exe': ['PS_main.py'],
+            'particles': [50000, 100000, 200000], #, 400000],
+            'bunches': [21],  # 96
+            'slices': [256],
+            'turns': [5000],
+            'monitor': [0],
+            'seed': [0],
+            'mtw': [50],
+            'withtp': [1],
+            'reduce': [2],
+            'approx': [0],
+            'log': [1],
+            'loadbalance': ['interval,500,0.03,5,20'],
+            'artificialdelay': ['off'],
+            'precision': ['double'],
+            'gpu': [1],
+            'timing': ['timing'],
+            'workers': [2, 4, 8], #, 16],
+            'omp': [10],
+            'mpi': ['openmpi4'],
+            'time': [180],
+            'repeats': 4
+        },
+
+
+        'tp-approx0-weak-scaling-cpu-gpu': {
+            'exe': ['PS_main.py'],
+            'particles': [50000, 100000, 200000], #, 400000],
+            'bunches': [21],  # 96
+            'slices': [256],
+            'turns': [5000],
+            'monitor': [0],
+            'seed': [0],
+            'mtw': [50],
+            'withtp': [1],
+            'reduce': [2],
+            'approx': [0],
+            'log': [1],
+            'loadbalance': ['reportonly,,,,'],
+            'artificialdelay': ['off'],
+            'precision': ['double'],
+            'gpu': [1],
+            'timing': ['timing'],
+            'workers': [2, 4, 8], #, 16],
+            'omp': [10],
+            'mpi': ['openmpi4'],
+            'time': [180],
+            'repeats': 1
+        },
+
+        'approx0-weak-scaling-cpu-gpu': {
+            'exe': ['PS_main.py'],
+            'particles': [50000, 100000, 200000], #, 400000],
+            'bunches': [21],  # 96
+            'slices': [256],
+            'turns': [5000],
+            'monitor': [0],
+            'seed': [0],
+            'mtw': [50],
+            'withtp': [0],
+            'reduce': [2],
+            'approx': [0],
+            'log': [1],
+            'loadbalance': ['reportonly,,,,'],
+            'artificialdelay': ['off'],
+            'precision': ['double'],
+            'gpu': [1],
+            'timing': ['timing'],
+            'workers': [2, 4, 8], #, 16],
+            'omp': [10],
+            'mpi': ['openmpi4'],
+            'time': [180],
+            'repeats': 4
+        },
+    }
 
 
 local: 
