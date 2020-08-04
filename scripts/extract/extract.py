@@ -219,7 +219,7 @@ def collect_reports(input, outfile, filename):
             prec = config.split('_prec')[1].split('_')[0]
             mpiv = config.split('_mpi')[1].split('_')[0]
             lb = config.split('_lb')[1].split('_')[0]
-            artdel = config.split('_lb')[1].split('_')[0]
+            artdel = config.split('_artdel')[1].split('_')[0]
             gpu = config.split('_gpu')[1].split('_')[0]
             # lba = config.split('_lba')[1].split('_')[0]
             tp = config.split('_tp')[1].split('_')[0]
