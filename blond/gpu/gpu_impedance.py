@@ -22,7 +22,7 @@ from ..utils import bmath as bm
 from types import MethodType
 from ..gpu.cucache import get_gpuarray
 from ..gpu.gpu_butils_wrap import gpu_copy_d2d, \
-    increase_by_value, add_array, complex_mul, gpu_mul, gpu_interp,set_zero_double
+    increase_by_value, add_array, complex_mul, gpu_mul, gpu_interp,set_zero_double, d_multscalar
 
 # import pycuda.reduction as reduce
 import pycuda.cumath as cm
@@ -246,7 +246,10 @@ class gpu_InducedVoltage(_InducedVoltage):
         frequency domain
         """
         t_rev = self.RFParams.t_rev[self.RFParams.counter[0]]
-        self.dev_mtw_memory = gpu_interp(self.dev_time_mtw + t_rev,
+        inc_dev_time_mtw = get_gpuarray((self.dev_time_mtw.size, np.float64, id(self), "time_mtw"))
+        gpu_copy_d2d(inc_dev_time_mtw,self.dev_time_mtw)
+        increase_by_value(inc_dev_time_mtw,t_rev)
+        self.dev_mtw_memory = gpu_interp(inc_dev_time_mtw,
                                         self.dev_time_mtw, self.dev_mtw_memory,
                                         left=0, right=0, caller_id=id(self))
 
@@ -281,10 +284,13 @@ class gpu_InductiveImpedance(gpu_InducedVoltage, InductiveImpedance):
         
         index = self.RFParams.counter[0]
 
-        induced_voltage = - (self.beam.Particle.charge * e / (2 * np.pi) *
+        sv = - (self.beam.Particle.charge * e / (2 * np.pi) *
                             self.beam.ratio * self.Z_over_n[index] *
-                            self.RFParams.t_rev[index] / self.profile.bin_size *
-                            self.profile.beam_profile_derivative(self.deriv_mode, caller_id=id(self))[1])
+                            self.RFParams.t_rev[index] / self.profile.bin_size)
+
+        induced_voltage = self.profile.beam_profile_derivative(self.deriv_mode, caller_id=id(self))[1]
+        d_multscalar(induced_voltage, induced_voltage, sv)
+
         self.dev_induced_voltage = get_gpuarray(
             (self.n_induced_voltage, np.float64, id(self), "iv"))
         gpu_copy_d2d(self.dev_induced_voltage, induced_voltage,
