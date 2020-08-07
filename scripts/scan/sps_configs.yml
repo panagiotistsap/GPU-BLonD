@@ -44,9 +44,10 @@ slurm:
 
 
         # CPU-GPU experiments 
-        - 'approx0-weak-scaling-cpu-gpu'
-        - 'tp-approx0-weak-scaling-cpu-gpu'
-        - 'lb-tp-approx0-weak-scaling-cpu-gpu'
+        # - 'approx0-weak-scaling-cpu-gpu'
+        # - 'tp-approx0-weak-scaling-cpu-gpu'
+        # - 'lb-tp-approx0-weak-scaling-cpu-gpu'
+        - 'lb-approx0-weak-scaling-cpu-gpu'
 
     configs: {
         # Strong scaling
@@ -258,6 +259,30 @@ slurm:
             'repeats': 4
         },
 
+        'lb-approx0-weak-scaling-cpu-gpu': {
+            'exe': ['SPS_main.py'],
+            'particles': [500000, 1000000, 1000000], # 2000000],
+            'bunches': [36, 36, 72], #72],
+            'slices': [1000],
+            'turns': [5000],
+            'monitor': [0],
+            'seed': [0],
+            'mtw': [0],
+            'withtp': [0],
+            'reduce': [2],
+            'approx': [0],
+            'log': [1],
+            'loadbalance': ['interval,500,0.03,5,20'],
+            'gpu': [1],
+            'artificialdelay': ['off'],
+            'precision': ['double'],
+            'timing': ['timing'],
+            'workers': [2, 4, 8], #16],
+            'omp': [10],
+            'mpi': ['openmpi4'],
+            'time': [180],
+            'repeats': 4
+        },
         'tp-approx0-weak-scaling-cpu-gpu': {
             'exe': ['SPS_main.py'],
             'particles': [500000, 1000000, 1000000], # 2000000],
