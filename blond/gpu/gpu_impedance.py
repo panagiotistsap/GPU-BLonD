@@ -174,17 +174,18 @@ class gpu_InducedVoltage(_InducedVoltage):
             beam_spectrum_dict[self.n_fft] = self.profile.dev_beam_spectrum
         self.profile.beam_spectrum_generation(self.n_fft)
 
-        
-        inp = get_gpuarray((self.profile.dev_beam_spectrum.size,
-                            np.complex128, id(self), 'inp'))
-        complex_mul(self.dev_total_impedance, self.profile.dev_beam_spectrum, inp)
-        # inp = self.dev_total_impedance * self.profile.dev_beam_spectrum
-        my_res = bm.irfft(inp, caller_id=id(self))
+        with timing.timed_region('serial:indVolt1Turn'):
 
-        # dev_induced_voltage = - (self.beam.Particle.charge * e * self.beam.ratio *my_res )
-        self.dev_induced_voltage = get_gpuarray(
-            (self.n_induced_voltage, np.float64, id(self), 'iv'))
-        gpu_mul(self.dev_induced_voltage, my_res, np.float64(-self.beam.Particle.charge *
+            inp = get_gpuarray((self.profile.dev_beam_spectrum.size,
+                                np.complex128, id(self), 'inp'))
+            complex_mul(self.dev_total_impedance, self.profile.dev_beam_spectrum, inp)
+            # inp = self.dev_total_impedance * self.profile.dev_beam_spectrum
+            my_res = bm.irfft(inp, caller_id=id(self))
+
+            # dev_induced_voltage = - (self.beam.Particle.charge * e * self.beam.ratio *my_res )
+            self.dev_induced_voltage = get_gpuarray(
+                (self.n_induced_voltage, np.float64, id(self), 'iv'))
+            gpu_mul(self.dev_induced_voltage, my_res, np.float64(-self.beam.Particle.charge *
                                                             e * self.beam.ratio), slice=slice(0, self.n_induced_voltage))
 
 
@@ -275,7 +276,7 @@ class gpu_InducedVoltageTime(gpu_InducedVoltage, InducedVoltageTime):
 
 class gpu_InductiveImpedance(gpu_InducedVoltage, InductiveImpedance):
     
-
+    @timing.timeit(key='serial:InductiveImped')
     def induced_voltage_1turn(self, beam_spectrum_dict={}):
         """
         Method to calculate the induced voltage through the derivative of the

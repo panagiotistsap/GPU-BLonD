@@ -46,7 +46,7 @@ slurm:
         # CPU-GPU experiments 
         # - 'approx0-weak-scaling-cpu-gpu'
         # - 'tp-approx0-weak-scaling-cpu-gpu'
-        # - 'lb-tp-approx0-weak-scaling-cpu-gpu'
+        - 'lb-tp-approx0-weak-scaling-cpu-gpu'
         - 'lb-approx0-weak-scaling-cpu-gpu'
 
     configs: {
