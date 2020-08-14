@@ -20,7 +20,7 @@ worker = None
 
 def mpiprint(*args, all=False):
     if worker.isMaster or all:
-        print('[{}]'.format(worker.rank), *args)
+        print('[{}]'.format(worker.rank), *args,flush=True)
 
 
 def master_wrap(f):
@@ -233,6 +233,20 @@ class Worker:
         else:
             recvbuf = None
             recvbuf = self.gpucomm.bcast(recvbuf, root=0)
+
+        return recvbuf
+
+    @timing.timeit(key='comm:broadcast_reverse')
+    # @mpiprof.traceit(key='comm:scatter')
+    def broadcast_reverse(self, var):
+        
+        if self.log:
+            self.logger.debug('broadcast_reverse')
+        if self.gpucommrank == 0:
+            recvbuf = None
+            recvbuf = self.gpucomm.bcast(recvbuf, root=1)
+        else:
+            recvbuf = self.gpucomm.bcast(var, root=1)
 
         return recvbuf
 
