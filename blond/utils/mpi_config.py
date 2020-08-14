@@ -737,13 +737,14 @@ class Worker:
             # tcomm_new = timing.get(['comm:'])
             tconst_new = 0
             tsync_new = timing.get(['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
-
+            intv = 0
             if self.lb_type != 'reportonly':
                 intv = self.intra_redistribute(turn, beam,
                                                tcomp=tcomp_new -
                                                self.dlb['intra_tcomp'],
                                                # tsync=tsync_new - self.dlb['tsync'])
                                                tconst=0)
+
 
                 # tconst=((tconst_new-self.dlb['tconst'])
                 #         + (tcomm_new - self.dlb['tcomm'])))
