@@ -237,8 +237,11 @@ slurm:
         # Weak scaling
         'lb-tp-approx0-weak-scaling-cpu-gpu': {
             'exe': ['LHC_main.py'],
-            'particles': [500000, 1000000, 1000000], #, 2000000],
-            'bunches': [96, 96, 192], #96],
+            # 'particles': [500000, 1000000, 1000000], #, 2000000],
+            # 'bunches': [96, 96, 192], #96],
+            'particles': [500000], #, 2000000],
+            'bunches': [96], #96],
+
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -254,7 +257,8 @@ slurm:
             'precision': ['double'],
             'timing': ['timing'],
             # 'workers': [2, 4, 8, 16],
-            'workers': [2, 4, 8],
+            # 'workers': [2, 4, 8],
+            'workers': [2],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
@@ -263,8 +267,10 @@ slurm:
 
         'lb-approx0-weak-scaling-cpu-gpu': {
             'exe': ['LHC_main.py'],
-            'particles': [500000, 1000000, 1000000], #, 2000000],
-            'bunches': [96, 96, 192], #96],
+            # 'particles': [500000, 1000000, 1000000], #, 2000000],
+            'particles': [500000], #, 2000000],
+            # 'bunches': [96, 96, 192], #96],
+            'bunches': [96], #96],
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -280,7 +286,8 @@ slurm:
             'precision': ['double'],
             'timing': ['timing'],
             # 'workers': [2, 4, 8, 16],
-            'workers': [2, 4, 8],
+            # 'workers': [2, 4, 8],
+            'workers': [2],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
