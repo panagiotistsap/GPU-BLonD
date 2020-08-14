@@ -739,7 +739,7 @@ class Worker:
             # tsync_new = timing.get(['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
 
             if self.lb_type != 'reportonly':
-                intv = self.intra_redistribute(self.nodecomm, turn, beam,
+                intv = self.intra_redistribute(turn, beam,
                                                tcomp=tcomp_new -
                                                self.dlb['intra_tcomp'],
                                                # tsync=tsync_new - self.dlb['tsync'])
