@@ -37,14 +37,14 @@ slurm:
         # 'approx0-openmpi3-impl'
 
         # GPU only experiments
-        # - 'approx0-weak-scaling-gpu'
+        - 'approx0-weak-scaling-gpu'
         # - 'tp-approx0-weak-scaling-gpu'
         # - 'lb-tp-approx0-weak-scaling-gpu'
 
 
         # CPU-GPU experiments 
-        # - 'approx0-weak-scaling-cpu-gpu'
-        # - 'tp-approx0-weak-scaling-cpu-gpu'
+        - 'approx0-weak-scaling-cpu-gpu'
+        - 'tp-approx0-weak-scaling-cpu-gpu'
         - 'lb-tp-approx0-weak-scaling-cpu-gpu'
         - 'lb-approx0-weak-scaling-cpu-gpu'
 
@@ -209,8 +209,10 @@ slurm:
         # Weak scaling
         'approx0-weak-scaling-gpu': {
             'exe': ['LHC_main.py'],
-            'particles': [500000, 1000000, 1000000], #, 2000000],
-            'bunches': [96, 96, 192], #96],
+            'particles': [500000], #, 2000000],
+            # 'particles': [500000, 1000000, 1000000], #, 2000000],
+            # 'bunches': [96, 96, 192], #96],
+            'bunches': [96], #96],
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -221,16 +223,20 @@ slurm:
             'approx': [0],
             'log': [1],
             'loadbalance': ['reportonly,,,,'],
-            'gpu': [1, 1, 1, 2, 2, 2],
+            # 'gpu': [1, 1, 1, 2, 2, 2],
+            'gpu': [1, 2],
             'artificialdelay': ['off'],
             'precision': ['double'],
             'timing': ['timing'],
-            'workers': [1, 2, 4, 
-                        2, 4, 8],
-            'omp': [20, 20, 20, 10, 10, 10],
+            'workers': [1, 2],
+
+            # 'workers': [1, 2, 4, 
+            #             2, 4, 8],
+            # 'omp': [20, 20, 20, 10, 10, 10],
+            'omp': [10, 10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 4
+            'repeats': 1
         },
 
         # CPU-GPU experiments
@@ -262,7 +268,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 4
+            'repeats': 1
         },
 
         'lb-approx0-weak-scaling-cpu-gpu': {
@@ -291,13 +297,15 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 4
+            'repeats': 1
         },
 
         'tp-approx0-weak-scaling-cpu-gpu': {
             'exe': ['LHC_main.py'],
-            'particles': [500000, 1000000, 1000000], #, 2000000],
-            'bunches': [96, 96, 192], #96],
+            # 'particles': [500000, 1000000, 1000000], #, 2000000],
+            'particles': [500000], #, 2000000],
+            # 'bunches': [96, 96, 192], #96],
+            'bunches': [96], #96],
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -312,18 +320,22 @@ slurm:
             'artificialdelay': ['off'],
             'precision': ['double'],
             'timing': ['timing'],
-            'workers': [2, 4, 8],
+            # 'workers': [2, 4, 8],
+            'workers': [2],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 4
+            'repeats': 1
         },
 
 
         'approx0-weak-scaling-cpu-gpu': {
             'exe': ['LHC_main.py'],
-            'particles': [500000, 1000000, 1000000], #, 2000000],
-            'bunches': [96, 96, 192], #96],
+            # 'particles': [500000, 1000000, 1000000], #, 2000000],
+            # 'bunches': [96, 96, 192], #96],
+            'particles': [500000], #, 2000000],
+            'bunches': [96], #96],
+
             'slices': [1000],
             'turns': [5000],
             'monitor': [0],
@@ -338,11 +350,12 @@ slurm:
             'artificialdelay': ['off'],
             'precision': ['double'],
             'timing': ['timing'],
-            'workers': [2, 4, 8],
+            # 'workers': [2, 4, 8],
+            'workers': [2],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [180],
-            'repeats': 4
+            'repeats': 1
         },
 
 
