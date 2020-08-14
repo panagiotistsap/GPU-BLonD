@@ -47,32 +47,66 @@ for c in args.cases:
         print(d)
         print(device_results[d])
 
+    ## add manually lb,lb-tp
+    ## lb-tp
+    d = "cpu-gpu"
+    f = '{}/{}/{}/lb-tp-{}-{}/comm-comp-report.csv'.format(args.inputdir,d,c,args.experiment,d)
+    d = "cpu-gpu-lb-tp"
+    device_results[d] = []
+    print(f)
+    print(os.path.exists(f))
+    data = np.genfromtxt(f, delimiter='\t', dtype=str)
+    for r in data:
+        if (r[-6]=="total" or r[-6]=="total_time"):
+            device_results[d].append((r[4],r[5],r[-5]))
     
+    ## tp
+    d = "cpu-gpu"   
+    f = '{}/{}/{}/tp-{}-{}/comm-comp-report.csv'.format(args.inputdir,d,c,args.experiment,d)
+    d = "cpu-gpu-tp"
+    device_results[d] = []
+    print(f)
+    print(os.path.exists(f))
+    data = np.genfromtxt(f, delimiter='\t', dtype=str)
+    for r in data:
+        if (r[-6]=="total" or r[-6]=="total_time"):
+            device_results[d].append((r[4],r[5],r[-5]))
+
     x = np.arange(3)  # the label locations
-    width = 0.15  # the width of the bars
+    width = 0.1  # the width of the bars
     cpu_times = np.array([float(x[2]) for x in device_results['cpu']])
     cpu_gpu_times = np.array([float(x[2]) for x in device_results['cpu-gpu']])
+    cpu_gpu_lb_tp_times = np.array([float(x[2]) for x in device_results['cpu-gpu-lb-tp']])
+    cpu_gpu_tp_times = np.array([float(x[2]) for x in device_results['cpu-gpu-tp']])
     gpu_times = np.array([float(x[2]) for x in device_results['gpu'][0::2]])
     gpu_2_times = np.array([float(x[2]) for x in device_results['gpu'][1::2]])
 
     ## normalizing
     cpu_gpu_times =  cpu_gpu_times / cpu_times
+    cpu_gpu_lb_tp_times =  cpu_gpu_lb_tp_times / cpu_times
+    cpu_gpu_tp_times =  cpu_gpu_tp_times / cpu_times
     gpu_times =  gpu_times / cpu_times
     gpu_2_times =  gpu_2_times / cpu_times
     cpu_times =  cpu_times / cpu_times
 
-    print(gpu_2_times)
+    
     fig, ax = plt.subplots(figsize=(15, 5))
-    cpu = ax.bar(x - 3*width/2, cpu_times, width, label='cpu')
-    cpu_gpu = ax.bar(x - width/2, cpu_gpu_times, width, label='cpu-gpu')
-    gpu = ax.bar(x + width/2, gpu_times, width, label='1 GPU per node')
-    gpu_2 = ax.bar(x + 3*width/2, gpu_2_times, width, label='2 GPUs per node')
+    # cpu = ax.bar(x - 3*width/2, cpu_times, width, label='cpu')
+    cpu_gpu_lb_tp_times = ax.bar(x - 2*width, cpu_gpu_lb_tp_times, width, label='cpu-gpu-lb-tp')
+    cpu_gpu_tp_times = ax.bar(x - width, cpu_gpu_tp_times, width, label='cpu-gpu-tp')
+    cpu_gpu = ax.bar(x,  cpu_gpu_times, width, label='cpu-gpu')
+    gpu = ax.bar(x + width, gpu_times, width, label='1 GPU per node')
+    gpu_2 = ax.bar(x + 2*width, gpu_2_times, width, label='2 GPUs per node')
     # Add some text for labels, title and custom x-axis tick labels, etc.
-    ax.set_ylabel('Normalized Time')
+    ax.set_ylabel('Normalized Time on CPU')
     ax.set_xlabel('Nodes')
     ax.set_title('{}_{}'.format(c,args.experiment))
     ax.set_xticks(x)
     ax.set_xticklabels([2**n for n in x])
     ax.legend()
-    plt.show()
+    if (args.show):
+        plt.show()
+    plt.savefig('{}/plots/{}_{}_comparison.png'.format(args.inputdir, args.experiment, c))
+    
+
 
