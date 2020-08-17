@@ -37,7 +37,7 @@ import LoCa.Base.Bare_RF as brf
 from PS_impedance.impedance_scenario import scenario
 cmap = colormap.cmap_white_blue_red
 
-# bm.use_fftw()
+bm.use_fftw()
 
 this_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 inputDir = os.path.join(this_directory, '../input_files/PS/')
