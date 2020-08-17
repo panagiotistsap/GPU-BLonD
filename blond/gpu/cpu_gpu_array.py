@@ -54,7 +54,7 @@ class my_cpuarray(np.ndarray):
 
         return obj
   
-    @timing.timeit(key='serial:cpu_validate')
+    # @timing.timeit(key='serial:cpu_validate')
     def cpu_validate(self):
         
         if (not hasattr(self,"cpu_valid") or not self.cpu_valid):
@@ -63,7 +63,7 @@ class my_cpuarray(np.ndarray):
             super().__setitem__(slice(None, None, None), dummy)
         self.cpu_valid = True
     
-    @timing.timeit(key='serial:gpu_validate')        
+    # @timing.timeit(key='serial:gpu_validate')        
     def gpu_validate(self):
         if (not self.gpu_valid):
             self.dev_array.set(gpuarray.to_gpu(self.flatten().astype(self.dtype2)))
