@@ -551,8 +551,10 @@ for turn in range(n_iterations):
         worker.intraSync()
         worker.sendrecv(inducedVoltage.induced_voltage, tracker.rf_voltage)
     else:
-        longCavityImpedanceReduction.track()
-        shortCavityImpedanceReduction.track()
+        if (turn < 8*int(FBtime)):
+            longCavityImpedanceReduction.track()
+            shortCavityImpedanceReduction.track()
+        inducedVoltage.induced_voltage_sum()
         tracker.pre_track()
 
     tracker.track_only()
