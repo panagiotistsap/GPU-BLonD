@@ -20,7 +20,7 @@ worker = None
 
 def mpiprint(*args, all=False):
     if worker.isMaster or all:
-        print('[{}]'.format(worker.rank), *args,flush=True)
+        print('[{}]'.format(worker.rank), *args)
 
 
 def master_wrap(f):
@@ -46,7 +46,6 @@ def sequential_wrap(f, beam, split_args={}, gather_args={}):
     return wrap
 
 
-
 class Worker:
     @timing.timeit(key='serial:init')
     # @mpiprof.traceit(key='serial:init')
@@ -55,7 +54,9 @@ class Worker:
         self.start_interval = 500
         self.indices = {}
         self.interval = 500
-        self.coefficients = {'particles': [0], 'times': [0.]}
+        self.coefficients = {'particles': [0], 'times': [0.],
+                             'intra_particles': [0], 'intra_times': [0],
+                             'intra_load': None}
         self.taskparallelism = False
 
         # Global inter-communicator
@@ -81,20 +82,20 @@ class Worker:
         # tempcomm.Free()
         self.log = False
         self.trace = False
-        
+
         # Assign default values
         self.gpucomm = None
         self.gpucommworkers = 0
         self.gpucommrank = 0
         self.gpu_id = -1
         self.hasGPU = False
-    
+
     def assignGPUs(self, num_gpus=0):
         # Here goes the gpu assignment
         if num_gpus > 0:
             # Divide all workers into almost equal sized groups
             split_groups = np.array_split(np.arange(self.nodeworkers), num_gpus)
-            
+
             # Find in which group this worker belongs
             mygroup = 0
             for i, a in enumerate(split_groups):
@@ -115,7 +116,6 @@ class Worker:
                 self.hasGPU = True
             else:
                 self.hasGPU = False
-
 
     def initLog(self, log, logdir):
         self.log = log
@@ -175,8 +175,8 @@ class Worker:
             self.intercomm.Gatherv(var, recvbuf, root=0)
             return var
 
-
     # All workers gather the variable var (from all workers)
+
     @timing.timeit(key='comm:allgather')
     def allgather(self, var):
         if self.log:
@@ -250,8 +250,6 @@ class Worker:
 
         return recvbuf
 
-
-
     @timing.timeit(key='comm:reduce')
     # @mpiprof.traceit(key='comm:reduce')
     def reduce(self, sendbuf, recvbuf=None, dtype=np.uint32, operator='custom_sum'):
@@ -316,7 +314,6 @@ class Worker:
             recvbuf = None
             self.intercomm.Reduce(sendbuf, recvbuf, op=op, root=0)
             return sendbuf
-
 
     @timing.timeit(key='comm:allreduce')
     # @mpiprof.traceit(key='comm:allreduce')
@@ -436,7 +433,7 @@ class Worker:
         weights = np.exp(-(ncoeffs - 1 - np.arange(ncoeffs))/self.dlb['decay'])
         # We model the runtime as latency * particles + c
         # where latency = p[1] and c = p[0]
-        
+
         p = np.polyfit(
             self.coefficients['particles'],
             self.coefficients['times'],
@@ -456,8 +453,6 @@ class Worker:
 
         # avgt = np.mean(synctimes)
         P = np.sum(Pi_old)
-
-        
 
         sum1 = np.sum(ctimes/latencies)
         sum2 = np.sum(1./latencies)
@@ -545,11 +540,140 @@ class Worker:
             self.interval = self.start_interval
             return self.start_turn
 
-    def report(self, turn, beam, tcomp, tcomm, tconst, tsync):
+    @timing.timeit(key='comm:intra_redistribute')
+    # @mpiprof.traceit(key='comm:redistribute')
+    def intra_redistribute(self, turn, beam, tcomp, tconst):
+        self.coefficients['intra_particles'].append(beam.n_macroparticles)
+        self.coefficients['intra_times'].append(tcomp)
+
+        # Keep only the last values
+        self.coefficients['intra_particles'] = self.coefficients['intra_particles'][-self.dlb['coeffs_keep']:]
+        self.coefficients['intra_times'] = self.coefficients['intra_times'][-self.dlb['coeffs_keep']:]
+
+        # We pass weights to the polyfit
+        # The weight function I am using is:
+        # e(-x/T), where x is the abs(distance) from the last
+        # datapoint, and T is the decay coefficient
+        ncoeffs = len(self.coefficients['intra_times'])
+        weights = np.exp(-(ncoeffs - 1 - np.arange(ncoeffs))/self.dlb['decay'])
+        # We model the runtime as latency * particles + c
+        # where latency = p[1] and c = p[0]
+
+        p = np.polyfit(
+            self.coefficients['intra_particles'],
+            self.coefficients['intra_times'],
+            deg=1,
+            w=weights)
+        latency = p[0]
+        tconst += p[1]
+
+        sendbuf = np.array(
+            [latency, tconst, beam.n_macroparticles], dtype=float)
+        recvbuf = np.empty(len(sendbuf) * self.nodeworkers, dtype=float)
+        self.nodecomm.Allgather(sendbuf, recvbuf)
+
+        latencies = recvbuf[::3]
+        ctimes = recvbuf[1::3]
+        Pi_old = recvbuf[2::3]
+
+        # avgt = np.mean(synctimes)
+        P = np.sum(Pi_old)
+
+        sum1 = np.sum(ctimes/latencies)
+        sum2 = np.sum(1./latencies)
+        Pi = (P + sum1 - ctimes * sum2)/(latencies * sum2)
+
+        # For the scheme to work I need that avgt > ctimes, if not
+        # it means that a machine will be assigned negative number fo particles
+        # I need to put a lower bound on the number of particles that
+        # a machine can get, example 10% of the total/n_workers
+        Pi = np.maximum(Pi, 0.1 * P / self.nodeworkers)
+
+        # Here we store the percent of the total node load that goes to each
+        # intra-node worker
+        self.coefficients['intra_load'] = Pi / P
+
+        dPi = np.rint(Pi_old - Pi)
+
+        for i in range(len(dPi)):
+            if dPi[i] < 0 and -dPi[i] > Pi[i]:
+                dPi[i] = -Pi[i]
+            elif dPi[i] > Pi[i]:
+                dPi[i] = Pi[i]
+
+        # Need better definition of the cutoff
+        # Maybe as a percentage of the number of particles
+        # Let's say that each transaction has to be at least
+        # 1% of total/n_workers
+        transactions = calc_transactions(
+            dPi, cutoff=self.dlb['cutoff'] * P / self.nodeworkers)[self.noderank]
+        if dPi[self.noderank] > 0 and len(transactions) > 0:
+            reqs = []
+            tot_to_send = np.sum([t[1] for t in transactions])
+            i = beam.n_macroparticles - tot_to_send
+            for t in transactions:
+                # I need to send t[1] particles to t[0]
+                # buf[:t[1]] de, then dt, then id
+                buf = np.empty(3*t[1], dtype=float)
+                buf[0:t[1]] = beam.dE[i:i+t[1]]
+                buf[t[1]:2*t[1]] = beam.dt[i:i+t[1]]
+                buf[2*t[1]:3*t[1]] = beam.id[i:i+t[1]]
+                i += t[1]
+                # self.logger.critical(
+                #     '[{}]: Sending {} parts to {}.'.format(self.rank, t[1], t[0]))
+                reqs.append(self.nodecomm.Isend(buf, t[0]))
+            # Then I need to resize local beam.dt and beam.dE, also
+            # beam.n_macroparticles
+            beam.dE = beam.dE[:beam.n_macroparticles-tot_to_send]
+            beam.dt = beam.dt[:beam.n_macroparticles-tot_to_send]
+            beam.id = beam.id[:beam.n_macroparticles-tot_to_send]
+            beam.n_macroparticles -= tot_to_send
+            for req in reqs:
+                req.Wait()
+            # req[0].Waitall(req)
+        elif dPi[self.rank] < 0 and len(transactions) > 0:
+            reqs = []
+            recvbuf = []
+            for t in transactions:
+                # I need to receive t[1] particles from t[0]
+                # The buffer contains: de, dt, id
+                buf = np.empty(3*t[1], float)
+                recvbuf.append(buf)
+                # self.logger.critical(
+                #     '[{}]: Receiving {} parts from {}.'.format(self.rank, t[1], t[0]))
+                reqs.append(self.nodecomm.Irecv(buf, t[0]))
+            for req in reqs:
+                req.Wait()
+            # req[0].Waitall(req)
+            # Then I need to resize local beam.dt and beam.dE, also
+            # beam.n_macroparticles
+            tot_to_recv = np.sum([t[1] for t in transactions])
+            beam.dE = np.resize(
+                beam.dE, beam.n_macroparticles + tot_to_recv)
+            beam.dt = np.resize(
+                beam.dt, beam.n_macroparticles + tot_to_recv)
+            beam.id = np.resize(
+                beam.id, beam.n_macroparticles + tot_to_recv)
+            i = beam.n_macroparticles
+            for buf, t in zip(recvbuf, transactions):
+                beam.dE[i:i+t[1]] = buf[0:t[1]]
+                beam.dt[i:i+t[1]] = buf[t[1]:2*t[1]]
+                beam.id[i:i+t[1]] = buf[2*t[1]:3*t[1]]
+                i += t[1]
+            beam.n_macroparticles += tot_to_recv
+
+        if np.sum(np.abs(dPi))/2 < 1e-4 * P:
+            self.interval = min(2*self.interval, 4000)
+            return self.interval
+        else:
+            self.interval = self.start_interval
+            return self.start_turn
+
+    def report(self, scope, turn, beam, tcomp, tcomm, tconst, tsync):
         latency = tcomp / beam.n_macroparticles
         if self.log:
-            self.logger.critical('[{}]: Turn {}, Tconst {:g}, Tcomp {:g}, Tcomm {:g}, Tsync {:g}, Latency {:g}, Particles {:g}'.format(
-                self.rank, turn, tconst, tcomp, tcomm, tsync, latency, beam.n_macroparticles))
+            self.logger.critical('Scope {} [{}]: Turn {}, Tconst {:g}, Tcomp {:g}, Tcomm {:g}, Tsync {:g}, Latency {:g}, Particles {:g}'.format(
+                scope, self.rank, turn, tconst, tcomp, tcomm, tsync, latency, beam.n_macroparticles))
 
     def greet(self):
         if self.log:
@@ -577,12 +701,12 @@ class Worker:
 
     def initDLB(self, lbstr, n_iter):
         # lbstr = lbtype,lbarg,cutoff,decay
-        self.lb_turns = []
+        self.inter_lb_turns = []
 
         self.lb_type = lbstr.split(',')[0]
 
         if self.lb_type == 'off':
-            return self.lb_turns
+            return self.inter_lb_turns
 
         assert len(lbstr.split(',')) == 5, 'Wrong number of LB arguments'
         lb_arg, cutoff, decay, keep = lbstr.split(',')[1:]
@@ -598,51 +722,82 @@ class Worker:
                 intv = max(n_iter // (int(lb_arg)+1), 1)
             else:
                 intv = max(n_iter // (10 + 1), 1)
-            self.lb_turns = np.arange(0, n_iter, intv)[1:]
+            self.inter_lb_turns = np.arange(0, n_iter, intv)[1:]
 
         elif self.lb_type == 'interval':
             if lb_arg:
-                self.lb_turns = np.arange(0, n_iter, int(lb_arg))[1:]
+                self.inter_lb_turns = np.arange(0, n_iter, int(lb_arg))[1:]
             else:
-                self.lb_turns = np.arange(0, n_iter, 1000)[1:]
+                self.inter_lb_turns = np.arange(0, n_iter, 1000)[1:]
         elif self.lb_type == 'dynamic':
-            self.lb_turns = [self.start_turn]
+            self.inter_lb_turns = [self.start_turn]
         elif self.lb_type == 'reportonly':
             if lb_arg:
-                self.lb_turns = np.arange(0, n_iter, int(lb_arg))
+                self.inter_lb_turns = np.arange(0, n_iter, int(lb_arg))
             else:
-                self.lb_turns = np.arange(0, n_iter, 100)
+                self.inter_lb_turns = np.arange(0, n_iter, 100)
         self.dlb = {'tcomp': 0, 'tcomm': 0,
                     'tconst': 0, 'tsync': 0,
                     'cutoff': float(cutoff), 'decay': float(decay),
-                    'coeffs_keep': int(keep)}
-        return self.lb_turns
+                    'coeffs_keep': int(keep),
+                    'intra_tcomp': 0}
+        # to begin with, we make them equal
+        self.intra_lb_turns = np.copy(self.inter_lb_turns)
+        return self.inter_lb_turns
 
     def DLB(self, turn, beam):
-        if turn not in self.lb_turns:
-            return
-        tcomp_new = timing.get(['comp:'])
-        tcomm_new = timing.get(['comm:'])
-        tconst_new = timing.get(['serial:'], exclude_lst=[
-                                'serial:sync', 'serial:intraSync', 'serial:gpuSync'])
-        tsync_new = timing.get(['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
-        if self.lb_type != 'reportonly':
-            intv = self.redistribute(turn, beam,
-                                     tcomp=tcomp_new-self.dlb['tcomp'],
-                                     # tsync=tsync_new - self.dlb['tsync'])
-                                     tconst=((tconst_new-self.dlb['tconst'])
-                                             + (tcomm_new - self.dlb['tcomm'])))
-        if self.lb_type == 'dynamic':
-            self.lb_turns[0] += intv
-        self.report(turn, beam, tcomp=tcomp_new-self.dlb['tcomp'],
-                    tcomm=tcomm_new-self.dlb['tcomm'],
-                    tconst=tconst_new-self.dlb['tconst'],
-                    tsync=tsync_new-self.dlb['tsync'])
-        self.dlb['tcomp'] = tcomp_new
-        self.dlb['tcomm'] = tcomm_new
-        self.dlb['tconst'] = tconst_new
-        self.dlb['tsync'] = tsync_new
+        if turn in self.intra_lb_turns:
+            tcomp_new = timing.get(['comp:'])
+            # tcomm_new = timing.get(['comm:'])
+            tconst_new = 0
+            tsync_new = timing.get(['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
+            intv = 0
+            if self.lb_type != 'reportonly':
+                intv = self.intra_redistribute(turn, beam,
+                                               tcomp=tcomp_new -
+                                               self.dlb['intra_tcomp'],
+                                               # tsync=tsync_new - self.dlb['tsync'])
+                                               tconst=0)
 
+
+                # tconst=((tconst_new-self.dlb['tconst'])
+                #         + (tcomm_new - self.dlb['tcomm'])))
+            # if self.lb_type == 'dynamic':
+            #     self.inter_lb_turns[0] += intv
+            self.report('intra', turn, beam, tcomp=tcomp_new-self.dlb['intra_tcomp'],
+                        tcomm=0,
+                        tconst=0,
+                        tsync=0)
+            self.dlb['intra_tcomp'] = tcomp_new
+            # self.dlb['intra_tcomm'] = tcomm_new
+            # self.dlb['intra_tconst'] = tconst_new
+            # self.dlb['intra_tsync'] = tsync_new
+            return intv
+        ''' comment out for testing purposes
+        if turn in self.inter_lb_turns:
+            tcomp_new = timing.get(['comp:'])
+            tcomm_new = timing.get(['comm:'])
+            tconst_new = timing.get(['serial:'], exclude_lst=[
+                                    'serial:sync', 'serial:intraSync', 'serial:gpuSync'])
+            tsync_new = timing.get(
+                ['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
+            if self.lb_type != 'reportonly':
+                intv = self.redistribute(self.intercomm, turn, beam,
+                                         tcomp=tcomp_new-self.dlb['tcomp'],
+                                         # tsync=tsync_new - self.dlb['tsync'])
+                                         tconst=((tconst_new-self.dlb['tconst'])
+                                                 + (tcomm_new - self.dlb['tcomm'])))
+            if self.lb_type == 'dynamic':
+                self.inter_lb_turns[0] += intv
+            self.report('inter', turn, beam, tcomp=tcomp_new-self.dlb['tcomp'],
+                        tcomm=tcomm_new-self.dlb['tcomm'],
+                        tconst=tconst_new-self.dlb['tconst'],
+                        tsync=tsync_new-self.dlb['tsync'])
+            self.dlb['tcomp'] = tcomp_new
+            self.dlb['tcomm'] = tcomm_new
+            self.dlb['tconst'] = tconst_new
+            self.dlb['tsync'] = tsync_new
+        '''
 
 def calc_transactions(dpi, cutoff):
     trans = {}
@@ -691,16 +846,15 @@ def calc_transactions(dpi, cutoff):
 
     return trans
 
+
 class MPILog(object):
     """Class to log messages coming from other classes. Messages contain 
     {Time stamp} {Class name} {Log level} {Message}. Errors, warnings and info
     are logged into the console. To disable logging, call Logger().disable()
-
     Parameters
     ----------
     debug : bool
         Log DEBUG messages in 'debug.log'; default is False
-
     """
 
     def __init__(self, rank=0, log_dir='./logs'):
@@ -824,5 +978,3 @@ def c_add_int64(xmem, ymem, dt):
     y = np.frombuffer(ymem, dtype=np.int64)
     bm.add(y, x, inplace=True)
 
-
-add_op_int64 = MPI.Op.Create(c_add_int64, commute=True)
