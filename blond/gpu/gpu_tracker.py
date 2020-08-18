@@ -148,16 +148,17 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
 
         else:
             if self.rf_params.empty is False:
+
                 if self.interpolation:
-                    self.dev_total_voltage = get_gpuarray(
-                        (self.dev_rf_voltage.size, np.float64, id(self), "dtv"))
-                    if self.totalInducedVoltage is not None:
-                        add_kernel(self.dev_total_voltage, self.dev_rf_voltage,
-                                self.totalInducedVoltage.dev_induced_voltage)
-                    else:
-                        self.dev_total_voltage = self.dev_rf_voltage
-                        
                     with timing.timed_region('comp:LIKick'):
+                        self.dev_total_voltage = get_gpuarray(
+                            (self.dev_rf_voltage.size, np.float64, id(self), "dtv"))
+                        if self.totalInducedVoltage is not None:
+                            add_kernel(self.dev_total_voltage, self.dev_rf_voltage,
+                                    self.totalInducedVoltage.dev_induced_voltage)
+                        else:
+                            self.dev_total_voltage = self.dev_rf_voltage
+                        
                         bm.linear_interp_kick(dev_voltage=self.dev_total_voltage,
                                             dev_bin_centers=self.profile.dev_bin_centers,
                                             charge=self.beam.Particle.charge,

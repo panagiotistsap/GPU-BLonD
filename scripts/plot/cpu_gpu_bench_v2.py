@@ -99,7 +99,6 @@ for c in args.cases:
     # gpu_2_times = gpu_2_times / cpu_times
     # cpu_times = cpu_times / cpu_times
 
-    # print(gpu_2_times)
     fig, ax = plt.subplots(figsize=(15, 5))
     width = 0.1
     offset = 0
@@ -111,7 +110,7 @@ for c in args.cases:
     # gpu = ax.bar(x + width/2, gpu_times, width, label='1 GPU per node')
     # gpu_2 = ax.bar(x + 3*width/2, gpu_2_times, width, label='2 GPUs per node')
     # Add some text for labels, title and custom x-axis tick labels, etc.
-    ax.set_ylabel('Normalized Time')
+    ax.set_ylabel('Normalized Time on CPU')
     ax.set_xlabel('Nodes')
     ax.set_title('{}'.format(c))
     ax.set_xticks(x)

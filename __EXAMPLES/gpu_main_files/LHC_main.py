@@ -31,7 +31,7 @@ from blond.utils.mpi_config import worker, mpiprint
 from blond.utils.input_parser import parse
 from blond.utils import bmath as bm
 
-bm.use_fftw()
+# bm.use_fftw()
 
 REAL_RAMP = True    # track full ramp
 MONITORING = False   # turn off plots and monitors
@@ -66,7 +66,7 @@ dt_plt = 10000      # Time steps between plots
 dt_mon = 1           # Time steps between monitoring
 dt_save = 1000000    # Time steps between saving coordinates
 if REAL_RAMP:
-    n_turns = 14000       # Number of turns to track; full ramp: 8700001
+    n_turns = 20100       # Number of turns to track; full ramp: 8700001
 else:
     n_turns = 5000
 bl_target = 1.25e-9  # 4 sigma r.m.s. target bunch length in [ns]
@@ -243,7 +243,7 @@ if args['monitor'] > 0 and worker.isMaster:
                                   Nbunches=n_bunches)
 
 # bm.GPU(args['gpu'])
-if args['gpu'] > 0:
+if worker.hasGPU:
     # Here we pass the gpu_id, if this is < 0, means don't use the gpu
     bm.use_gpu(gpu_id=worker.gpu_id)
     tracker.use_gpu()
@@ -287,13 +287,14 @@ for turn in range(n_iterations):
                 totVoltage.induced_voltage_sum()
             elif (approx == 1) and (turn % n_turns_reduce == 0):
                 totVoltage.induced_voltage_sum()
+        else:
             tracker.pre_track()
-        
+
         worker.gpuSync()
-        
+
         # Here I need to broadcast the calculated stuff
         totVoltage.induced_voltage = worker.broadcast(totVoltage.induced_voltage)
-        tracker.rf_voltage = worker.broadcast(tracker.rf_voltage)
+        tracker.rf_voltage = worker.broadcast_reverse(tracker.rf_voltage)
     # else just do the normal task-parallelism
     elif withtp:
         if worker.isFirst:

@@ -429,7 +429,7 @@ if args['monitor'] > 0 and worker.isMaster:
                                   Nbunches=n_bunches)
 
 
-if args['gpu'] > 0:
+if worker.hasGPU:
     bm.use_gpu(gpu_id=worker.gpu_id)
     PS_longitudinal_intensity.use_gpu()
     tracker.use_gpu()
@@ -477,6 +477,8 @@ for turn in range(n_iterations):
             elif (approx == 1) and (turn % n_turns_reduce == 0):
                 PS_longitudinal_intensity.induced_voltage_sum()
             tracker.pre_track()
+        else:
+            pass
         
         worker.gpuSync()
         
@@ -496,6 +498,7 @@ for turn in range(n_iterations):
         worker.intraSync()
         worker.sendrecv(PS_longitudinal_intensity.induced_voltage, tracker.rf_voltage)
     else:
+        PS_longitudinal_intensity.induced_voltage_sum()
         tracker.pre_track()
         
     tracker.track_only()

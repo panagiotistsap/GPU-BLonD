@@ -236,6 +236,20 @@ class Worker:
 
         return recvbuf
 
+    @timing.timeit(key='comm:broadcast_reverse')
+    # @mpiprof.traceit(key='comm:scatter')
+    def broadcast_reverse(self, var):
+        
+        if self.log:
+            self.logger.debug('broadcast_reverse')
+        if self.gpucommrank == 0:
+            recvbuf = None
+            recvbuf = self.gpucomm.bcast(recvbuf, root=1)
+        else:
+            recvbuf = self.gpucomm.bcast(var, root=1)
+
+        return recvbuf
+
     @timing.timeit(key='comm:reduce')
     # @mpiprof.traceit(key='comm:reduce')
     def reduce(self, sendbuf, recvbuf=None, dtype=np.uint32, operator='custom_sum'):
@@ -837,12 +851,10 @@ class MPILog(object):
     """Class to log messages coming from other classes. Messages contain 
     {Time stamp} {Class name} {Log level} {Message}. Errors, warnings and info
     are logged into the console. To disable logging, call Logger().disable()
-
     Parameters
     ----------
     debug : bool
         Log DEBUG messages in 'debug.log'; default is False
-
     """
 
     def __init__(self, rank=0, log_dir='./logs'):
@@ -966,5 +978,3 @@ def c_add_int64(xmem, ymem, dt):
     y = np.frombuffer(ymem, dtype=np.int64)
     bm.add(y, x, inplace=True)
 
-
-add_op_int64 = MPI.Op.Create(c_add_int64, commute=True)
