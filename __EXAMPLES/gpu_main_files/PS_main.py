@@ -477,8 +477,8 @@ for turn in range(n_iterations):
             elif (approx == 1) and (turn % n_turns_reduce == 0):
                 PS_longitudinal_intensity.induced_voltage_sum()
             tracker.pre_track()
-        else:
-            pass
+        # else:
+        #     pass
         
         worker.gpuSync()
         

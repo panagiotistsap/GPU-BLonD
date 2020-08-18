@@ -443,19 +443,21 @@ class RingAndRFTracker(object):
 
         # Add phase noise directly to the cavity RF phase
         if self.phi_noise is not None:
-            if self.noiseFB is not None:
-                self.phi_rf[:, turn] += \
-                    self.noiseFB.x * self.phi_noise[:, turn]
-            else:
-                self.phi_rf[:, turn] += \
-                    self.phi_noise[:, turn]
+            with timing.timed_region('serial:pretrack_phirf'):
+                if self.noiseFB is not None:
+                    self.phi_rf[:, turn] += \
+                        self.noiseFB.x * self.phi_noise[:, turn]
+                else:
+                    self.phi_rf[:, turn] += \
+                        self.phi_noise[:, turn]
 
         # Add phase modulation directly to the cavity RF phase
         if self.phi_modulation is not None:
-            self.phi_rf[:, turn] += \
-                self.phi_modulation[0][:, turn]
-            self.omega_rf[:, turn] += \
-                self.phi_modulation[1][:, turn]
+            with timing.timed_region('serial:pretrack_phimodulation'):
+                self.phi_rf[:, turn] += \
+                    self.phi_modulation[0][:, turn]
+                self.omega_rf[:, turn] += \
+                    self.phi_modulation[1][:, turn]
 
         # Determine phase loop correction on RF phase and frequency
         if self.beamFB is not None and turn >= self.beamFB.delay:

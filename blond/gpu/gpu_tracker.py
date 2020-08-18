@@ -20,6 +20,7 @@ except ImportError:
 
 from ..trackers.tracker import RingAndRFTracker
 
+
 class gpu_RingAndRFTracker(RingAndRFTracker):
 
     @property
@@ -30,16 +31,13 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
     def rf_voltage(self, value):
         self.rf_voltage_obj.my_array = value
 
-
     @property
     def dev_rf_voltage(self):
         return self.rf_voltage_obj.dev_my_array
 
-
     @dev_rf_voltage.setter
     def dev_rf_voltage(self, value):
         self.rf_voltage_obj.dev_my_array = value
-
 
     def pre_track(self):
         """Tracking method for the section. Applies first the kick, then the 
@@ -50,22 +48,32 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
         turn = self.counter[0]
         # Add phase noise directly to the cavity RF phase
         if self.phi_noise is not None:
-            if self.noiseFB is not None:
+            with timing.timed_region('serial:pretrack_phirf'):
+                if self.noiseFB is not None:
 
-                first_kernel_tracker(self.rf_params.dev_phi_rf, self.noiseFB.x, self.dev_phi_noise,
-                                    self.rf_params.dev_phi_rf.shape[0], turn, slice=slice(0, self.rf_params.n_rf))
-                # self.phi_rf[:, turn] += \
-                #     self.noiseFB.x * self.phi_noise[:, turn]
-            else:
-                first_kernel_tracker(self.rf_params.dev_phi_rf, 1.0, self.rf_params.dev_phi_noise,
-                                    self.rf_params.dev_phi_rf.shape[0], turn, slice=slice(0, self.rf_params.n_rf))
-                # self.phi_rf[:, turn] += \
-                #     self.phi_noise[:, turn]
+                    first_kernel_tracker(self.rf_params.dev_phi_rf,
+                                         self.noiseFB.x, self.dev_phi_noise,
+                                         self.rf_params.dev_phi_rf.shape[0],
+                                         turn,
+                                         slice=slice(0, self.rf_params.n_rf))
+                    # self.phi_rf[:, turn] += \
+                    #     self.noiseFB.x * self.phi_noise[:, turn]
+                else:
+                    first_kernel_tracker(self.rf_params.dev_phi_rf, 1.0,
+                                         self.rf_params.dev_phi_noise,
+                                         self.rf_params.dev_phi_rf.shape[0],
+                                         turn,
+                                         slice=slice(0, self.rf_params.n_rf))
+                    # self.phi_rf[:, turn] += \
+                    #     self.phi_noise[:, turn]
 
         # Add phase modulation directly to the cavity RF phase
         if self.phi_modulation is not None:
-            second_kernel_tracker(
-                self.dev_phi_rf, self.dev_phi_modulation[0], self.dev_phi_modulation[1], self.dev_phi_rf.shape[0], turn)
+            with timing.timed_region('serial:pretrack_phimodulation'):
+                second_kernel_tracker(self.dev_phi_rf,
+                                      self.dev_phi_modulation[0],
+                                      self.dev_phi_modulation[1],
+                                      self.dev_phi_rf.shape[0], turn)
             # self.phi_rf[:, turn] += \
             #     self.phi_modulation[0][:, turn]
             # self.omega_rf[:, turn] += \
@@ -155,15 +163,15 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
                             (self.dev_rf_voltage.size, np.float64, id(self), "dtv"))
                         if self.totalInducedVoltage is not None:
                             add_kernel(self.dev_total_voltage, self.dev_rf_voltage,
-                                    self.totalInducedVoltage.dev_induced_voltage)
+                                       self.totalInducedVoltage.dev_induced_voltage)
                         else:
                             self.dev_total_voltage = self.dev_rf_voltage
-                        
+
                         bm.linear_interp_kick(dev_voltage=self.dev_total_voltage,
-                                            dev_bin_centers=self.profile.dev_bin_centers,
-                                            charge=self.beam.Particle.charge,
-                                            acceleration_kick=self.acceleration_kick[turn],
-                                            beam=self.beam)
+                                              dev_bin_centers=self.profile.dev_bin_centers,
+                                              charge=self.beam.Particle.charge,
+                                              acceleration_kick=self.acceleration_kick[turn],
+                                              beam=self.beam)
                 else:
                     self.kick(turn)
             self.drift(turn + 1)
@@ -206,8 +214,8 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
 
         if self.cavityFB:
             cavityFB_case(self.dev_rf_voltage, dev_voltages, dev_omega_rf,
-                        dev_phi_rf, self.profile.dev_bin_centers,
-                        self.cavityFB.V_corr, self.cavityFB.phi_corr)
+                          dev_phi_rf, self.profile.dev_bin_centers,
+                          self.cavityFB.V_corr, self.cavityFB.phi_corr)
             # self.rf_voltage = voltages[0] * self.cavityFB.V_corr * \
             #     bm.sin(omega_rf[0]*self.profile.bin_centers +
             #             phi_rf[0] + self.cavityFB.phi_corr)
@@ -253,15 +261,15 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
     @timing.timeit(key='comp:drift')
     def drift(self, index):
         bm.drift(self.solver, self.t_rev[index],
-                self.length_ratio, self.alpha_order, self.eta_0[index],
-                self.eta_1[index], self.eta_2[index], self.alpha_0[index],
-                self.alpha_1[index], self.alpha_2[index],
-                self.rf_params.beta[index], self.rf_params.energy[index], self.beam)
+                 self.length_ratio, self.alpha_order, self.eta_0[index],
+                 self.eta_1[index], self.eta_2[index], self.alpha_0[index],
+                 self.alpha_1[index], self.alpha_2[index],
+                 self.rf_params.beta[index], self.rf_params.energy[index], self.beam)
         self.beam.dt_obj.invalidate_cpu()
 
 
 def tracker_funcs_update(obj):
-    
+
     obj.track_only = MethodType(gpu_track_only, obj)
     obj.pre_track = MethodType(gpu_pre_track, obj)
     obj.rf_voltage_calculation = MethodType(gpu_rf_voltage_calculation, obj)

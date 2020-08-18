@@ -294,7 +294,7 @@ for turn in range(n_iterations):
 
         # Here I need to broadcast the calculated stuff
         totVoltage.induced_voltage = worker.broadcast(totVoltage.induced_voltage)
-        tracker.rf_voltage = worker.broadcast_reverse(tracker.rf_voltage)
+        tracker.rf_voltage = worker.broadcast(tracker.rf_voltage, root=1)
     # else just do the normal task-parallelism
     elif withtp:
         if worker.isFirst:

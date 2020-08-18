@@ -224,31 +224,31 @@ class Worker:
 
     @timing.timeit(key='comm:broadcast')
     # @mpiprof.traceit(key='comm:scatter')
-    def broadcast(self, var):
+    def broadcast(self, var, root=0):
         if self.log:
             self.logger.debug('broadcast')
 
-        if self.gpucommrank == 0:
-            recvbuf = self.gpucomm.bcast(var, root=0)
+        if self.gpucommrank == root:
+            recvbuf = self.gpucomm.bcast(var, root=root)
         else:
             recvbuf = None
-            recvbuf = self.gpucomm.bcast(recvbuf, root=0)
+            recvbuf = self.gpucomm.bcast(recvbuf, root=root)
 
         return recvbuf
 
-    @timing.timeit(key='comm:broadcast_reverse')
-    # @mpiprof.traceit(key='comm:scatter')
-    def broadcast_reverse(self, var):
+    # @timing.timeit(key='comm:broadcast_reverse')
+    # # @mpiprof.traceit(key='comm:scatter')
+    # def broadcast_reverse(self, var):
         
-        if self.log:
-            self.logger.debug('broadcast_reverse')
-        if self.gpucommrank == 0:
-            recvbuf = None
-            recvbuf = self.gpucomm.bcast(recvbuf, root=1)
-        else:
-            recvbuf = self.gpucomm.bcast(var, root=1)
+    #     if self.log:
+    #         self.logger.debug('broadcast_reverse')
+    #     if self.gpucommrank == 0:
+    #         recvbuf = None
+    #         recvbuf = self.gpucomm.bcast(recvbuf, root=1)
+    #     else:
+    #         recvbuf = self.gpucomm.bcast(var, root=1)
 
-        return recvbuf
+    #     return recvbuf
 
     @timing.timeit(key='comm:reduce')
     # @mpiprof.traceit(key='comm:reduce')
