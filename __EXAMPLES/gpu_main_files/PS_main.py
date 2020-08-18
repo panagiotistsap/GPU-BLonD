@@ -498,7 +498,11 @@ for turn in range(n_iterations):
         worker.intraSync()
         worker.sendrecv(PS_longitudinal_intensity.induced_voltage, tracker.rf_voltage)
     else:
-        PS_longitudinal_intensity.induced_voltage_sum()
+        if (approx == 0) or (approx == 2):
+            PS_longitudinal_intensity.induced_voltage_sum()
+        elif (approx == 1) and (turn % n_turns_reduce == 0):
+            PS_longitudinal_intensity.induced_voltage_sum()
+        # PS_longitudinal_intensity.induced_voltage_sum()
         tracker.pre_track()
         
     tracker.track_only()

@@ -308,6 +308,10 @@ for turn in range(n_iterations):
         worker.intraSync()
         worker.sendrecv(totVoltage.induced_voltage, tracker.rf_voltage)
     else:
+        if (approx == 0) or (approx == 2):
+            totVoltage.induced_voltage_sum()
+        elif (approx == 1) and (turn % n_turns_reduce == 0):
+            totVoltage.induced_voltage_sum()
         tracker.pre_track()
         
     tracker.track_only()

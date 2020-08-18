@@ -6,13 +6,13 @@ slurm:
         
         # CPU only experiments
         # Strong scaling
-        - 'approx0-strong-scaling'
+        # - 'approx0-strong-scaling'
         # - 'tp-approx0-strong-scaling'
         # - 'lb-tp-approx0-strong-scaling'
         
         # Weak Scaling
         # - 'lb-tp-approx0-weak-scaling'
-        # - 'approx0-weak-scaling'
+        - 'approx0-weak-scaling'
         # - 'tp-approx0-weak-scaling'
         # - 'lb-tp-approx0-weak-scaling'
 
@@ -205,7 +205,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [60],
-            'repeats': 2
+            'repeats': 1
         },
 
         # GPU only experiments
@@ -239,7 +239,7 @@ slurm:
             'omp': [10, 10],
             'mpi': ['openmpi4'],
             'time': [60],
-            'repeats': 2
+            'repeats': 1
         },
 
         # CPU-GPU experiments
@@ -271,7 +271,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [60],
-            'repeats': 2
+            'repeats': 1
         },
 
         'lb-approx0-weak-scaling-cpu-gpu': {
@@ -300,7 +300,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [60],
-            'repeats': 2
+            'repeats': 1
         },
 
         'tp-approx0-weak-scaling-cpu-gpu': {
@@ -328,7 +328,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [60],
-            'repeats': 2
+            'repeats': 1
         },
 
 
@@ -358,7 +358,7 @@ slurm:
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [60],
-            'repeats': 2
+            'repeats': 1
         },
 
 

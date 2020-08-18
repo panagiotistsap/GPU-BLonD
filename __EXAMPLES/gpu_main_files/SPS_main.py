@@ -554,7 +554,10 @@ for turn in range(n_iterations):
         if (turn < 8*int(FBtime)):
             longCavityImpedanceReduction.track()
             shortCavityImpedanceReduction.track()
-        inducedVoltage.induced_voltage_sum()
+        if (approx == 0) or (approx == 2):
+            inducedVoltage.induced_voltage_sum()
+        elif (approx == 1) and (turn % n_turns_reduce == 0):
+            inducedVoltage.induced_voltage_sum()
         tracker.pre_track()
 
     tracker.track_only()
