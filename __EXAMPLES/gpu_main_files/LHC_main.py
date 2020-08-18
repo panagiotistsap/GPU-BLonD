@@ -197,7 +197,8 @@ totVoltage = TotalInducedVoltage(beam, profile, [indVoltage])
 
 # TODO add the noiseFB
 tracker = RingAndRFTracker(rf, beam, BeamFeedback=PL, Profile=profile,
-                           interpolation=True, TotalInducedVoltage=totVoltage)
+                           interpolation=True, TotalInducedVoltage=totVoltage,
+                           solver='exact')
 # interpolation=True, TotalInducedVoltage=None)
 mpiprint("PL, SL, and tracker set...")
 # Fill beam distribution

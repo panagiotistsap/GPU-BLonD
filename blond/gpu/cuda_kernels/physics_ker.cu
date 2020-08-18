@@ -280,6 +280,38 @@ __global__ void lik_only_gm_comp(
 
 
 extern "C"
+__global__ void lik_drift_only_gm_comp(
+        double *beam_dt,
+        double *beam_dE,
+        const double *voltage_array,
+        const double *bin_centers,
+        const double charge,
+        const int n_slices,
+        const int n_macroparticles,
+        const double acc_kick,
+        double *glob_voltageKick,
+        double *glob_factor,
+        const double T0, const double length_ratio, 
+        const double eta0, const double beta, const double energy
+        )
+{
+    const double T = T0 * length_ratio * eta0 / (beta * beta * energy);
+
+    int tid = threadIdx.x + blockDim.x * blockIdx.x;
+    double const inv_bin_width = (n_slices-1)
+        /(bin_centers[n_slices-1]-bin_centers[0]);
+    unsigned fbin;
+    const double bin0 = bin_centers[0];
+    for (int i=tid; i<n_macroparticles; i += blockDim.x*gridDim.x) {
+        fbin = (unsigned) floor((beam_dt[i] - bin0) * inv_bin_width);
+        if ((fbin < n_slices - 1))
+            beam_dE[i] += beam_dt[i] * glob_voltageKick[fbin] + glob_factor[fbin];
+        // beam_dt[i] += T * (1. / (1. - eta0 * beam_dE[i]) -1.);
+        beam_dt[i] += T * beam_dE[i];
+    }
+}
+
+extern "C"
 __global__ void beam_phase_v2(
         const double *bin_centers,
         const int *profile,

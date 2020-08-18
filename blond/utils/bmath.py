@@ -219,7 +219,7 @@ def use_gpu(comps=[], gpu_id=0):
         'rf_volt_comp': gpu_physics_wrap.gpu_rf_volt_comp,
         'drift' : gpu_physics_wrap.gpu_drift,
         'linear_interp_kick': gpu_physics_wrap.gpu_linear_interp_kick,
-        'LIKick_n_drift': bphysics_wrap.linear_interp_kick_n_drift,
+        'LIKick_n_drift': gpu_physics_wrap.gpu_linear_interp_kick_drift,
         'synchrotron_radiation': gpu_physics_wrap.gpu_synchrotron_radiation,
         'synchrotron_radiation_full': gpu_physics_wrap.gpu_synchrotron_radiation_full,
         # 'linear_interp_time_translation': bphysics_wrap.linear_interp_time_translation,

@@ -13,7 +13,7 @@ import numpy as np
 import pycuda.cumath as cm
 import traceback
 from ..gpu.cucache import get_gpuarray
-from ..gpu.gpu_butils_wrap import bm_phase_exp_times_scalar, bm_phase_mul_add, bm_sin_cos, d_multiply ,d_multscalar
+from ..gpu.gpu_butils_wrap import bm_phase_exp_times_scalar, bm_phase_mul_add, bm_sin_cos, d_multiply, d_multscalar
 from pycuda import gpuarray
 from ..utils.butils_wrap import trapz
 from ..utils import bmath as bm
@@ -36,6 +36,7 @@ hybrid_histogram = ker.get_function("hybrid_histogram")
 sm_histogram = ker.get_function("sm_histogram")
 gm_linear_interp_kick_help = ker.get_function("lik_only_gm_copy")
 gm_linear_interp_kick_comp = ker.get_function("lik_only_gm_comp")
+gm_linear_interp_kick_drift_comp = ker.get_function("lik_drift_only_gm_comp")
 halve_edges = ker.get_function("halve_edges")
 beam_phase_v2 = ker.get_function("beam_phase_v2")
 beam_phase_sum = ker.get_function("beam_phase_sum")
@@ -157,6 +158,50 @@ def gpu_linear_interp_kick(dev_voltage,
                                grid=grid_size, block=block_size,
                                time_kernel=True)
     beam.dE_obj.invalidate_cpu()
+
+
+def gpu_linear_interp_kick_drift(dev_voltage,
+                                 dev_bin_centers, charge,
+                                 acceleration_kick, 
+                                 T0, length_ratio, eta0, beta, energy, 
+                                 beam=None):
+    macros = beam.dev_dt.size
+    slices = dev_bin_centers.size
+
+    dev_voltageKick = get_gpuarray((slices-1, np.float64, 0, 'vK'))
+    dev_factor = get_gpuarray((slices-1, np.float64, 0, 'dF'))
+
+    gm_linear_interp_kick_help(beam.dev_dt,
+                               beam.dev_dE,
+                               dev_voltage,
+                               dev_bin_centers,
+                               np.float64(charge),
+                               np.int32(slices),
+                               np.int32(macros),
+                               np.float64(acceleration_kick),
+                               dev_voltageKick,
+                               dev_factor,
+                               grid=grid_size, block=block_size,
+                               time_kernel=True)
+    gm_linear_interp_kick_drift_comp(beam.dev_dt,
+                                     beam.dev_dE,
+                                     dev_voltage,
+                                     dev_bin_centers,
+                                     np.float64(charge),
+                                     np.int32(slices),
+                                     np.int32(macros),
+                                     np.float64(acceleration_kick),
+                                     dev_voltageKick,
+                                     dev_factor,
+                                     np.float64(T0),
+                                     np.float64(length_ratio),
+                                     np.float64(eta0),
+                                     np.float64(beta),
+                                     np.float64(energy),
+                                     grid=grid_size, block=block_size,
+                                     time_kernel=True)
+    beam.dE_obj.invalidate_cpu()
+    beam.dt_obj.invalidate_cpu()
 
 
 def gpu_slice(cut_left, cut_right, beam, profile):
