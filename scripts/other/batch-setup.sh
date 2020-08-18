@@ -48,4 +48,4 @@ source $HOME/.bashrc
 INSTALL_DIR=$HOME/install
 cd $HOME/git/GPU-BLonD
 
-python blond/compile.py --with-fftw --with-fftw-threads --with-fftw-lib=$INSTALL_DIR/lib/ --with-fftw-header=$INSTALL_DIR/include/ -p
+python blond/compile.py --with-fftw --with-fftw-threads --with-fftw-lib=$INSTALL_DIR/lib/ --with-fftw-header=$INSTALL_DIR/include/ -p --gpu
