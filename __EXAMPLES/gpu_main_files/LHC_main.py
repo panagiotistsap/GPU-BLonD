@@ -31,7 +31,7 @@ from blond.utils.mpi_config import worker, mpiprint
 from blond.utils.input_parser import parse
 from blond.utils import bmath as bm
 
-# bm.use_fftw()
+bm.use_fftw()
 
 REAL_RAMP = True    # track full ramp
 MONITORING = False   # turn off plots and monitors

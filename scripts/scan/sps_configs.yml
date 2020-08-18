@@ -56,7 +56,7 @@ slurm:
             'particles': [2000000],
             'bunches': [72],  # 192
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -72,7 +72,7 @@ slurm:
             'workers': [2, 4, 8, 16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -81,7 +81,7 @@ slurm:
             'particles': [2000000],
             'bunches': [72],  # 192
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -97,7 +97,7 @@ slurm:
             'workers': [2, 4, 8, 16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -106,7 +106,7 @@ slurm:
             'particles': [2000000],
             'bunches': [72],  # 192
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -122,7 +122,7 @@ slurm:
             'workers': [2, 4, 8, 16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -133,7 +133,7 @@ slurm:
             'particles': [500000, 1000000, 1000000], # 2000000],
             'bunches': [36, 36, 72], #72],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -149,7 +149,7 @@ slurm:
             'workers': [2, 4, 8], #16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -158,7 +158,7 @@ slurm:
             'particles': [500000, 1000000, 1000000], # 2000000],
             'bunches': [36, 36, 72], #72],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -174,7 +174,7 @@ slurm:
             'workers': [2, 4, 8], #16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -184,7 +184,7 @@ slurm:
             'particles': [500000, 1000000, 1000000], # 2000000],
             'bunches': [36, 36, 72], #72],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -200,7 +200,7 @@ slurm:
             'workers': [2, 4, 8], #16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -210,7 +210,7 @@ slurm:
             'particles': [500000, 1000000, 1000000], # 2000000],
             'bunches': [36, 36, 72], #72],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -226,7 +226,7 @@ slurm:
             'workers': [1, 2, 4, 2, 4, 8], #16],
             'omp': [20, 20, 20, 10, 10, 10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -239,7 +239,7 @@ slurm:
             'particles': [500000, 1000000, 1000000], # 2000000],
             'bunches': [36, 36, 72], #72],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -255,7 +255,7 @@ slurm:
             'workers': [2, 4, 8], #16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -264,7 +264,7 @@ slurm:
             'particles': [500000, 1000000, 1000000], # 2000000],
             'bunches': [36, 36, 72], #72],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -280,7 +280,7 @@ slurm:
             'workers': [2, 4, 8], #16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
         'tp-approx0-weak-scaling-cpu-gpu': {
@@ -288,7 +288,7 @@ slurm:
             'particles': [500000, 1000000, 1000000], # 2000000],
             'bunches': [36, 36, 72], #72],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -304,7 +304,7 @@ slurm:
             'workers': [2, 4, 8], #16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -314,7 +314,7 @@ slurm:
             'particles': [500000, 1000000, 1000000], # 2000000],
             'bunches': [36, 36, 72], #72],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -330,7 +330,7 @@ slurm:
             'workers': [2, 4, 8], #16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -387,7 +387,7 @@ local:
             'workers': [1],
             'omp': [14],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 1
         },
 
@@ -411,7 +411,7 @@ local:
             'workers': [1],
             'omp': [14],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 1
         },
 
@@ -422,7 +422,7 @@ local:
             'particles': [1000000],
             'bunches': [4],  # 192
             'slices': [1408],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -439,7 +439,7 @@ local:
                 # 2, 2, 4, 4
             ],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 2
         },
 
@@ -569,7 +569,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 72
             'slices': [1408],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -583,7 +583,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -592,7 +592,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 72
             'slices': [1408],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -606,7 +606,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -615,7 +615,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 72
             'slices': [1408],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -629,7 +629,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -638,7 +638,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 72
             'slices': [1408],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -652,7 +652,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -661,7 +661,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 72
             'slices': [1408],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -675,7 +675,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -684,7 +684,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 72
             'slices': [1408],
-            'turns': [5000],
+            'turns': [10000],
             'withtp': [1],
             'monitor': [0],
             'seed': [0],
@@ -698,7 +698,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -707,7 +707,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 72
             'slices': [1408],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -721,7 +721,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 

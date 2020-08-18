@@ -6,7 +6,7 @@ slurm:
         
         # CPU only experiments
         # Strong scaling
-        # - 'approx0-strong-scaling'
+        - 'approx0-strong-scaling'
         # - 'tp-approx0-strong-scaling'
         # - 'lb-tp-approx0-strong-scaling'
         
@@ -37,7 +37,7 @@ slurm:
         # 'approx0-openmpi3-impl'
 
         # GPU only experiments
-        # - 'approx0-weak-scaling-gpu'
+        - 'approx0-weak-scaling-gpu'
         # - 'tp-approx0-weak-scaling-gpu'
         # - 'lb-tp-approx0-weak-scaling-gpu'
 
@@ -56,7 +56,7 @@ slurm:
             'particles': [2000000],
             'bunches': [96],  # 192
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -72,7 +72,7 @@ slurm:
             'workers': [2, 4, 8, 16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -81,7 +81,7 @@ slurm:
             'particles': [2000000],
             'bunches': [96],  # 192
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -97,16 +97,16 @@ slurm:
             'workers': [2, 4, 8, 16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
         'approx0-strong-scaling': {
             'exe': ['LHC_main.py'],
-            'particles': [2000000],
-            'bunches': [192],  # 192
+            'particles': [1000000],
+            'bunches': [96],  # 192
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -122,8 +122,8 @@ slurm:
             'workers': [2, 4, 8, 16],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
-            'repeats': 4
+            'time': [60],
+            'repeats': 2
         },
 
 
@@ -133,7 +133,7 @@ slurm:
             'particles': [500000, 1000000, 1000000], #, 2000000],
             'bunches': [48, 48, 96], #96],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -150,7 +150,7 @@ slurm:
             'workers': [2, 4, 8],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
@@ -159,7 +159,7 @@ slurm:
             'particles': [500000, 1000000, 1000000], #, 2000000],
             'bunches': [48, 48, 96], #96],  # 96
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -175,22 +175,24 @@ slurm:
             'workers': [2, 4, 8],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 4
         },
 
 
         'approx0-weak-scaling': {
             'exe': ['LHC_main.py'],
-            'particles': [500000, 1000000, 1000000], #, 2000000],
-            'bunches': [48, 48, 96], #, 96],  # 96
+            # 'particles': [1000000, 2000000, 2000000], #, 2000000],
+            'particles': [1000000], #, 2000000],
+            # 'bunches': [96, 96, 192], #, 96],  # 96
+            'bunches': [96], #, 96],  # 96
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
             'withtp': [0],
-            'reduce': [2],
+            'reduce': [1],
             'approx': [0],
             'log': [1],
             'loadbalance': ['reportonly,,,,'],
@@ -198,28 +200,29 @@ slurm:
             'artificialdelay': ['off'],
             'precision': ['double'],
             'timing': ['timing'],
-            'workers': [2, 4, 8],
+            # 'workers': [2, 4, 8],
+            'workers': [2],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
-            'repeats': 4
+            'time': [60],
+            'repeats': 2
         },
 
         # GPU only experiments
         # Weak scaling
         'approx0-weak-scaling-gpu': {
             'exe': ['LHC_main.py'],
-            'particles': [500000], #, 2000000],
+            'particles': [1000000], #, 2000000],
             # 'particles': [500000, 1000000, 1000000], #, 2000000],
             # 'bunches': [96, 96, 192], #96],
             'bunches': [96], #96],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
             'withtp': [0],
-            'reduce': [2],
+            'reduce': [1],
             'approx': [0],
             'log': [1],
             'loadbalance': ['reportonly,,,,'],
@@ -235,8 +238,8 @@ slurm:
             # 'omp': [20, 20, 20, 10, 10, 10],
             'omp': [10, 10],
             'mpi': ['openmpi4'],
-            'time': [180],
-            'repeats': 1
+            'time': [60],
+            'repeats': 2
         },
 
         # CPU-GPU experiments
@@ -245,11 +248,11 @@ slurm:
             'exe': ['LHC_main.py'],
             # 'particles': [500000, 1000000, 1000000], #, 2000000],
             # 'bunches': [96, 96, 192], #96],
-            'particles': [500000], #, 2000000],
+            'particles': [1000000], #, 2000000],
             'bunches': [96], #96],
 
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -267,18 +270,18 @@ slurm:
             'workers': [2],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 2
         },
 
         'lb-approx0-weak-scaling-cpu-gpu': {
             'exe': ['LHC_main.py'],
             # 'particles': [500000, 1000000, 1000000], #, 2000000],
-            'particles': [500000], #, 2000000],
+            'particles': [1000000], #, 2000000],
             # 'bunches': [96, 96, 192], #96],
             'bunches': [96], #96],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -296,18 +299,18 @@ slurm:
             'workers': [2],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 2
         },
 
         'tp-approx0-weak-scaling-cpu-gpu': {
             'exe': ['LHC_main.py'],
             # 'particles': [500000, 1000000, 1000000], #, 2000000],
-            'particles': [500000], #, 2000000],
+            'particles': [1000000], #, 2000000],
             # 'bunches': [96, 96, 192], #96],
             'bunches': [96], #96],
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -324,7 +327,7 @@ slurm:
             'workers': [2],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 2
         },
 
@@ -333,11 +336,11 @@ slurm:
             'exe': ['LHC_main.py'],
             # 'particles': [500000, 1000000, 1000000], #, 2000000],
             # 'bunches': [96, 96, 192], #96],
-            'particles': [500000], #, 2000000],
+            'particles': [1000000], #, 2000000],
             'bunches': [96], #96],
 
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -354,7 +357,7 @@ slurm:
             'workers': [2],
             'omp': [10],
             'mpi': ['openmpi4'],
-            'time': [180],
+            'time': [60],
             'repeats': 2
         },
 
@@ -425,7 +428,7 @@ condor:
             'particles': [1000000],
             'bunches': [4],  # 192
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -501,7 +504,7 @@ local:
             'workers': [1],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 1
         },
 
@@ -525,7 +528,7 @@ local:
             'workers': [1],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 1
         },
 
@@ -536,7 +539,7 @@ local:
             'particles': [1000000],
             'bunches': [4],  # 192
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -554,7 +557,7 @@ local:
                 # 2, 2, 4, 4
             ],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 2
         },
 
@@ -582,7 +585,7 @@ local:
             'workers': [1, 2, 3, 4],
             'omp': [1, 1, 1, 1],
             'mpi': ['mpich3', 'mpich3', 'mpich3', 'mpich3'],
-            'time': [180, 180, 180, 180],
+            'time': [60, 60, 60, 60],
             'repeats': 5
         },
 
@@ -605,7 +608,7 @@ local:
             'workers': [1, 2, 3, 4],
             'omp': [10, 10, 10, 10],
             'mpi': ['mpich3', 'mpich3', 'mpich3', 'mpich3'],
-            'time': [180, 180, 180, 180],
+            'time': [60, 60, 60, 60],
             'repeats': 5
         },
 
@@ -630,7 +633,7 @@ local:
             'workers': [1, 2, 3, 4],
             'omp': [10, 10, 10, 10],
             'mpi': ['mpich3', 'mpich3', 'mpich3', 'mpich3'],
-            'time': [180, 180, 180, 180],
+            'time': [60, 60, 60, 60],
             'repeats': 5
         },
 
@@ -653,7 +656,7 @@ local:
             'workers': [1, 2, 3, 4],
             'omp': [10, 10, 10, 10],
             'mpi': ['mpich3', 'mpich3', 'mpich3', 'mpich3'],
-            'time': [180, 180, 180, 180],
+            'time': [60, 60, 60, 60],
             'repeats': 5
         },
 
@@ -676,7 +679,7 @@ local:
             'workers': [1, 2, 3, 4],
             'omp': [10, 10, 10, 10],
             'mpi': ['mpich3', 'mpich3', 'mpich3', 'mpich3'],
-            'time': [180, 180, 180, 180],
+            'time': [60, 60, 60, 60],
             'repeats': 5
         },
 
@@ -688,7 +691,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 96
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -702,7 +705,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -711,7 +714,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 96
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -725,7 +728,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -734,7 +737,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 96
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -748,7 +751,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -757,7 +760,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 96
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -771,7 +774,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -780,7 +783,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 96
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -794,7 +797,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -803,7 +806,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 96
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'withtp': [1],
             'monitor': [0],
             'seed': [0],
@@ -817,7 +820,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -826,7 +829,7 @@ local:
             'particles': [2000000],
             'bunches': [2],  # 96
             'slices': [1000],
-            'turns': [5000],
+            'turns': [10000],
             'monitor': [0],
             'seed': [0],
             'mtw': [0],
@@ -840,7 +843,7 @@ local:
             'workers': [2],
             'omp': [2],
             'mpi': ['mpich3'],
-            'time': [180],
+            'time': [60],
             'repeats': 5
         },
 
@@ -864,7 +867,7 @@ local:
             'workers': [4, 2, 1],
             'omp': [1, 2, 4],
             'mpi': ['mpich3', 'mpich3', 'mpich3'],
-            'time': [180, 180, 180],
+            'time': [60, 60, 60],
             'repeats': 5
         }
     }
