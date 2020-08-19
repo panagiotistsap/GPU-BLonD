@@ -12,7 +12,7 @@ slurm:
         
         # Weak Scaling
         # - 'lb-tp-approx0-weak-scaling'
-        # - 'approx0-weak-scaling'
+        - 'approx0-weak-scaling'
         # - 'tp-approx0-weak-scaling'
         # - 'lb-tp-approx0-weak-scaling'
 
@@ -37,7 +37,7 @@ slurm:
         # 'approx0-openmpi3-impl'
 
         # GPU only experiments
-        # - 'approx0-weak-scaling-gpu'
+        - 'approx0-weak-scaling-gpu'
         # - 'tp-approx0-weak-scaling-gpu'
         # - 'lb-tp-approx0-weak-scaling-gpu'
 
@@ -277,9 +277,9 @@ slurm:
         'lb-approx0-weak-scaling-cpu-gpu': {
             'exe': ['LHC_main.py'],
             # 'particles': [500000, 1000000, 1000000], #, 2000000],
-            'particles': [1000000], #, 2000000],
+            'particles': [1000000, 2000000], #, 2000000],
             # 'bunches': [96, 96, 192], #96],
-            'bunches': [96], #96],
+            'bunches': [96, 96], #96],
             'slices': [1000],
             'turns': [10000],
             'monitor': [0],
@@ -296,7 +296,7 @@ slurm:
             'timing': ['timing'],
             # 'workers': [2, 4, 8, 16],
             # 'workers': [2, 4, 8],
-            'workers': [2],
+            'workers': [2, 4],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [60],
