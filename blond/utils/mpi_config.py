@@ -239,7 +239,7 @@ class Worker:
     # @timing.timeit(key='comm:broadcast_reverse')
     # # @mpiprof.traceit(key='comm:scatter')
     # def broadcast_reverse(self, var):
-        
+
     #     if self.log:
     #         self.logger.debug('broadcast_reverse')
     #     if self.gpucommrank == 0:
@@ -252,7 +252,10 @@ class Worker:
 
     @timing.timeit(key='comm:reduce')
     # @mpiprof.traceit(key='comm:reduce')
-    def reduce(self, sendbuf, recvbuf=None, dtype=np.uint32, operator='custom_sum'):
+    def reduce(self, sendbuf, recvbuf=None, dtype=np.uint32, operator='custom_sum',
+               comm=None):
+        if comm is None:
+            comm = self.intercomm
         # supported ops:
         # sum, mean, std, max, min, prod, custom_sum
         if self.log:
@@ -301,10 +304,10 @@ class Worker:
 
         if worker.isMaster:
             if (recvbuf is None) or (sendbuf is recvbuf):
-                self.intercomm.Reduce(MPI.IN_PLACE, sendbuf, op=op, root=0)
+                comm.Reduce(MPI.IN_PLACE, sendbuf, op=op, root=0)
                 recvbuf = sendbuf
             else:
-                self.intercomm.Reduce(sendbuf, recvbuf, op=op, root=0)
+                comm.Reduce(sendbuf, recvbuf, op=op, root=0)
 
             if operator in ['mean', 'avg']:
                 return recvbuf / self.workers
@@ -312,12 +315,16 @@ class Worker:
                 return recvbuf
         else:
             recvbuf = None
-            self.intercomm.Reduce(sendbuf, recvbuf, op=op, root=0)
+            comm.Reduce(sendbuf, recvbuf, op=op, root=0)
             return sendbuf
 
     @timing.timeit(key='comm:allreduce')
     # @mpiprof.traceit(key='comm:allreduce')
-    def allreduce(self, sendbuf, recvbuf=None, dtype=np.uint32, operator='custom_sum'):
+    def allreduce(self, sendbuf, recvbuf=None, dtype=np.uint32, operator='custom_sum',
+                  comm=None):
+        if comm is None:
+            comm = self.intercomm
+
         # supported ops:
         # sum, mean, std, max, min, prod, custom_sum
         if self.log:
@@ -362,10 +369,10 @@ class Worker:
             return np.array([np.sqrt(totals / (np.sum(recvbuf[2::3]) - 1))])
 
         if (recvbuf is None) or (sendbuf is recvbuf):
-            self.intercomm.Allreduce(MPI.IN_PLACE, sendbuf, op=op)
+            comm.Allreduce(MPI.IN_PLACE, sendbuf, op=op)
             recvbuf = sendbuf
         else:
-            self.intercomm.Allreduce(sendbuf, recvbuf, op=op)
+            comm.Allreduce(sendbuf, recvbuf, op=op)
 
         if operator in ['mean', 'avg']:
 
@@ -415,6 +422,149 @@ class Worker:
             self.intracomm.Sendrecv(recvbuf, dest=0, sendtag=1,
                                     recvbuf=sendbuf, source=0, recvtag=0)
 
+    @timing.timeit(key='comm:redistribute')
+    # @mpiprof.traceit(key='comm:redistribute')
+    def redistribute(self, turn, beam, tcomp, tconst):
+
+        # I calc the total particles
+        # and the max time
+        nodeparticles = self.allreduce(np.array([beam.n_macroparticles]),
+                                       operator='sum', comm=self.nodecomm)[0]
+
+        nodetcomp = self.allreduce(np.array([tcomp]), operator='max',
+                                   comm=self.nodecomm)[0]
+
+        self.coefficients['particles'].append(nodeparticles)
+        self.coefficients['times'].append(nodetcomp)
+
+        # Keep only the last values
+        self.coefficients['particles'] = self.coefficients['particles'][-self.dlb['coeffs_keep']:]
+        self.coefficients['times'] = self.coefficients['times'][-self.dlb['coeffs_keep']:]
+
+        # We pass weights to the polyfit
+        # The weight function I am using is:
+        # e(-x/T), where x is the abs(distance) from the last
+        # datapoint, and T is the decay coefficient
+        ncoeffs = len(self.coefficients['times'])
+        weights = np.exp(-(ncoeffs - 1 - np.arange(ncoeffs))/self.dlb['decay'])
+        # We model the runtime as latency * particles + c
+        # where latency = p[1] and c = p[0]
+
+        p = np.polyfit(
+            self.coefficients['particles'],
+            self.coefficients['times'],
+            deg=1,
+            w=weights)
+        latency = p[0]
+        tconst += p[1]
+
+        sendbuf = np.array(
+            [latency, tconst, nodeparticles, self.coefficients['intra_load']],
+            dtype=float)
+        recvbuf = np.empty(len(sendbuf) * self.workers, dtype=float)
+        self.intercomm.Allgather(sendbuf, recvbuf)
+
+        latencies = recvbuf[::len(sendbuf)]
+        ctimes = recvbuf[1::len(sendbuf)]
+        Pi_old = recvbuf[2::len(sendbuf)] / self.nodeworkers
+        intra_loads = recvbuf[3::len(sendbuf)]
+
+        # avgt = np.mean(synctimes)
+        # Need to normalize this to the number of nodeworkers
+        P = np.sum(Pi_old)
+
+        sum1 = np.sum(ctimes/latencies)
+        sum2 = np.sum(1./latencies)
+        Pi = (P + sum1 - ctimes * sum2)/(latencies * sum2)
+
+        # For the scheme to work I need that avgt > ctimes, if not
+        # it means that a machine will be assigned negative number fo particles
+        # I need to put a lower bound on the number of particles that
+        # a machine can get, example 10% of the total/n_workers
+        Pi = np.maximum(Pi, 0.1 * P / self.workers)
+
+        dPi = np.rint(Pi_old - Pi)
+        # I distribute the node particles to each node according to their
+        # intra loads
+        dPi = dPi * intra_loads
+
+        for i in range(len(dPi)):
+            # Here I update the delta particle, assigning to each worker
+            # dPi[i] = self.coefficients['intra_load'] * dPi[i]
+            if dPi[i] < 0 and -dPi[i] > Pi[i]:
+                dPi[i] = -Pi[i]
+            elif dPi[i] > Pi[i]:
+                dPi[i] = Pi[i]
+
+        # Need better definition of the cutoff
+        # Maybe as a percentage of the number of particles
+        # Let's say that each transaction has to be at least
+        # 1% of total/n_workers
+        transactions = calc_transactions(
+            dPi, cutoff=self.dlb['cutoff'] * P / self.workers)[self.rank]
+        if dPi[self.rank] > 0 and len(transactions) > 0:
+            reqs = []
+            tot_to_send = np.sum([t[1] for t in transactions])
+            i = beam.n_macroparticles - tot_to_send
+            for t in transactions:
+                # I need to send t[1] particles to t[0]
+                # buf[:t[1]] de, then dt, then id
+                buf = np.empty(3*t[1], dtype=float)
+                buf[0:t[1]] = beam.dE[i:i+t[1]]
+                buf[t[1]:2*t[1]] = beam.dt[i:i+t[1]]
+                buf[2*t[1]:3*t[1]] = beam.id[i:i+t[1]]
+                i += t[1]
+                # self.logger.critical(
+                #     '[{}]: Sending {} parts to {}.'.format(self.rank, t[1], t[0]))
+                reqs.append(self.intercomm.Isend(buf, t[0]))
+            # Then I need to resize local beam.dt and beam.dE, also
+            # beam.n_macroparticles
+            beam.dE = beam.dE[:beam.n_macroparticles-tot_to_send]
+            beam.dt = beam.dt[:beam.n_macroparticles-tot_to_send]
+            beam.id = beam.id[:beam.n_macroparticles-tot_to_send]
+            beam.n_macroparticles -= tot_to_send
+            for req in reqs:
+                req.Wait()
+            # req[0].Waitall(req)
+        elif dPi[self.rank] < 0 and len(transactions) > 0:
+            reqs = []
+            recvbuf = []
+            for t in transactions:
+                # I need to receive t[1] particles from t[0]
+                # The buffer contains: de, dt, id
+                buf = np.empty(3*t[1], float)
+                recvbuf.append(buf)
+                # self.logger.critical(
+                #     '[{}]: Receiving {} parts from {}.'.format(self.rank, t[1], t[0]))
+                reqs.append(self.intercomm.Irecv(buf, t[0]))
+            for req in reqs:
+                req.Wait()
+            # req[0].Waitall(req)
+            # Then I need to resize local beam.dt and beam.dE, also
+            # beam.n_macroparticles
+            tot_to_recv = np.sum([t[1] for t in transactions])
+            beam.dE = np.resize(
+                beam.dE, beam.n_macroparticles + tot_to_recv)
+            beam.dt = np.resize(
+                beam.dt, beam.n_macroparticles + tot_to_recv)
+            beam.id = np.resize(
+                beam.id, beam.n_macroparticles + tot_to_recv)
+            i = beam.n_macroparticles
+            for buf, t in zip(recvbuf, transactions):
+                beam.dE[i:i+t[1]] = buf[0:t[1]]
+                beam.dt[i:i+t[1]] = buf[t[1]:2*t[1]]
+                beam.id[i:i+t[1]] = buf[2*t[1]:3*t[1]]
+                i += t[1]
+            beam.n_macroparticles += tot_to_recv
+
+        if np.sum(np.abs(dPi))/2 < 1e-4 * P:
+            self.interval = min(2*self.interval, 4000)
+            return self.interval
+        else:
+            self.interval = self.start_interval
+            return self.start_turn
+
+    '''
     @timing.timeit(key='comm:redistribute')
     # @mpiprof.traceit(key='comm:redistribute')
     def redistribute(self, turn, beam, tcomp, tconst):
@@ -539,6 +689,7 @@ class Worker:
         else:
             self.interval = self.start_interval
             return self.start_turn
+    '''
 
     @timing.timeit(key='comm:intra_redistribute')
     # @mpiprof.traceit(key='comm:redistribute')
@@ -591,7 +742,7 @@ class Worker:
 
         # Here we store the percent of the total node load that goes to each
         # intra-node worker
-        self.coefficients['intra_load'] = Pi / P
+        self.coefficients['intra_load'] = Pi[self.noderank] / P
 
         dPi = np.rint(Pi_old - Pi)
 
@@ -746,19 +897,20 @@ class Worker:
         return self.inter_lb_turns
 
     def DLB(self, turn, beam):
+        intv = 0
+        
         if turn in self.intra_lb_turns:
             tcomp_new = timing.get(['comp:'])
             # tcomm_new = timing.get(['comm:'])
             tconst_new = 0
-            tsync_new = timing.get(['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
-            intv = 0
+            tsync_new = timing.get(
+                ['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
             if self.lb_type != 'reportonly':
                 intv = self.intra_redistribute(turn, beam,
                                                tcomp=tcomp_new -
                                                self.dlb['intra_tcomp'],
                                                # tsync=tsync_new - self.dlb['tsync'])
                                                tconst=0)
-
 
                 # tconst=((tconst_new-self.dlb['tconst'])
                 #         + (tcomm_new - self.dlb['tcomm'])))
@@ -772,8 +924,7 @@ class Worker:
             # self.dlb['intra_tcomm'] = tcomm_new
             # self.dlb['intra_tconst'] = tconst_new
             # self.dlb['intra_tsync'] = tsync_new
-            return intv
-        ''' comment out for testing purposes
+            # return intv
         if turn in self.inter_lb_turns:
             tcomp_new = timing.get(['comp:'])
             tcomm_new = timing.get(['comm:'])
@@ -782,11 +933,12 @@ class Worker:
             tsync_new = timing.get(
                 ['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
             if self.lb_type != 'reportonly':
-                intv = self.redistribute(self.intercomm, turn, beam,
+                intv = self.redistribute(turn, beam,
                                          tcomp=tcomp_new-self.dlb['tcomp'],
                                          # tsync=tsync_new - self.dlb['tsync'])
-                                         tconst=((tconst_new-self.dlb['tconst'])
-                                                 + (tcomm_new - self.dlb['tcomm'])))
+                                         tconst=0)
+                                         # tconst=((tconst_new-self.dlb['tconst'])
+                                         #         + (tcomm_new - self.dlb['tcomm'])))
             if self.lb_type == 'dynamic':
                 self.inter_lb_turns[0] += intv
             self.report('inter', turn, beam, tcomp=tcomp_new-self.dlb['tcomp'],
@@ -797,7 +949,8 @@ class Worker:
             self.dlb['tcomm'] = tcomm_new
             self.dlb['tconst'] = tconst_new
             self.dlb['tsync'] = tsync_new
-        '''
+
+        return intv
 
 def calc_transactions(dpi, cutoff):
     trans = {}
@@ -977,4 +1130,3 @@ def c_add_int64(xmem, ymem, dt):
     x = np.frombuffer(xmem, dtype=np.int64)
     y = np.frombuffer(ymem, dtype=np.int64)
     bm.add(y, x, inplace=True)
-

@@ -12,7 +12,7 @@ slurm:
         
         # Weak Scaling
         # - 'lb-tp-approx0-weak-scaling'
-        - 'approx0-weak-scaling'
+        # - 'approx0-weak-scaling'
         # - 'tp-approx0-weak-scaling'
         # - 'lb-tp-approx0-weak-scaling'
 
@@ -37,16 +37,16 @@ slurm:
         # 'approx0-openmpi3-impl'
 
         # GPU only experiments
-        - 'approx0-weak-scaling-gpu'
+        # - 'approx0-weak-scaling-gpu'
         # - 'tp-approx0-weak-scaling-gpu'
         # - 'lb-tp-approx0-weak-scaling-gpu'
 
 
         # CPU-GPU experiments 
-        # - 'approx0-weak-scaling-cpu-gpu'
-        # - 'tp-approx0-weak-scaling-cpu-gpu'
-        # - 'lb-tp-approx0-weak-scaling-cpu-gpu'
-        # - 'lb-approx0-weak-scaling-cpu-gpu'
+        - 'approx0-weak-scaling-cpu-gpu'
+        - 'tp-approx0-weak-scaling-cpu-gpu'
+        - 'lb-tp-approx0-weak-scaling-cpu-gpu'
+        - 'lb-approx0-weak-scaling-cpu-gpu'
 
 
     configs: {
