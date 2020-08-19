@@ -167,25 +167,25 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
                         else:
                             self.dev_total_voltage = self.dev_rf_voltage
 
-                        bm.linear_interp_kick(dev_voltage=self.dev_total_voltage,
-                                              dev_bin_centers=self.profile.dev_bin_centers,
-                                              charge=self.beam.Particle.charge,
-                                              acceleration_kick=self.acceleration_kick[turn],
-                                              beam=self.beam)
-                        # bm.LIKick_n_drift(dev_voltage=self.dev_total_voltage,
-                        #                   dev_bin_centers=self.profile.dev_bin_centers,
-                        #                   charge=self.beam.Particle.charge,
-                        #                   acceleration_kick=self.acceleration_kick[turn],
-                        #                   T0=self.t_rev[turn + 1],
-                        #                   length_ratio=self.length_ratio,
-                        #                   eta0=self.eta_0[turn + 1],
-                        #                   beta=self.rf_params.beta[turn+1],
-                        #                   energy=self.rf_params.energy[turn+1],
-                        #                   beam=self.beam)
+                        # bm.linear_interp_kick(dev_voltage=self.dev_total_voltage,
+                        #                       dev_bin_centers=self.profile.dev_bin_centers,
+                        #                       charge=self.beam.Particle.charge,
+                        #                       acceleration_kick=self.acceleration_kick[turn],
+                        #                       beam=self.beam)
+                        bm.LIKick_n_drift(dev_voltage=self.dev_total_voltage,
+                                          dev_bin_centers=self.profile.dev_bin_centers,
+                                          charge=self.beam.Particle.charge,
+                                          acceleration_kick=self.acceleration_kick[turn],
+                                          T0=self.t_rev[turn + 1],
+                                          length_ratio=self.length_ratio,
+                                          eta0=self.eta_0[turn + 1],
+                                          beta=self.rf_params.beta[turn+1],
+                                          energy=self.rf_params.energy[turn+1],
+                                          beam=self.beam)
 
                 else:
                     self.kick(turn)
-            self.drift(turn + 1)
+                    self.drift(turn + 1)
 
         # Updating the beam synchronous momentum etc.
         self.beam.beta = self.rf_params.beta[turn+1]
@@ -267,7 +267,7 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
 
         bm.kick(dev_voltage, dev_omega_rf, dev_phi_rf,
                 self.charge, self.n_rf, self.acceleration_kick[index], self.beam)
-        self.beam.dE_obj.invalidate_cpu()
+        # self.beam.dE_obj.invalidate_cpu()
 
     @timing.timeit(key='comp:drift')
     def drift(self, index):
@@ -276,7 +276,7 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
                  self.eta_1[index], self.eta_2[index], self.alpha_0[index],
                  self.alpha_1[index], self.alpha_2[index],
                  self.rf_params.beta[index], self.rf_params.energy[index], self.beam)
-        self.beam.dt_obj.invalidate_cpu()
+        # self.beam.dt_obj.invalidate_cpu()
 
 
 def tracker_funcs_update(obj):

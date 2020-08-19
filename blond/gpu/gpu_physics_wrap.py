@@ -69,7 +69,7 @@ def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_k
                 np.int32(beam.dev_dt.size),
                 np.float64(acceleration_kick),
                 block=block_size, grid=grid_size, time_kernel=True)
-    beam.dt_obj.invalidate_cpu()
+    beam.dE_obj.invalidate_cpu()
 
 
 def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
@@ -121,7 +121,7 @@ def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
                    np.float64(alpha_2), np.float64(energy),
                    np.int32(n_macroparticles),
                    block=block_size, grid=grid_size, time_kernel=True)
-    beam.dE_obj.invalidate_cpu()
+    beam.dt_obj.invalidate_cpu()
 
 
 def gpu_linear_interp_kick(dev_voltage,
