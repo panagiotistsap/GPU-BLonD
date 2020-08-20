@@ -925,6 +925,7 @@ class Worker:
             # self.dlb['intra_tconst'] = tconst_new
             # self.dlb['intra_tsync'] = tsync_new
             # return intv
+        '''
         if turn in self.inter_lb_turns:
             tcomp_new = timing.get(['comp:'])
             tcomm_new = timing.get(['comm:'])
@@ -949,7 +950,7 @@ class Worker:
             self.dlb['tcomm'] = tcomm_new
             self.dlb['tconst'] = tconst_new
             self.dlb['tsync'] = tsync_new
-
+        '''
         return intv
 
 def calc_transactions(dpi, cutoff):
