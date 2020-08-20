@@ -12,7 +12,7 @@ slurm:
         
         # Weak Scaling
         # - 'lb-tp-approx0-weak-scaling'
-        - 'approx0-weak-scaling'
+        # - 'approx0-weak-scaling'
         # - 'tp-approx0-weak-scaling'
         # - 'lb-tp-approx0-weak-scaling'
 
@@ -37,95 +37,19 @@ slurm:
         # 'approx0-openmpi3-impl'
 
         # GPU only experiments
-        - 'approx0-weak-scaling-gpu'
+        # - 'approx0-weak-scaling-gpu'
         # - 'tp-approx0-weak-scaling-gpu'
         # - 'lb-tp-approx0-weak-scaling-gpu'
 
 
         # CPU-GPU experiments 
-        - 'approx0-weak-scaling-cpu-gpu'
+        # - 'approx0-weak-scaling-cpu-gpu'
         # - 'tp-approx0-weak-scaling-cpu-gpu'
         - 'lb-tp-approx0-weak-scaling-cpu-gpu'
         - 'lb-approx0-weak-scaling-cpu-gpu'
 
 
     configs: {
-        # Strong scaling
-        'lb-tp-approx0-strong-scaling': {
-            'exe': ['LHC_main.py'],
-            'particles': [2000000],
-            'bunches': [96],  # 192
-            'slices': [1000],
-            'turns': [10000],
-            'monitor': [0],
-            'seed': [0],
-            'mtw': [0],
-            'withtp': [1],
-            'reduce': [2],
-            'approx': [0],
-            'log': [1],
-            'loadbalance': ['interval,500,0.03,5,20'],
-            'artificialdelay': ['off'],
-            'precision': ['double'],
-            'timing': ['timing'],
-            'gpu': ['0'],
-            'workers': [2, 4, 8, 16],
-            'omp': [10],
-            'mpi': ['openmpi4'],
-            'time': [60],
-            'repeats': 4
-        },
-
-        'tp-approx0-strong-scaling': {
-            'exe': ['LHC_main.py'],
-            'particles': [2000000],
-            'bunches': [96],  # 192
-            'slices': [1000],
-            'turns': [10000],
-            'monitor': [0],
-            'seed': [0],
-            'mtw': [0],
-            'withtp': [1],
-            'reduce': [2],
-            'approx': [0],
-            'log': [1],
-            'loadbalance': ['reportonly,,,,'],
-            'artificialdelay': ['off'],
-            'precision': ['double'],
-            'timing': ['timing'],
-            'gpu': ['0'],
-            'workers': [2, 4, 8, 16],
-            'omp': [10],
-            'mpi': ['openmpi4'],
-            'time': [60],
-            'repeats': 4
-        },
-
-        'approx0-strong-scaling': {
-            'exe': ['LHC_main.py'],
-            'particles': [1000000],
-            'bunches': [96],  # 192
-            'slices': [1000],
-            'turns': [10000],
-            'monitor': [0],
-            'seed': [0],
-            'mtw': [0],
-            'withtp': [0],
-            'reduce': [2],
-            'approx': [0],
-            'log': [1],
-            'loadbalance': ['reportonly,,,,'],
-            'artificialdelay': ['off'],
-            'precision': ['double'],
-            'timing': ['timing'],
-            'gpu': ['0'],
-            'workers': [2, 4, 8, 16],
-            'omp': [10],
-            'mpi': ['openmpi4'],
-            'time': [60],
-            'repeats': 2
-        },
-
 
         # Weak scaling
         'lb-tp-approx0-weak-scaling': {
@@ -268,6 +192,7 @@ slurm:
             # 'workers': [2, 4, 8, 16],
             # 'workers': [2, 4, 8],
             'workers': [2, 4],
+            'nodes': [1],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [60],
@@ -297,6 +222,7 @@ slurm:
             # 'workers': [2, 4, 8, 16],
             # 'workers': [2, 4, 8],
             'workers': [2, 4],
+            'nodes': [1],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [60],
@@ -325,6 +251,7 @@ slurm:
             'timing': ['timing'],
             # 'workers': [2, 4, 8],
             'workers': [2],
+            'nodes': [1],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [60],
@@ -355,6 +282,7 @@ slurm:
             'timing': ['timing'],
             # 'workers': [2, 4, 8],
             'workers': [2, 4],
+            'nodes': [1],
             'omp': [10],
             'mpi': ['openmpi4'],
             'time': [60],
