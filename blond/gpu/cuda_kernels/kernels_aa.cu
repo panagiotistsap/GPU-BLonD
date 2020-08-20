@@ -212,87 +212,72 @@ __global__ void rf_volt_comp(  double *voltage,
 }
 
 extern "C"
-__global__ void drift_simple(double *beam_dt,
-                    const double *beam_dE,
-                    const double T0, const double length_ratio,
-                    const double eta0, const double beta,
-                    const double energy,
-                    const int n_macroparticles) 
+__global__ void drift(double *beam_dt,
+        const double  *beam_dE,
+        const int solver,
+        const double T0, const double length_ratio,
+        const double alpha_order, const double eta_zero,
+        const double eta_one, const double eta_two,
+        const double alpha_zero, const double alpha_one,
+        const double alpha_two,
+        const double beta, const double energy,
+        const int n_macroparticles)
 {
-    double T = T0*length_ratio;
-    double coeff = T*(eta0 / (beta*beta*energy));
+    double T = T0 * length_ratio;
     int tid = threadIdx.x + blockDim.x * blockIdx.x;
-    for (int i = tid; i<n_macroparticles; i+=gridDim.x*blockDim.x)
-        beam_dt[i] += coeff * beam_dE[i]; 
-}
-
-extern "C"
-__global__ void drift_legacy_0(double *beam_dt,
-                            const double *beam_dE,
-                            const double T, 
-                            const double eta0,
-                            const int n_macroparticles)
-{
-    int tid = threadIdx.x + blockDim.x * blockIdx.x;
-    for (int i = tid; i < n_macroparticles; i+= blockDim.x*gridDim.x)
-        beam_dt[i] += T * (1. / (1. - eta0 * beam_dE[i]) - 1.);
-}
-
-
-extern "C"
-__global__ void drift_legacy_1(double *beam_dt,
-                            const double *beam_dE,
-                            const double T,
-                            const double eta0, const double eta1,
-                            const int n_macroparticles) 
-{
-    int tid = threadIdx.x + blockDim.x * blockIdx.x;
-    for (int i = tid; i < n_macroparticles; i+= blockDim.x*gridDim.x)
-        beam_dt[i] += T * (1. / (1. - eta0 * beam_dE[i]
-                                    - eta1 * beam_dE[i] * beam_dE[i]) - 1.);
-}
-
-extern "C"
-__global__ void drift_legacy_2(double *beam_dt,
-                            const double *beam_dE,
-                            const double T,
-                            const double eta0, const double eta1, const double eta2,
-                            const int n_macroparticles) 
-{
-    int tid = threadIdx.x + blockDim.x * blockIdx.x;
-    double my_beam_dE;
-    for (int i = tid; i < n_macroparticles; i+= blockDim.x*gridDim.x){
-        my_beam_dE = beam_dE[i];
-        beam_dt[i] += T * (1. / (1. - eta0 * my_beam_dE
-                                    - eta1 * my_beam_dE * my_beam_dE
-                                    - eta2 * my_beam_dE * my_beam_dE * my_beam_dE) - 1.);
+    if ( solver == 0 )
+    {
+        double coeff = eta_zero / (beta * beta * energy);
+        for (int i=tid; i<n_macroparticles; i=i+blockDim.x*gridDim.x)
+            beam_dt[i] += T * coeff * beam_dE[i];
     }
-}
 
-extern "C"
-__global__ void drift_else(double *beam_dt,
-                            const double *beam_dE,
-                            const double invbetasq,
-                            const double invenesq,
-                            const double T,
-                            const double alpha_zero,
-                            const double alpha_one,
-                            const double alpha_two,
-                            const double energy,
-                            const int n_macroparticles) 
-{
-    double beam_delta;
-    int tid = threadIdx.x + blockDim.x * blockIdx.x;
-    for (int i = tid; i < n_macroparticles; i+= blockDim.x*gridDim.x){
-        beam_delta = sqrt(1. + invbetasq *
-                                (beam_dE[i] * beam_dE[i] * invenesq + 2.*beam_dE[i] / energy)) - 1.;
+    else if ( solver == 1 )
+    {
+        const double coeff = 1. / (beta * beta * energy);
+        const double eta0 = eta_zero * coeff;
+        const double eta1 = eta_one * coeff * coeff;
+        const double eta2 = eta_two * coeff * coeff * coeff;
 
-        beam_dt[i] += T * (
-                            (1. + alpha_zero * beam_delta +
-                            alpha_one * (beam_delta * beam_delta) +
-                            alpha_two * (beam_delta * beam_delta * beam_delta)) *
-                            (1. + beam_dE[i] / energy) / (1. + beam_delta) - 1.);
-    } 
+        if (alpha_order == 0)
+            for (int i=tid; i<n_macroparticles; i=i+blockDim.x*gridDim.x)
+                beam_dt[i] += T * (1. / (1. - eta0 * beam_dE[i]) - 1.);
+        else if (alpha_order == 1)
+            for (int i=tid; i<n_macroparticles; i=i+blockDim.x*gridDim.x)
+                beam_dt[i] += T * (1. / (1. - eta0 * beam_dE[i]
+                                         - eta1 * beam_dE[i] * beam_dE[i]) - 1.);
+        else
+            for (int i=tid; i<n_macroparticles; i=i+blockDim.x*gridDim.x)
+                beam_dt[i] += T * (1. / (1. - eta0 * beam_dE[i]
+                                         - eta1 * beam_dE[i] * beam_dE[i]
+                                         - eta2 * beam_dE[i] * beam_dE[i] * beam_dE[i]) - 1.);
+    }
+
+    else
+    {
+
+        const double invbetasq = 1 / (beta * beta);
+        const double invenesq = 1 / (energy * energy);
+        // double beam_delta;
+
+        
+        for (int i=tid; i<n_macroparticles; i=i+blockDim.x*gridDim.x)
+
+        {
+
+            double beam_delta = sqrt(1. + invbetasq *
+                              (beam_dE[i] * beam_dE[i] * invenesq + 2.*beam_dE[i] / energy)) - 1.;
+
+            beam_dt[i] += T * (
+                              (1. + alpha_zero * beam_delta +
+                               alpha_one * (beam_delta * beam_delta) +
+                               alpha_two * (beam_delta * beam_delta * beam_delta)) *
+                              (1. + beam_dE[i] / energy) / (1. + beam_delta) - 1.);
+
+        }
+
+    }    
+    
 }   
 
 

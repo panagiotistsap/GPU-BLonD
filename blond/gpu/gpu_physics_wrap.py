@@ -25,11 +25,7 @@ my_gpu = bm.gpuDev()
 ker = bm.getMod()
 
 
-drift_simple = ker.get_function("drift_simple")
-drift_legacy_0 = ker.get_function("drift_legacy_0")
-drift_legacy_1 = ker.get_function("drift_legacy_1")
-drift_legacy_2 = ker.get_function("drift_legacy_2")
-drift_else = ker.get_function("drift_else")
+drift = ker.get_function("drift")
 kick_kernel = ker.get_function("simple_kick")
 rvc = ker.get_function("rf_volt_comp")
 hybrid_histogram = ker.get_function("hybrid_histogram")
@@ -75,52 +71,24 @@ def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_k
 def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
               eta_1, eta_2, alpha_0, alpha_1, alpha_2, beta, energy, beam):
     solver = solver_utf8.decode('utf-8')
-    T = np.float64(t_rev)*np.float64(length_ratio)
-    n_macroparticles = len(beam.dev_dt)
-    if (solver == "simple"):
-        ##### simple solver #####
-        # coeff =  np.float64(eta_0) / (np.float64(beta)* np.float64(beta)* np.float64(energy))
-        # beam.dev_dt += T*coeff*beam.dev_dE
-        drift_simple(beam.dev_dt, beam.dev_dE,
-                     (t_rev), np.float64(length_ratio),
-                     (eta_0), (beta),
-                     (energy), np.int32(n_macroparticles),
-                     grid=grid_size, block=block_size, time_kernel=True)
-
-    elif (solver == "legacy"):
-        ##### legacy solver #####
-
-        coeff = 1. / (beta * beta * energy)
-        eta0 = eta_0 * coeff
-        eta1 = eta_1 * coeff * coeff
-        eta2 = eta_2 * coeff * coeff * coeff
-        if (alpha_order == 0):
-            drift_legacy_0(beam.dev_dt, beam.dev_dE,
-                           np.float64(T), np.float64(eta0),
-                           np.int32(n_macroparticles),
-                           block=block_size, grid=grid_size, time_kernel=True)
-        elif (alpha_order == 1):
-            drift_legacy_1(beam.dev_dt, beam.dev_dE,
-                           np.float64(T), np.float64(eta0),
-                           np.float64(eta1), np.int32(n_macroparticles),
-                           block=block_size, grid=grid_size, time_kernel=True)
-        else:
-            drift_legacy_2(beam.dev_dt, beam.dev_dE,
-                           np.float64(T), np.float64(eta0),
-                           np.float64(eta1), np.float64(eta2),
-                           np.int32(n_macroparticles),
-                           block=block_size, grid=grid_size, time_kernel=True)
-
+    if (solver=="simple"):
+        solver=np.int32(0)
+    elif (solver=="legacy"):
+        solver=np.int32(1)
     else:
-        ##### other solver  #####
-        invbetasq = 1. / (beta * beta)
-        invenesq = 1. / (energy * energy)
-        drift_else(beam.dev_dt, beam.dev_dE,
-                   np.float64(invbetasq), np.float64(invenesq),
-                   np.float64(T), np.float64(alpha_0), np.float64(alpha_1),
-                   np.float64(alpha_2), np.float64(energy),
-                   np.int32(n_macroparticles),
-                   block=block_size, grid=grid_size, time_kernel=True)
+        solver=np.int32(2)
+
+    drift(beam.dev_dt,
+        beam.dev_dE,
+        solver,
+        np.float64(t_rev),  np.float64(length_ratio),
+        np.float64(alpha_order), np.float64(eta_zero),
+        np.float64(eta_one),  np.float64(eta_two),
+        np.float64(alpha_zero),  np.float64(alpha_one),
+        np.float64(alpha_two),
+        np.float64(beta),  np.float64(energy),
+        np.int32(beam.dev_dt.size))
+   
     beam.dt_obj.invalidate_cpu()
 
 
