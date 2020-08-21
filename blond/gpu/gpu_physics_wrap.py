@@ -82,12 +82,13 @@ def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
         beam.dev_dE,
         solver,
         np.float64(t_rev),  np.float64(length_ratio),
-        np.float64(alpha_order), np.float64(eta_zero),
-        np.float64(eta_one),  np.float64(eta_two),
-        np.float64(alpha_zero),  np.float64(alpha_one),
-        np.float64(alpha_two),
+        np.float64(alpha_order), np.float64(eta_0),
+        np.float64(eta_1),  np.float64(eta_2),
+        np.float64(alpha_0),  np.float64(alpha_1),
+        np.float64(alpha_2),
         np.float64(beta),  np.float64(energy),
-        np.int32(beam.dev_dt.size))
+        np.int32(beam.dev_dt.size),
+        block=block_size, grid=grid_size, time_kernel=True)
    
     beam.dt_obj.invalidate_cpu()
 
