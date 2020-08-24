@@ -84,17 +84,19 @@ if __name__ == '__main__':
             precs = config['precision']
             artdels = config['artificialdelay']
             gpus = config['gpu']
+            
+            nodes = config.get('nodes', [0]*len(ps))
 
-            for (p, b, s, t, r, w, o, time,
+            for (N, p, b, s, t, r, w, o, time,
                  mtw, m, seed, exe, approx,
                  timing, mpi, log, lb, #lba,
-                 tp, prec, reps, artdel, gpu) in zip(ps, bs, ss, ts, rs, ws,
+                 tp, prec, reps, artdel, gpu) in zip(nodes, ps, bs, ss, ts, rs, ws,
                                                 oss, times, mtws, ms, seeds,
                                                 exes, approxs, timings, mpis,
                                                 logs, lbs, tps, precs,
                                                 repeats, artdels, gpus):
-
-                N = int(max(np.ceil(w * o / common.cores_per_cpu), 1))
+                if N == 0:
+                    N = int(max(np.ceil(w * o / common.cores_per_cpu), 1))
 
                 job_name = job_name_form.format(p, b, s, t, w, o, N,
                                                 r, mtw, seed, approx, mpi,

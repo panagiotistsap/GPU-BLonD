@@ -11,7 +11,6 @@
 #SBATCH --account=pa200702    # Replace with your system project
 #SBATCH --gres=gpu:2		# For srun, allow access to 2 GPUs
 
-
 which python
 gcc --version
 mpirun --version

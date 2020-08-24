@@ -27,7 +27,8 @@ slurm = {
     'default_args': [
             '--mem', '56G',
             '--export', 'ALL',
-            '--hint', 'nomultithread',
+            '--overcommit'
+            # '--hint', 'nomultithread',
             # '--partition', 'inf-short'
     ]
 }
