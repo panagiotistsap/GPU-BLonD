@@ -782,7 +782,7 @@ class Worker:
             for req in reqs:
                 req.Wait()
             # req[0].Waitall(req)
-        elif dPi[self.rank] < 0 and len(transactions) > 0:
+        elif dPi[self.noderank] < 0 and len(transactions) > 0:
             reqs = []
             recvbuf = []
             for t in transactions:
