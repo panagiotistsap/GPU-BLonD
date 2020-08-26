@@ -891,7 +891,10 @@ class Worker:
                     'tconst': 0, 'tsync': 0,
                     'cutoff': float(cutoff), 'decay': float(decay),
                     'coeffs_keep': int(keep),
-                    'intra_tcomp': 0}
+                    'intra_tcomp': 0,
+                    'intra_tconst': 0,
+                    'intra_tsync': 0,
+                    'intra_tcomm': 0}
         # to begin with, we make them equal
         self.intra_lb_turns = np.copy(self.inter_lb_turns)
         return self.inter_lb_turns
@@ -926,6 +929,34 @@ class Worker:
             # self.dlb['intra_tsync'] = tsync_new
             # return intv
         '''
+        # to considere tconst also for the dlb
+        if turn in self.intra_lb_turns:
+            tcomp_new = timing.get(['comp:'])
+            tcomm_new = timing.get(['comm:'])
+            tconst_new = timing.get(['serial:'], exclude_lst=[
+                            'serial:sync', 'serial:intraSync', 'serial:gpuSync'])
+
+            tsync_new = timing.get(
+                ['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
+            if self.lb_type != 'reportonly':
+                intv = self.intra_redistribute(turn, beam,
+                                               tcomp=tcomp_new -
+                                               self.dlb['intra_tcomp'],
+                                               tconst=((tconst_new-self.dlb['intra_tconst'])
+                                                 + (tcomm_new - self.dlb['intra_tcomm'])))
+
+            self.report('intra', turn, beam, tcomp=tcomp_new-self.dlb['intra_tcomp'],
+                        tcomm=tcomm_new-self.dlb['intra_tcomm'],
+                        tconst=tcons_new-self.dlb['intra_tconst'],
+                        tsync=tsync_new-self.dlb['intra_tsync'])
+            self.dlb['intra_tcomp'] = tcomp_new
+            self.dlb['intra_tcomm'] = tcomm_new
+            self.dlb['intra_tconst'] = tconst_new
+            self.dlb['intra_tsync'] = tsync_new
+            # return intv
+        '''
+        '''
+        # This is the external LB
         if turn in self.inter_lb_turns:
             tcomp_new = timing.get(['comp:'])
             tcomm_new = timing.get(['comm:'])
