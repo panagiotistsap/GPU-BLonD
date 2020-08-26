@@ -899,63 +899,61 @@ class Worker:
         self.intra_lb_turns = np.copy(self.inter_lb_turns)
         return self.inter_lb_turns
 
-    def DLB(self, turn, beam):
+    def DLB(self, turn, beam, withtp=False):
         intv = 0
-        
-        if turn in self.intra_lb_turns:
-            tcomp_new = timing.get(['comp:'])
-            # tcomm_new = timing.get(['comm:'])
-            tconst_new = 0
-            tsync_new = timing.get(
-                ['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
-            if self.lb_type != 'reportonly':
-                intv = self.intra_redistribute(turn, beam,
-                                               tcomp=tcomp_new -
-                                               self.dlb['intra_tcomp'],
-                                               # tsync=tsync_new - self.dlb['tsync'])
-                                               tconst=0)
+        if (withtp):
+            if turn in self.intra_lb_turns:
+                tcomp_new = timing.get(['comp:'])
+                # tcomm_new = timing.get(['comm:'])
+                tconst_new = 0
+                tsync_new = timing.get(
+                    ['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
+                if self.lb_type != 'reportonly':
+                    intv = self.intra_redistribute(turn, beam,
+                                                tcomp=tcomp_new -
+                                                self.dlb['intra_tcomp'],
+                                                # tsync=tsync_new - self.dlb['tsync'])
+                                                tconst=0)
 
-                # tconst=((tconst_new-self.dlb['tconst'])
-                #         + (tcomm_new - self.dlb['tcomm'])))
-            # if self.lb_type == 'dynamic':
-            #     self.inter_lb_turns[0] += intv
-            self.report('intra', turn, beam, tcomp=tcomp_new-self.dlb['intra_tcomp'],
-                        tcomm=0,
-                        tconst=0,
-                        tsync=0)
-            self.dlb['intra_tcomp'] = tcomp_new
-            # self.dlb['intra_tcomm'] = tcomm_new
-            # self.dlb['intra_tconst'] = tconst_new
-            # self.dlb['intra_tsync'] = tsync_new
-            # return intv
-        '''
+                    # tconst=((tconst_new-self.dlb['tconst'])
+                    #         + (tcomm_new - self.dlb['tcomm'])))
+                # if self.lb_type == 'dynamic':
+                #     self.inter_lb_turns[0] += intv
+                self.report('intra', turn, beam, tcomp=tcomp_new-self.dlb['intra_tcomp'],
+                            tcomm=0,
+                            tconst=0,
+                            tsync=0)
+                self.dlb['intra_tcomp'] = tcomp_new
+                # self.dlb['intra_tcomm'] = tcomm_new
+                # self.dlb['intra_tconst'] = tconst_new
+                # self.dlb['intra_tsync'] = tsync_new
+                # return intv
+        else:
         # to considere tconst also for the dlb
-        if turn in self.intra_lb_turns:
-            tcomp_new = timing.get(['comp:'])
-            tcomm_new = timing.get(['comm:'])
-            tconst_new = timing.get(['serial:'], exclude_lst=[
-                            'serial:sync', 'serial:intraSync', 'serial:gpuSync'])
+            if turn in self.intra_lb_turns:
+                tcomp_new = timing.get(['comp:'])
+                tcomm_new = timing.get(['comm:'])
+                tconst_new = timing.get(['serial:'], exclude_lst=[
+                                'serial:sync', 'serial:intraSync', 'serial:gpuSync'])
 
-            tsync_new = timing.get(
-                ['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
-            if self.lb_type != 'reportonly':
-                intv = self.intra_redistribute(turn, beam,
-                                               tcomp=tcomp_new -
-                                               self.dlb['intra_tcomp'],
-                                               tconst=((tconst_new-self.dlb['intra_tconst'])
-                                                 + (tcomm_new - self.dlb['intra_tcomm'])))
+                tsync_new = timing.get(
+                    ['serial:sync', 'serial:intraSync', 'serial:gpuSync'])
+                if self.lb_type != 'reportonly':
+                    intv = self.intra_redistribute(turn, beam,
+                                                tcomp=tcomp_new -
+                                                self.dlb['intra_tcomp'],
+                                                tconst=((tconst_new-self.dlb['intra_tconst'])
+                                                    + (tcomm_new - self.dlb['intra_tcomm'])))
 
-            self.report('intra', turn, beam, tcomp=tcomp_new-self.dlb['intra_tcomp'],
-                        tcomm=tcomm_new-self.dlb['intra_tcomm'],
-                        tconst=tcons_new-self.dlb['intra_tconst'],
-                        tsync=tsync_new-self.dlb['intra_tsync'])
-            self.dlb['intra_tcomp'] = tcomp_new
-            self.dlb['intra_tcomm'] = tcomm_new
-            self.dlb['intra_tconst'] = tconst_new
-            self.dlb['intra_tsync'] = tsync_new
-            # return intv
-        '''
-        '''
+                self.report('intra', turn, beam, tcomp=tcomp_new-self.dlb['intra_tcomp'],
+                            tcomm=tcomm_new-self.dlb['intra_tcomm'],
+                            tconst=tconst_new-self.dlb['intra_tconst'],
+                            tsync=tsync_new-self.dlb['intra_tsync'])
+                self.dlb['intra_tcomp'] = tcomp_new
+                self.dlb['intra_tcomm'] = tcomm_new
+                self.dlb['intra_tconst'] = tconst_new
+                self.dlb['intra_tsync'] = tsync_new
+                # return intv
         # This is the external LB
         if turn in self.inter_lb_turns:
             tcomp_new = timing.get(['comp:'])
@@ -981,8 +979,8 @@ class Worker:
             self.dlb['tcomm'] = tcomm_new
             self.dlb['tconst'] = tconst_new
             self.dlb['tsync'] = tsync_new
-        '''
-        return intv
+        
+        # return intv
 
 def calc_transactions(dpi, cutoff):
     trans = {}
