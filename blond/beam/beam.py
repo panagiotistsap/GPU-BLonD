@@ -187,7 +187,7 @@ class Beam(object):
             self.dt_obj = CGA(self.dt)
 
             # id to gpu
-            self.id_obj = CGA(self.id, dtype2=np.float64)
+            self.id_obj = CGA(self.id, dtype2=bm.precision.real_t)
             self.__class__ = gb.gpu_Beam
 
     @property
