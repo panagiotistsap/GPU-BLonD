@@ -55,7 +55,7 @@ def gpu_rf_volt_comp(dev_voltage, dev_omega_rf, dev_phi_rf, dev_bin_centers, dev
 
 
 def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_kick, beam):
-    dev_voltage_kick = get_gpuarray((dev_voltage.size, np.float64, 0, 'vK'))
+    dev_voltage_kick = get_gpuarray((dev_voltage.size, bm.precision.real_t, 0, 'vK'))
 
     #dev_voltage_kick  = np.float64(charge)*dev_voltage
     d_multscalar(dev_voltage_kick, dev_voltage, charge)
@@ -67,7 +67,7 @@ def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_k
                 dev_omega_rf,
                 dev_phi_rf,
                 np.int32(beam.dev_dt.size),
-                np.float64(acceleration_kick),
+                bm.precision.c_real_t(acceleration_kick),
                 block=block_size, grid=grid_size, time_kernel=True)
     beam.dE_obj.invalidate_cpu()
 
@@ -75,14 +75,14 @@ def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_k
 def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
               eta_1, eta_2, alpha_0, alpha_1, alpha_2, beta, energy, beam):
     solver = solver_utf8.decode('utf-8')
-    T = np.float64(t_rev)*np.float64(length_ratio)
+    T = bm.precision.c_real_t(t_rev)*bm.precision.c_real_t(length_ratio)
     n_macroparticles = len(beam.dev_dt)
     if (solver == "simple"):
         ##### simple solver #####
         # coeff =  np.float64(eta_0) / (np.float64(beta)* np.float64(beta)* np.float64(energy))
         # beam.dev_dt += T*coeff*beam.dev_dE
         drift_simple(beam.dev_dt, beam.dev_dE,
-                     (t_rev), np.float64(length_ratio),
+                     (t_rev), bm.precision.c_real_t(length_ratio),
                      (eta_0), (beta),
                      (energy), np.int32(n_macroparticles),
                      grid=grid_size, block=block_size, time_kernel=True)
@@ -96,18 +96,18 @@ def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
         eta2 = eta_2 * coeff * coeff * coeff
         if (alpha_order == 0):
             drift_legacy_0(beam.dev_dt, beam.dev_dE,
-                           np.float64(T), np.float64(eta0),
+                           bm.precision.c_real_t(T), bm.precision.c_real_t(eta0),
                            np.int32(n_macroparticles),
                            block=block_size, grid=grid_size, time_kernel=True)
         elif (alpha_order == 1):
             drift_legacy_1(beam.dev_dt, beam.dev_dE,
-                           np.float64(T), np.float64(eta0),
-                           np.float64(eta1), np.int32(n_macroparticles),
+                           bm.precision.c_real_t(T), bm.precision.c_real_t(eta0),
+                           bm.precision.c_real_t(eta1), np.int32(n_macroparticles),
                            block=block_size, grid=grid_size, time_kernel=True)
         else:
             drift_legacy_2(beam.dev_dt, beam.dev_dE,
-                           np.float64(T), np.float64(eta0),
-                           np.float64(eta1), np.float64(eta2),
+                           bm.precision.c_real_t(T), bm.precision.c_real_t(eta0),
+                           bm.precision.c_real_t(eta1), bm.precision.c_real_t(eta2),
                            np.int32(n_macroparticles),
                            block=block_size, grid=grid_size, time_kernel=True)
 
@@ -116,9 +116,9 @@ def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
         invbetasq = 1. / (beta * beta)
         invenesq = 1. / (energy * energy)
         drift_else(beam.dev_dt, beam.dev_dE,
-                   np.float64(invbetasq), np.float64(invenesq),
-                   np.float64(T), np.float64(alpha_0), np.float64(alpha_1),
-                   np.float64(alpha_2), np.float64(energy),
+                   bm.precision.c_real_t(invbetasq), bm.precision.c_real_t(invenesq),
+                   bm.precision.c_real_t(T), bm.precision.c_real_t(alpha_0), bm.precision.c_real_t(alpha_1),
+                   bm.precision.c_real_t(alpha_2), bm.precision.c_real_t(energy),
                    np.int32(n_macroparticles),
                    block=block_size, grid=grid_size, time_kernel=True)
     beam.dt_obj.invalidate_cpu()
@@ -130,17 +130,17 @@ def gpu_linear_interp_kick(dev_voltage,
     macros = beam.dev_dt.size
     slices = dev_bin_centers.size
 
-    dev_voltageKick = get_gpuarray((slices-1, np.float64, 0, 'vK'))
-    dev_factor = get_gpuarray((slices-1, np.float64, 0, 'dF'))
+    dev_voltageKick = get_gpuarray((slices-1, bm.precision.real_t, 0, 'vK'))
+    dev_factor = get_gpuarray((slices-1, bm.precision.real_t, 0, 'dF'))
 
     gm_linear_interp_kick_help(beam.dev_dt,
                                beam.dev_dE,
                                dev_voltage,
                                dev_bin_centers,
-                               np.float64(charge),
+                               bm.precision.c_real_t(charge),
                                np.int32(slices),
                                np.int32(macros),
-                               np.float64(acceleration_kick),
+                               bm.precision.c_real_t(acceleration_kick),
                                dev_voltageKick,
                                dev_factor,
                                grid=grid_size, block=block_size,
@@ -149,10 +149,10 @@ def gpu_linear_interp_kick(dev_voltage,
                                beam.dev_dE,
                                dev_voltage,
                                dev_bin_centers,
-                               np.float64(charge),
+                               bm.precision.c_real_t(charge),
                                np.int32(slices),
                                np.int32(macros),
-                               np.float64(acceleration_kick),
+                               bm.precision.c_real_t(acceleration_kick),
                                dev_voltageKick,
                                dev_factor,
                                grid=grid_size, block=block_size,
@@ -168,17 +168,17 @@ def gpu_linear_interp_kick_drift(dev_voltage,
     macros = beam.dev_dt.size
     slices = dev_bin_centers.size
 
-    dev_voltageKick = get_gpuarray((slices-1, np.float64, 0, 'vK'))
-    dev_factor = get_gpuarray((slices-1, np.float64, 0, 'dF'))
+    dev_voltageKick = get_gpuarray((slices-1, bm.precision.real_t, 0, 'vK'))
+    dev_factor = get_gpuarray((slices-1, bm.precision.real_t, 0, 'dF'))
 
     gm_linear_interp_kick_help(beam.dev_dt,
                                beam.dev_dE,
                                dev_voltage,
                                dev_bin_centers,
-                               np.float64(charge),
+                               bm.precision.c_real_t(charge),
                                np.int32(slices),
                                np.int32(macros),
-                               np.float64(acceleration_kick),
+                               bm.precision.c_real_t(acceleration_kick),
                                dev_voltageKick,
                                dev_factor,
                                grid=grid_size, block=block_size,
@@ -187,17 +187,17 @@ def gpu_linear_interp_kick_drift(dev_voltage,
                                      beam.dev_dE,
                                      dev_voltage,
                                      dev_bin_centers,
-                                     np.float64(charge),
+                                     bm.precision.c_real_t(charge),
                                      np.int32(slices),
                                      np.int32(macros),
-                                     np.float64(acceleration_kick),
+                                     bm.precision.c_real_t(acceleration_kick),
                                      dev_voltageKick,
                                      dev_factor,
-                                     np.float64(T0),
-                                     np.float64(length_ratio),
-                                     np.float64(eta0),
-                                     np.float64(beta),
-                                     np.float64(energy),
+                                     bm.precision.c_real_t(T0),
+                                     bm.precision.c_real_t(length_ratio),
+                                     bm.precision.c_real_t(eta0),
+                                     bm.precision.c_real_t(beta),
+                                     bm.precision.c_real_t(energy),
                                      grid=grid_size, block=block_size,
                                      time_kernel=True)
     beam.dE_obj.invalidate_cpu()
@@ -224,13 +224,13 @@ def gpu_slice(cut_left, cut_right, beam, profile):
     # print(threads_per_block,num_of_blocks_per_sm)
     # print(my_gpu.MAX_SHARED_MEMORY_PER_BLOCK)
     if (4*n_slices < my_gpu.MAX_SHARED_MEMORY_PER_BLOCK):
-        sm_histogram(beam.dev_dt, profile.dev_n_macroparticles, np.float64(cut_left),
-                     np.float64(cut_right), np.uint32(n_slices),
+        sm_histogram(beam.dev_dt, profile.dev_n_macroparticles, bm.precision.c_real_t(cut_left),
+                     bm.precision.c_real_t(cut_right), np.uint32(n_slices),
                      np.uint32(beam.dev_dt.size),
                      grid=grid_size, block=block_size, shared=4*n_slices, time_kernel=True)
     else:
-        hybrid_histogram(beam.dev_dt, profile.dev_n_macroparticles, np.float64(cut_left),
-                         np.float64(cut_right), np.uint32(n_slices),
+        hybrid_histogram(beam.dev_dt, profile.dev_n_macroparticles, bm.precision.c_real_t(cut_left),
+                         bm.precision.c_real_t(cut_right), np.uint32(n_slices),
                          np.uint32(beam.dev_dt.size), np.int32(
                              my_gpu.MAX_SHARED_MEMORY_PER_BLOCK/4),
                          grid=grid_size, block=block_size, shared=my_gpu.MAX_SHARED_MEMORY_PER_BLOCK, time_kernel=True)
@@ -239,13 +239,13 @@ def gpu_slice(cut_left, cut_right, beam, profile):
 
 
 def gpu_synchrotron_radiation(dE, U0, n_kicks, tau_z):
-    synch_rad(dE, np.float64(U0), np.int32(dE.size), np.float64(tau_z),
+    synch_rad(dE, bm.precision.c_real_t(U0), np.int32(dE.size), bm.precision.c_real_t(tau_z),
               np.int32(n_kicks), block=block_size, grid=(my_gpu.MULTIPROCESSOR_COUNT, 1, 1))
 
 
 def gpu_synchrotron_radiation_full(dE, U0, n_kicks, tau_z, sigma_dE, energy):
     # print("Entering")
-    synch_rad_full(dE, np.float64(U0), np.int32(dE.size), np.float64(sigma_dE), np.float64(energy),
+    synch_rad_full(dE, bm.precision.c_real_t(U0), np.int32(dE.size), bm.precision.c_real_t(sigma_dE), bm.precision.c_real_t(energy),
                    np.int32(n_kicks), np.int32(1), block=block_size, grid=grid_size)
 
 
@@ -253,15 +253,15 @@ def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size)
 
     n_bins = bin_centers.size
 
-    array1 = get_gpuarray((bin_centers.size, np.float64, 0, 'ar1'))
-    array2 = get_gpuarray((bin_centers.size, np.float64, 0, 'ar2'))
+    array1 = get_gpuarray((bin_centers.size, bm.precision.real_t, 0, 'ar1'))
+    array2 = get_gpuarray((bin_centers.size, bm.precision.real_t, 0, 'ar2'))
 
-    dev_scoeff = get_gpuarray((1, np.float64, 0, 'sc'))
-    dev_coeff = get_gpuarray((1, np.float64, 0, 'co'))
+    dev_scoeff = get_gpuarray((1, bm.precision.real_t, 0, 'sc'))
+    dev_coeff = get_gpuarray((1, bm.precision.real_t, 0, 'co'))
 
     beam_phase_v2(bin_centers,
-                  profile, np.float64(alpha), omega_rf, phi_rf, np.int32(
-                      ind), np.float64(bin_size),
+                  profile, bm.precision.c_real_t(alpha), omega_rf, phi_rf, np.int32(
+                      ind), bm.precision.c_real_t(bin_size),
                   array1, array2, np.int32(n_bins),
                   block=block_size)  # , grid=grid_size)
 

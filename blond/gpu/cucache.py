@@ -3,11 +3,13 @@ from pycuda import gpuarray
 from ..utils import bmath as bm
 
 def fill(self, value):
-    from .gpu_butils_wrap import set_zero_int, set_zero_double, set_zero_complex
+    from .gpu_butils_wrap import set_zero_int, set_zero_double, set_zero_complex, set_zero_float
     if (self.dtype in [np.int, np.int32]):
         set_zero_int(self)
     elif (self.dtype in [np.float, np.float64]):
         set_zero_double(self)
+    elif self.dtype in [np.float32]:
+        set_zero_float(self)
     else:
         set_zero_complex(self)
 

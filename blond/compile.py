@@ -84,7 +84,7 @@ libs = []
 # EXAMPLE FLAGS: -Ofast -std=c++11 -fopt-info-vec -march=native
 #                -mfma4 -fopenmp -ftree-vectorizer-verbose=1
 cflags = ['-O3', '-ffast-math', '-std=gnu++11', '-shared',
-          '-mavx', '-march=ivybridge']
+          '-mavx', '-march=ivybridge', '-Wno-psabi']
 
 cpp_files = [
     os.path.join(basepath, 'cpp_routines/kick.cpp'),
@@ -96,7 +96,7 @@ cpp_files = [
     os.path.join(basepath, 'cpp_routines/fast_resonator.cpp'),
     os.path.join(basepath, 'cpp_routines/beam_phase.cpp'),
     os.path.join(basepath, 'cpp_routines/fft.cpp'),
-    os.path.join(basepath, 'cpp_routines/openmp.cpp'),
+    os.path.join(basepath, 'cpp_routines/common.cpp'),
     os.path.join(basepath, 'toolbox/tomoscope.cpp'),
     os.path.join(basepath, 'synchrotron_radiation/synchrotron_radiation.cpp'),
     os.path.join(basepath, 'beam/sparse_histogram.cpp'),
@@ -194,22 +194,39 @@ if (__name__ == "__main__"):
     # Compile the GPU library
     if args.gpu:
         print('\nCompiling the CUDA library.')
-        libname = os.path.join(basepath, 'gpu/cuda_kernels/kernels.cubin')
+        libname_double = os.path.join(basepath, 'gpu/cuda_kernels/kernels_double.cubin')
+        libname_single = os.path.join(basepath, 'gpu/cuda_kernels/kernels_single.cubin')
         # we need to get the header files location
         output = subprocess.run('pip show pycuda | grep Location', shell=True,
                                 stdout=subprocess.PIPE,
                                 encoding='utf-8')
         pycudaloc = os.path.join(output.stdout.split(
             'Location:')[1].strip(), 'pycuda/cuda')
-        try:
-            command = nvccflags + ['-o', libname, '-I'+pycudaloc,
-                                   os.path.join(basepath, 'gpu/cuda_kernels/kernels_aa.cu')]
-            subprocess.call(command)
-        except:
-            command = nvccflags + ['-o', libname, '-I'+pycudaloc,
-                                   os.path.join(basepath, 'gpu/cuda_kernels/kernels_na.cu')]
-            subprocess.call(command)
-        if os.path.isfile(libname):
+
+        command = nvccflags + ['-o', libname_single, '-I'+pycudaloc,
+                               os.path.join(basepath, 'gpu/cuda_kernels/kernels_single.cu')]
+        subprocess.call(command)
+
+        command = nvccflags + ['-o', libname_double, '-I'+pycudaloc,
+                               os.path.join(basepath, 'gpu/cuda_kernels/kernels_double.cu')]
+        subprocess.call(command)
+
+
+        if os.path.isfile(libname_single) and os.path.isfile(libname_double):
             print('\nThe CUDA library has been compiled.')
         else:
             print('\nThe CUDA library compilation failed.')
+
+
+        # try:
+        #     command = nvccflags + ['-o', libname, '-I'+pycudaloc,
+        #                            os.path.join(basepath, 'gpu/cuda_kernels/kernels_aa.cu')]
+        #     subprocess.call(command)
+        # except:
+        #     command = nvccflags + ['-o', libname, '-I'+pycudaloc,
+        #                            os.path.join(basepath, 'gpu/cuda_kernels/kernels_na.cu')]
+        #     subprocess.call(command)
+        # if os.path.isfile(libname):
+        #     print('\nThe CUDA library has been compiled.')
+        # else:
+        #     print('\nThe CUDA library compilation failed.')

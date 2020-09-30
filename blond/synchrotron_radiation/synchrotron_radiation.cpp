@@ -12,12 +12,12 @@ Project website: http://blond.web.cern.ch/
 // damping term
 // Author: Juan F. Esteban Mueller, Konstantinos Iliakis
 
-#include <cmath>
-#include <cstdlib>
+#include <math.h>
+#include <stdlib.h>
 #include <random>
 #include <thread>
 #include <chrono>
-#include "../cpp_routines/openmp.h"
+#include "../cpp_routines/common.h"
 
 #ifdef BOOST
 #include <boost/random.hpp>
@@ -58,6 +58,7 @@ extern "C" void synchrotron_radiation(double * __restrict__ beam_dE, const doubl
 extern "C" void synchrotron_radiation_full(double * __restrict__ beam_dE, const double U0,
         const int n_macroparticles, const double sigma_dE,
         const double tau_z, const double energy,
+        // double * __restrict__ random_array,
         const int n_kicks)
 {
 
@@ -78,7 +79,7 @@ extern "C" void synchrotron_radiation_full(double * __restrict__ beam_dE, const 
         {
             static __thread mt19937_64 *gen = nullptr;
             if (!gen) gen = new mt19937_64(seed + omp_get_thread_num());
-            static __thread normal_distribution<> dist(0.0, 1.0);
+            static __thread normal_distribution<double> dist(0.0, 1.0);
             #pragma omp for
             for (int i = 0; i < n_macroparticles; i++) {
                 beam_dE[i] = beam_dE[i] * const_synch_rad
@@ -92,8 +93,8 @@ extern "C" void synchrotron_radiation_full(double * __restrict__ beam_dE, const 
 
 // This function calculates and applies only the synchrotron radiation damping term
 extern "C" void synchrotron_radiationf(float * __restrict__ beam_dE, const float U0,
-                                      const int n_macroparticles, const float tau_z,
-                                      const int n_kicks) {
+                                       const int n_macroparticles, const float tau_z,
+                                       const int n_kicks) {
 
     // SR damping constant, adjusted for better performance
     const float const_synch_rad = 1.0 - 2.0 / tau_z;
@@ -117,6 +118,7 @@ extern "C" void synchrotron_radiationf(float * __restrict__ beam_dE, const float
 extern "C" void synchrotron_radiation_fullf(float * __restrict__ beam_dE, const float U0,
         const int n_macroparticles, const float sigma_dE,
         const float tau_z, const float energy,
+        // float * __restrict__ random_array,
         const int n_kicks)
 {
 
@@ -137,7 +139,7 @@ extern "C" void synchrotron_radiation_fullf(float * __restrict__ beam_dE, const 
         {
             static __thread mt19937_64 *gen = nullptr;
             if (!gen) gen = new mt19937_64(seed + omp_get_thread_num());
-            static __thread normal_distribution<> dist(0.0, 1.0);
+            static __thread normal_distribution<float> dist(0.0, 1.0);
             #pragma omp for
             for (int i = 0; i < n_macroparticles; i++) {
                 beam_dE[i] = beam_dE[i] * const_synch_rad

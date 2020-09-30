@@ -75,7 +75,7 @@ class gpu_TotalInducedVoltage(TotalInducedVoltage):
         # For MPI, to avoid calulating beam spectrum multiple times
         beam_spectrum_dict = {}
         self.dev_induced_voltage = get_gpuarray(
-            (self.profile.n_slices, np.float64, id(self), 'iv'))
+            (self.profile.n_slices, bm.precision.real_t, id(self), 'iv'))
         set_zero_double(self.dev_induced_voltage)
         for induced_voltage_object in self.induced_voltage_list:
             induced_voltage_object.induced_voltage_generation(
@@ -177,15 +177,15 @@ class gpu_InducedVoltage(_InducedVoltage):
         with timing.timed_region('serial:indVolt1Turn'):
 
             inp = get_gpuarray((self.profile.dev_beam_spectrum.size,
-                                np.complex128, id(self), 'inp'))
+                                bm.precision.complex_t, id(self), 'inp'))
             complex_mul(self.dev_total_impedance, self.profile.dev_beam_spectrum, inp)
             # inp = self.dev_total_impedance * self.profile.dev_beam_spectrum
             my_res = bm.irfft(inp, caller_id=id(self))
 
             # dev_induced_voltage = - (self.beam.Particle.charge * e * self.beam.ratio *my_res )
             self.dev_induced_voltage = get_gpuarray(
-                (self.n_induced_voltage, np.float64, id(self), 'iv'))
-            gpu_mul(self.dev_induced_voltage, my_res, np.float64(-self.beam.Particle.charge *
+                (self.n_induced_voltage, bm.precision.real_t, id(self), 'iv'))
+            gpu_mul(self.dev_induced_voltage, my_res, bm.precision.c_real_t(-self.beam.Particle.charge *
                                                             e * self.beam.ratio), slice=slice(0, self.n_induced_voltage))
 
 
@@ -217,7 +217,7 @@ class gpu_InducedVoltage(_InducedVoltage):
 
         # self.induced_voltage = self.mtw_memory[:self.n_induced_voltage]
         self.dev_induced_voltage = get_gpuarray(
-            (self.n_induced_voltage, np.float64, id(self), 'mtw_iv'))
+            (self.n_induced_voltage, bm.precision.real_t, id(self), 'mtw_iv'))
         gpu_copy_d2d(self.dev_induced_voltage, self.dev_mtw_memory,
                     slice=slice(0, self.n_induced_voltage))
 
@@ -234,7 +234,7 @@ class gpu_InducedVoltage(_InducedVoltage):
         dev_induced_voltage_f *= cm.exp(self.dev_omegaj_mtw * t_rev)
 
         self.dev_mtw_memory = get_gpuarray(
-            (self.n_mtw_memory, np.float64, id(self), 'mtw_m'))
+            (self.n_mtw_memory, bm.precision.real_t, id(self), 'mtw_m'))
         dummy = bm.irfft(dev_induced_voltage_f, caller_id=self(id))
         gpu_copy_d2d(self.dev_mtw_memory, dummy, range=range(0, self.n_mtw_memory))
         set_zero_double(self.dev_mtw_memory, slice=slice(-int(self.buffer_size), None, None))
@@ -247,7 +247,7 @@ class gpu_InducedVoltage(_InducedVoltage):
         frequency domain
         """
         t_rev = self.RFParams.t_rev[self.RFParams.counter[0]]
-        inc_dev_time_mtw = get_gpuarray((self.dev_time_mtw.size, np.float64, id(self), "time_mtw"))
+        inc_dev_time_mtw = get_gpuarray((self.dev_time_mtw.size, bm.precision.real_t, id(self), "time_mtw"))
         gpu_copy_d2d(inc_dev_time_mtw,self.dev_time_mtw)
         increase_by_value(inc_dev_time_mtw,t_rev)
         self.dev_mtw_memory = gpu_interp(inc_dev_time_mtw,
@@ -269,7 +269,7 @@ class gpu_InducedVoltageTime(gpu_InducedVoltage, InducedVoltageTime):
 
         # Pseudo-impedance used to calculate linear convolution in the
         # frequency domain (padding zeros)
-        dev_total_wake = gpuarray.to_gpu(self.total_wake, dtype=np.float64)
+        dev_total_wake = gpuarray.to_gpu(self.total_wake, dtype=bm.precision.real_t)
         self.dev_total_impedance = bm.rfft(
             self.total_wake, self.n_fft, caller_id=self(id))
 
@@ -293,7 +293,7 @@ class gpu_InductiveImpedance(gpu_InducedVoltage, InductiveImpedance):
         d_multscalar(induced_voltage, induced_voltage, sv)
 
         self.dev_induced_voltage = get_gpuarray(
-            (self.n_induced_voltage, np.float64, id(self), "iv"))
+            (self.n_induced_voltage, bm.precision.real_t, id(self), "iv"))
         gpu_copy_d2d(self.dev_induced_voltage, induced_voltage,
                     slice=slice(0, self.n_induced_voltage))
 

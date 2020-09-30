@@ -120,8 +120,8 @@ class CutOptions(object):
             # CutError
             raise RuntimeError('cuts_unit should be "s" or "rad"')
 
-        self.edges = np.zeros(n_slices + 1, dtype=float)
-        self.bin_centers = np.zeros(n_slices, dtype=float)
+        self.edges = np.zeros(n_slices + 1, dtype=bm.precision.real_t, order='C')
+        self.bin_centers = np.zeros(n_slices, dtype=bm.precision.real_t, order='C')
 
     def set_cuts(self, Beam=None):
         """
@@ -154,7 +154,7 @@ class CutOptions(object):
                                                             self.cuts_unit))
 
         self.edges = np.linspace(self.cut_left, self.cut_right,
-                                 self.n_slices + 1)
+                                 self.n_slices + 1).astype(dtype=bm.precision.real_t, order='C', copy=False)
         self.bin_centers = (self.edges[:-1] + self.edges[1:])/2
         self.bin_size = (self.cut_right - self.cut_left) / self.n_slices
 
@@ -395,13 +395,11 @@ class Profile(object):
         self.set_slices_parameters()
 
         # Initialize profile array as zero array
-        self.n_macroparticles = np.zeros(self.n_slices, dtype=float)
-        
-        # Initialize beam_spectrum and beam_spectrum_freq as empty arrays
-        self.beam_spectrum = np.array([], dtype=np.complex128)
-        
+        self.n_macroparticles = np.zeros(self.n_slices, dtype=bm.precision.real_t, order='C')
 
-        self.beam_spectrum_freq = np.array([], dtype=float)
+        # Initialize beam_spectrum and beam_spectrum_freq as empty arrays
+        self.beam_spectrum = np.array([], dtype=bm.precision.real_t, order='C')
+        self.beam_spectrum_freq = np.array([], dtype=bm.precision.real_t, order='C')
 
         self.total_transfers = 0
         
@@ -511,7 +509,7 @@ class Profile(object):
 
             with timing.timed_region('serial:conversion'):
                 # with mpiprof.traced_region('serial:conversion'):
-                self.n_macroparticles = self.n_macroparticles.astype(dtype=np.float64, order='C', copy=False)
+                self.n_macroparticles = self.n_macroparticles.astype(dtype=bm.precision.real_t, order='C', copy=False)
 
 
     @timing.timeit(key='serial:scale_histo')

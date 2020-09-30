@@ -1,5 +1,5 @@
 
-#include "openmp.h"
+#include "common.h"
 
 #ifdef PARALLEL
 

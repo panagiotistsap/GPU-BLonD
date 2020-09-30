@@ -55,18 +55,18 @@ class gpu_BeamFeedback(BeamFeedback):
 
             gpu_indexing = gpuarray.to_gpu(indexing[0])
             bin_centers_indexed = get_gpuarray(
-                (gpu_indexing.size, np.float64, 0, "bc"))
+                (gpu_indexing.size, bm.precision.real_t, 0, "bc"))
             indexing_double(bin_centers_indexed,
                             self.profile.dev_bin_centers, gpu_indexing)
             n_macroparticles_indexed = get_gpuarray(
-                (gpu_indexing.size, np.float64, 0, "mc"))
+                (gpu_indexing.size, bm.precision.real_t, 0, "mc"))
             indexing_int(n_macroparticles_indexed,
                         self.profile.dev_n_macroparticles, gpu_indexing)
 
             time_offset = self.time_offset
 
-            sin_result = get_gpuarray((gpu_indexing.size, np.float64, 0, "sin"))
-            cos_result = get_gpuarray((gpu_indexing.size, np.float64, 0, "cos"))
+            sin_result = get_gpuarray((gpu_indexing.size, bm.precision.real_t, 0, "sin"))
+            cos_result = get_gpuarray((gpu_indexing.size, bm.precision.real_t, 0, "cos"))
 
             sincos_mul_add(bin_centers_indexed, omega_rf,
                         phi_rf, sin_result, cos_result)
@@ -105,8 +105,8 @@ class gpu_BeamFeedback(BeamFeedback):
         # first_elementwise_kernel,
         triple_kernel(self.rf_station.dev_omega_rf, self.rf_station.dev_harmonic,
                     self.rf_station.dev_dphi_rf, self.rf_station.dev_omega_rf_d,
-                    self.rf_station.dev_phi_rf, np.float64(np.pi),
-                    np.float64(self.domega_rf), np.int32(
+                    self.rf_station.dev_phi_rf, bm.precision.c_real_t(np.pi),
+                    bm.precision.c_real_t(self.domega_rf), np.int32(
                         self.rf_station.n_turns+1),
                     np.int32(counter), np.int32(self.rf_station.n_rf), block=(32, 1, 1), grid=(1, 1, 1))
 
@@ -137,7 +137,7 @@ class gpu_BeamFeedback(BeamFeedback):
         '''
         # Main RF frequency at the present turn
         turn = self.rf_station.counter[0]
-        dummy = gpuarray.empty(1, dtype=np.float64)
+        dummy = gpuarray.empty(1, dtype=bm.precision.real_t)
         gpu_copy_one(dummy, self.rf_station.dev_omega_rf,
                     self.rf_station.counter[0], slice=slice(0, 1))
         # self.rf_station.omega_rf[0, self.rf_station.counter[0]]

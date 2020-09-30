@@ -21,7 +21,6 @@ from __future__ import division, print_function
 from builtins import range, object
 import numpy as np
 from scipy.constants import c, physical_constants
-import ctypes
 from ..utils import bmath as bm
 
 
@@ -325,7 +324,7 @@ class Resonators(_ImpedanceObject):
         """
 
         self.time_array = time_array
-        self.wake = np.zeros(self.time_array.shape)
+        self.wake = np.zeros(self.time_array.shape, dtype=bm.precision.real_t, order='C')
 
         for i in range(0, self.n_resonators):
 
@@ -481,7 +480,7 @@ class TravelingWaveCavity(_ImpedanceObject):
         """
 
         self.time_array = time_array
-        self.wake = np.zeros(self.time_array.shape)
+        self.wake = np.zeros(self.time_array.shape, dtype=bm.precision.real_t, order='C')
 
         for i in range(0, self.n_twc):
             a_tilde = self.a_factor[i] / (2 * np.pi)
