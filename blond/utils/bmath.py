@@ -88,7 +88,6 @@ def use_fftw():
 def use_precision(_precision='double'):
     global precision
     if _precision in ['single', 's', '32', 'float32', 'float', 'f']:
-        :
         butils_wrap.precision = butils_wrap.Precision('float')
     elif _precision in ['double', 'd', '64', 'float64']:
         butils_wrap.precision = butils_wrap.Precision('double')
