@@ -451,7 +451,7 @@ class TravelingWaveCavity(_ImpedanceObject):
         _ImpedanceObject.__init__(self)
 
         # Shunt impepdance in :math:`\Omega`
-        self.R_S = np.array([R_S], dtype=np.precision.real_t).flatten()
+        self.R_S = np.array([R_S], dtype=bm.precision.real_t).flatten()
 
         # Resonant frequency in Hz
         self.frequency_R = np.array([frequency_R], dtype=bm.precision.real_t).flatten()

@@ -91,7 +91,7 @@ def synchrotron_frequency_distribution(Beam, FullRingAndRF, main_harmonic_option
     synchronous_phase_index = np.where(potential_well_sep == np.min(potential_well_sep))[0]
     
     # Computing the action J by integrating the dE trajectories
-    J_array_dE0 = np.zeros(len(potential_well_sep), dtype=np.precision.real_t)
+    J_array_dE0 = np.zeros(len(potential_well_sep), dtype=bm.precision.real_t)
      
     warnings.filterwarnings("ignore")
 
@@ -105,7 +105,7 @@ def synchrotron_frequency_distribution(Beam, FullRingAndRF, main_harmonic_option
                                                    len(time_coord_sep)-1))]
         # Potential well calculation with high resolution in that frame
         time_potential_high_res = np.linspace(float(left_time), float(right_time),
-                                              n_points_potential, dtype=np.precision.real_t)
+                                              n_points_potential, dtype=bm.precision.real_t)
         FullRingAndRF.potential_well_generation(
                                  n_points=n_points_potential,
                                  time_array=time_potential_high_res,
@@ -146,10 +146,10 @@ def synchrotron_frequency_distribution(Beam, FullRingAndRF, main_harmonic_option
     delta_time_right = delta_time_right - delta_time_right[0]
     
     if smoothOption is not None:
-        H_array_left = np.convolve(H_array_left, np.ones(smoothOption, dtype=np.precision.real_t)/smoothOption, mode='valid')
-        J_array_left = np.convolve(J_array_left, np.ones(smoothOption, dtype=np.precision.real_t)/smoothOption, mode='valid')
-        H_array_right = np.convolve(H_array_right, np.ones(smoothOption, dtype=np.precision.real_t)/smoothOption, mode='valid')
-        J_array_right = np.convolve(J_array_right, np.ones(smoothOption, dtype=np.precision.real_t)/smoothOption, mode='valid')
+        H_array_left = np.convolve(H_array_left, np.ones(smoothOption, dtype=bm.precision.real_t)/smoothOption, mode='valid')
+        J_array_left = np.convolve(J_array_left, np.ones(smoothOption, dtype=bm.precision.real_t)/smoothOption, mode='valid')
+        H_array_right = np.convolve(H_array_right, np.ones(smoothOption, dtype=bm.precision.real_t)/smoothOption, mode='valid')
+        J_array_right = np.convolve(J_array_right, np.ones(smoothOption, dtype=bm.precision.real_t)/smoothOption, mode='valid')
         delta_time_left = (delta_time_left + (smoothOption-1) * (delta_time_left[1] - delta_time_left[0])/2)[0:len(delta_time_left)-smoothOption+1]
         delta_time_right = (delta_time_right + (smoothOption-1) * (delta_time_right[1] - delta_time_right[0])/2)[0:len(delta_time_right)-smoothOption+1]
     
@@ -226,16 +226,16 @@ class synchrotron_frequency_tracker(object):
         # Generating the distribution from the user input
         if len(theta_coordinate_range) == 2:
             self.Beam.dt = np.linspace(float(theta_coordinate_range[0]),
-                                       float(theta_coordinate_range[1]), n_macroparticles, dtype=np.precision.real_t)\
+                                       float(theta_coordinate_range[1]), n_macroparticles, dtype=bm.precision.real_t)\
                                        * (self.Beam.ring_radius/(self.Beam.beta*c))
         else:
             if len(theta_coordinate_range) != n_macroparticles:
                 #SynchrotronMotionError
                 raise RuntimeError('The input n_macroparticles does not match with the length of the theta_coordinates')
             else:
-                self.Beam.dt = np.array(theta_coordinate_range, dtype=np.precision.real_t) * (self.Beam.ring_radius/(self.Beam.beta*c))
+                self.Beam.dt = np.array(theta_coordinate_range, dtype=bm.precision.real_t) * (self.Beam.ring_radius/(self.Beam.beta*c))
                         
-        self.Beam.dE = np.zeros(int(n_macroparticles), dtype=np.precision.real_t)
+        self.Beam.dE = np.zeros(int(n_macroparticles), dtype=bm.precision.real_t)
  
         for RFsection in self.FullRingAndRF.RingAndRFSection_list:
             RFsection.beam = self.Beam
@@ -247,10 +247,10 @@ class synchrotron_frequency_tracker(object):
         self.nTurns = Ring.n_turns+1
         
         #: *Saving the theta coordinates of the particles while tracking*
-        self.theta_save = np.zeros((self.nTurns, int(n_macroparticles)), dtype=np.precision.real_t)
+        self.theta_save = np.zeros((self.nTurns, int(n_macroparticles)), dtype=bm.precision.real_t)
         
         #: *Saving the dE coordinates of the particles while tracking*
-        self.dE_save = np.zeros((self.nTurns, int(n_macroparticles)), dtype=np.precision.real_t)
+        self.dE_save = np.zeros((self.nTurns, int(n_macroparticles)), dtype=bm.precision.real_t)
         
         #: *Tracking counter*
         self.counter = 0
@@ -288,18 +288,18 @@ class synchrotron_frequency_tracker(object):
         n_sampling = int(n_sampling)
         
         #: *Saving the synchrotron frequency from the theta oscillations for each particle*
-        self.frequency_theta_save = np.zeros(int(self.n_macroparticles), dtype=np.precision.real_t)
+        self.frequency_theta_save = np.zeros(int(self.n_macroparticles), dtype=bm.precision.real_t)
         
         #: *Saving the synchrotron frequency from the dE oscillations for each particle*
-        self.frequency_dE_save = np.zeros(int(self.n_macroparticles), dtype=np.precision.real_t)
+        self.frequency_dE_save = np.zeros(int(self.n_macroparticles), dtype=bm.precision.real_t)
         
         #: *Saving the maximum of oscillations in theta for each particle 
         #: (theta amplitude on the right side of the bunch)*
-        self.max_theta_save = np.zeros(int(self.n_macroparticles), dtype=np.precision.real_t)
+        self.max_theta_save = np.zeros(int(self.n_macroparticles), dtype=bm.precision.real_t)
         
         #: *Saving the minimum of oscillations in theta for each particle 
         #: (theta amplitude on the left side of the bunch)*
-        self.min_theta_save = np.zeros(int(self.n_macroparticles), dtype=np.precision.real_t)
+        self.min_theta_save = np.zeros(int(self.n_macroparticles), dtype=bm.precision.real_t)
         
         # Maximum theta for which the particles are considered to be lost        
         max_theta_range = np.max(self.theta_save[0,:])
@@ -479,11 +479,11 @@ def separatrix(Ring, RFStation, dt):
     else:
         
         dt_ufp = np.linspace(-float(phi_rf[index]/omega_rf[index] - T_rf_0/1000), 
-            float(T_rf_0 - phi_rf[index]/omega_rf[index] + T_rf_0/1000), 1002, dtype=np.precision.real_t)
+            float(T_rf_0 - phi_rf[index]/omega_rf[index] + T_rf_0/1000), 1002, dtype=bm.precision.real_t)
 
         if eta_0 < 0:
             dt_ufp += 0.5*T_rf_0 # Shift in RF phase below transition
-        Vtot = np.zeros(len(dt_ufp), dtype=np.precision.real_t)
+        Vtot = np.zeros(len(dt_ufp), dtype=bm.precision.real_t)
         
         # Construct waveform
         for i in range(RFStation.n_rf):
@@ -510,14 +510,14 @@ def separatrix(Ring, RFStation, dt):
                  (dt_ufp[ind+1] - dt_ufp[ind])
         
     # Construct separatrix
-    Vtot = np.zeros(len(dt), dtype=np.precision.real_t)
+    Vtot = np.zeros(len(dt), dtype=bm.precision.real_t)
     for i in range(RFStation.n_rf):
         Vtot += voltage[i]*(np.cos(omega_rf[i]*dt_ufp + phi_rf[i]) - 
                             np.cos(omega_rf[i]*dt + phi_rf[i]))/omega_rf[i]
                             
     separatrix_sq = 2*beta_sq*energy/(eta_0*T_0)*(Vtot + delta_E*(dt_ufp - dt))
     pos_ind = np.where(separatrix_sq >= 0)[0]
-    separatrix_array = np.empty((len(separatrix_sq)), dtype=np.precision.real_t)*np.nan
+    separatrix_array = np.empty((len(separatrix_sq)), dtype=bm.precision.real_t)*np.nan
     separatrix_array[pos_ind] = np.sqrt(separatrix_sq[pos_ind])
          
     return separatrix_array

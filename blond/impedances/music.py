@@ -112,7 +112,7 @@ class Music(object):
         self.omega_bar = np.sqrt(self.omega_R ** 2 - self.alpha ** 2)
         self.const = -e*self.R_S*self.omega_R * \
             self.n_particles/(self.n_macroparticles*self.Q)
-        self.induced_voltage = np.zeros(len(self.beam.dt), dtype=np.precision.real_t)
+        self.induced_voltage = np.zeros(len(self.beam.dt), dtype=bm.precision.real_t)
         self.induced_voltage[0] = self.const/2
         self.coeff1 = -self.alpha/self.omega_bar
         self.coeff2 = -self.R_S*self.omega_R/(self.Q*self.omega_bar)
@@ -123,7 +123,7 @@ class Music(object):
         self.t_rev = t_rev
         self.last_dt = self.beam.dt[-1]
         self.array_parameters = np.array([self.input_first_component,
-                                          self.input_second_component, self.t_rev, self.last_dt], dtype=np.precision.real_t)
+                                          self.input_second_component, self.t_rev, self.last_dt], dtype=bm.precision.real_t)
 
     def track_cpp(self):
         r"""

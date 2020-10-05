@@ -58,10 +58,10 @@ def rectangle(t, tau):
         raise RuntimeError("ERROR in impulse_response.rectangle(): time" +
                            " array has multiple falling edges!")
     logger.debug("In rectangle(), index of rising edge is %d" % llimit[0])
-    y = np.zeros(len(t), dtype=np.precision.real_t)
+    y = np.zeros(len(t), dtype=bm.precision.real_t)
     y[llimit[0]] = 0.5
     if len(ulimit) == 1:
-        y[llimit[0]+1:ulimit[0]] = np.ones(ulimit[0] - llimit[0] - 1, dtype=np.precision.real_t)
+        y[llimit[0]+1:ulimit[0]] = np.ones(ulimit[0] - llimit[0] - 1, dtype=bm.precision.real_t)
         y[ulimit[0]] = 0.5
     else:
         y[llimit[0]+1:] = 1
@@ -100,7 +100,7 @@ def triangle(t, tau):
         #ImpulseError
         raise RuntimeError("ERROR in impulse_response.triangle(): time" +
                            " array doesn't start at rising edge!")
-    y = np.zeros(len(t), dtype=np.precision.real_t)
+    y = np.zeros(len(t), dtype=bm.precision.real_t)
     y[llimit[0]] = 0.5
     y[llimit[0]+1:] = 1 - t[llimit[0]+1:]/tau
     y[np.where(y < 0)[0]] = 0

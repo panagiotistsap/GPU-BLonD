@@ -216,7 +216,7 @@ class SPSCavityFeedback(object):
 
         if debug:
             cmap = plt.get_cmap('jet')
-            colors = cmap(np.linspace(0,1, self.turns, dtype=np.precision.real_t))
+            colors = cmap(np.linspace(0,1, self.turns, dtype=bm.precision.real_t))
             plt.figure('Pre-tracking without beam')
             ax = plt.axes([0.18, 0.1, 0.8, 0.8])
             ax.grid()
@@ -498,7 +498,7 @@ class SPSOneTurnFeedback(object):
         signal = np.ascontiguousarray(signal)
         kernel = np.ascontiguousarray(kernel)
 
-        result = np.zeros(len(kernel) + len(signal) - 1, dtype=np.precision.real_t)
+        result = np.zeros(len(kernel) + len(signal) - 1, dtype=bm.precision.real_t)
         bm.convolve(signal, kernel, result)
 
         return result
@@ -611,7 +611,7 @@ class SPSOneTurnFeedback(object):
             0.5*np.pi - self.rf.phi_rf[0, self.counter])
 
         # Convert to array
-        self.V_set *= np.ones(self.n_coarse, dtype=np.precision.real_t)
+        self.V_set *= np.ones(self.n_coarse, dtype=bm.precision.real_t)
 
         # Difference of set point and actual voltage
         self.dV_gen = self.V_set - self.open_loop*self.V_coarse_tot
@@ -718,7 +718,7 @@ class SPSOneTurnFeedback(object):
         # Present sampling time
         self.T_s = self.rf.t_rf[0,self.counter]
         # Present coarse grid
-        self.rf_centers = (np.arange(self.n_coarse, dtype=np.precision.real_t) + 0.5) * self.T_s
+        self.rf_centers = (np.arange(self.n_coarse, dtype=bm.precision.real_t) + 0.5) * self.T_s
         # Check number of samples required per turn
         n_coarse = int(self.rf.t_rev[self.counter]/self.T_s)
         if self.n_coarse != n_coarse:

@@ -555,7 +555,7 @@ class InducedVoltageTime(_InducedVoltage):
         Summing all the wake contributions in one total wake.
         """
 
-        self.total_wake = np.zeros(time_array.shape, dtype=np.precision.real_t)
+        self.total_wake = np.zeros(time_array.shape, dtype=bm.precision.real_t)
         for wake_object in self.wake_source_list:
             wake_object.wake_calc(time_array)
             self.total_wake += wake_object.wake

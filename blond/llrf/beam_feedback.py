@@ -102,8 +102,8 @@ class BeamFeedback(object):
 
             else:
 
-                self.lhc_a = np.zeros(self.rf_station.n_turns + 1, dtype=np.precision.real_t)
-                self.lhc_t = np.zeros(self.rf_station.n_turns + 1, dtype=np.precision.real_t)
+                self.lhc_a = np.zeros(self.rf_station.n_turns + 1, dtype=bm.precision.real_t)
+                self.lhc_t = np.zeros(self.rf_station.n_turns + 1, dtype=bm.precision.real_t)
 
         # LHC_F CONFIGURATION
         elif self.machine == 'LHC_F':
@@ -133,7 +133,7 @@ class BeamFeedback(object):
         # PSB CONFIGURATION
         elif self.machine == 'PSB':
 
-            self.gain = self.gain * np.ones(Ring.n_turns+1, dtype=np.precision.real_t)
+            self.gain = self.gain * np.ones(Ring.n_turns+1, dtype=bm.precision.real_t)
 
             #: | *Radial loop gain, proportional [1] and integral [1/s].*
             if 'RL_gain' not in self.config:
@@ -141,8 +141,8 @@ class BeamFeedback(object):
             else:
                 self.gain2 = self.config['RL_gain']
 
-            self.gain2[0] = self.gain2[0] * np.ones(Ring.n_turns+1, dtype=np.precision.real_t)
-            self.gain2[1] = self.gain2[1] * np.ones(Ring.n_turns+1, dtype=np.precision.real_t)
+            self.gain2[0] = self.gain2[0] * np.ones(Ring.n_turns+1, dtype=bm.precision.real_t)
+            self.gain2[1] = self.gain2[1] * np.ones(Ring.n_turns+1, dtype=bm.precision.real_t)
 
             #: | *Optional: PL & RL acting only in certain time intervals/turns.*
             self.dt = 0
@@ -154,7 +154,7 @@ class BeamFeedback(object):
 
             # Counter of turns passed since last time the PL was active
             self.PL_counter = 0
-            self.on_time = np.array([], dtype=np.precision.real_t)
+            self.on_time = np.array([], dtype=bm.precision.real_t)
 
             self.precalculate_time(Ring)
 
@@ -261,7 +261,7 @@ class BeamFeedback(object):
                         return
                 self.on_time = np.append(self.on_time, n-1)
         else:
-            self.on_time = np.arange(Ring.t_rev.size, dtype=np.precision.real_t)
+            self.on_time = np.arange(Ring.t_rev.size, dtype=bm.precision.real_t)
 
     @timing.timeit(key='serial:beam_phase')    
     def beam_phase(self):

@@ -231,7 +231,7 @@ class RingOptions(object):
                         input_data_time,
                         input_data_values))
 
-            output_data = np.array(output_data, ndmin=2, dtype=np.precision.real_t)
+            output_data = np.array(output_data, ndmin=2, dtype=bm.precision.real_t)
 
         # If array/list, compares with the input number of turns and
         # if synchronous_data is a single value converts it into a (n_turns+1)
@@ -239,14 +239,14 @@ class RingOptions(object):
         elif isinstance(input_data, np.ndarray) or \
                 isinstance(input_data, list):
 
-            input_data = np.array(input_data, ndmin=2, dtype=np.precision.real_t)
+            input_data = np.array(input_data, ndmin=2, dtype=bm.precision.real_t)
 
             if input_to_momentum:
                 input_data = convert_data(input_data, mass, charge,
                                           synchronous_data_type,
                                           bending_radius)
 
-            output_data = np.zeros((n_sections, n_turns+1), dtype=np.precision.real_t)
+            output_data = np.zeros((n_sections, n_turns+1), dtype=bm.precision.real_t)
 
             # If the number of points is exactly the same as n_rf, this means
             # that the rf program for each harmonic is constant, reshaping
@@ -263,11 +263,11 @@ class RingOptions(object):
             for index_section in range(len(input_data)):
                 if len(input_data[index_section]) == 1:
                     output_data[index_section] = input_data[index_section] * \
-                                                np.ones(n_turns+1, dtype=np.precision.real_t)
+                                                np.ones(n_turns+1, dtype=bm.precision.real_t)
 
                 elif len(input_data[index_section]) == (n_turns+1):
                     output_data[index_section] = np.array(
-                        input_data[index_section], dtype=np.precision.real_t)
+                        input_data[index_section], dtype=bm.precision.real_t)
 
                 else:
                     #InputDataError
@@ -313,9 +313,9 @@ class RingOptions(object):
         beta_0 = np.sqrt(1/(1 + (mass/momentum[0])**2))
         T0 = circumference/(beta_0*c)  # Initial revolution period [s]
         shift = time[0] - self.flat_bottom*T0
-        time_interp = shift + T0*np.arange(0, self.flat_bottom+1, dtype=np.precision.real_t)
-        beta_interp = beta_0*np.ones(self.flat_bottom+1, dtype=np.precision.real_t)
-        momentum_interp = momentum[0]*np.ones(self.flat_bottom+1, dtype=np.precision.real_t)
+        time_interp = shift + T0*np.arange(0, self.flat_bottom+1, dtype=bm.precision.real_t)
+        beta_interp = beta_0*np.ones(self.flat_bottom+1, dtype=bm.precision.real_t)
+        momentum_interp = momentum[0]*np.ones(self.flat_bottom+1, dtype=bm.precision.real_t)
 
         time_interp = time_interp.tolist()
         beta_interp = beta_interp.tolist()
@@ -429,7 +429,7 @@ class RingOptions(object):
 
             # Adjust result to get flat top energy correct as derivation and
             # integration leads to ~10^-8 error in flat top momentum
-            momentum_interp = np.asarray(momentum_interp, dtype=np.precision.real_t)
+            momentum_interp = np.asarray(momentum_interp, dtype=bm.precision.real_t)
             momentum_interp -= momentum_interp[0]
             momentum_interp /= momentum_interp[-1]
             momentum_interp *= momentum[-1] - momentum[0]
@@ -437,23 +437,23 @@ class RingOptions(object):
             momentum_interp += momentum[0]
 
         time_interp.pop()
-        time_interp = np.asarray(time_interp, dtype=np.precision.real_t)
-        beta_interp = np.asarray(beta_interp, dtype=np.precision.real_t)
+        time_interp = np.asarray(time_interp, dtype=bm.precision.real_t)
+        beta_interp = np.asarray(beta_interp, dtype=bm.precision.real_t)
         momentum_interp = np.asarray(momentum_interp)
 
         # Obtain flat top data, extrapolate to constant
         if self.flat_top > 0:
             time_interp = np.append(
                 time_interp,
-                time_interp[-1] + circumference*np.arange(1, self.flat_top+1, dtype=np.precision.real_t)
+                time_interp[-1] + circumference*np.arange(1, self.flat_top+1, dtype=bm.precision.real_t)
                 / (beta_interp[-1]*c))
 
             beta_interp = np.append(
-                beta_interp, beta_interp[-1]*np.ones(self.flat_top), dtype=np.precision.real_t)
+                beta_interp, beta_interp[-1]*np.ones(self.flat_top), dtype=bm.precision.real_t)
 
             momentum_interp = np.append(
                 momentum_interp,
-                momentum_interp[-1]*np.ones(self.flat_top), dtype=np.precision.real_t)
+                momentum_interp[-1]*np.ones(self.flat_top), dtype=bm.precision.real_t)
 
         # Cutting the input momentum on the desired cycle time
         if self.t_start is not None:

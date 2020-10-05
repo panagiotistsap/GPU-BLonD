@@ -95,7 +95,7 @@ def modulator(signal, omega_i, omega_f, T_sampling):
         #TypeError
         raise RuntimeError("ERROR in filters.py/demodulator: signal should" +
                            " be an array!")
-    delta_phi = (omega_i - omega_f)*T_sampling * np.arange(len(signal), dtype=np.precision.real_t)
+    delta_phi = (omega_i - omega_f)*T_sampling * np.arange(len(signal), dtype=bm.precision.real_t)
     # Pre compute sine and cosine for speed up
     cs = np.cos(delta_phi)
     sn = np.sin(delta_phi)
@@ -354,13 +354,13 @@ def feedforward_filter(TWC, T_s, debug=False, taps=None,
         print("\n\n")
 
     # Impulse response from cavity towards beam
-    time_array = np.linspace(0, n_fit*T_s, num=n_fit, dtype=np.precision.real_t) - TWC.tau/2
+    time_array = np.linspace(0, n_fit*T_s, num=n_fit, dtype=bm.precision.real_t) - TWC.tau/2
     TWC.impulse_response_beam(TWC.omega_r, time_array)
     h_beam_real = TWC.h_beam.real/TWC.R_beam*TWC.tau
 
     # Even and odd parts of impulse response
-    h_beam_even = np.zeros(n_fit, dtype=np.precision.real_t)
-    h_beam_odd = np.zeros(n_fit, dtype=np.precision.real_t)
+    h_beam_even = np.zeros(n_fit, dtype=bm.precision.real_t)
+    h_beam_odd = np.zeros(n_fit, dtype=bm.precision.real_t)
     if n_filling % 2 == 0:
         n_c = int((n_fit-1)*0.5)
         h_beam_even[n_c] = h_beam_real[0]
@@ -377,7 +377,7 @@ def feedforward_filter(TWC, T_s, debug=False, taps=None,
         h_beam_odd[:n_c] = 0.5*(-h_beam_real[1:n_c+1])[::-1]
 
     # Beam current step for step response
-    I_beam_step = np.ones(n_fit, dtype=np.precision.real_t)
+    I_beam_step = np.ones(n_fit, dtype=bm.precision.real_t)
     I_beam_step[0] = 0
     I_beam_step[1] = 0.5
 
@@ -450,7 +450,7 @@ feedforward_filter_TWC3 = np.array(
       0.0030434892, 0.0030434892, -0.0004807475, 0.011136476,
       0.0040579856, 0.0040579856, 0.0040579856, 0.0132511086,
       0.019651364, 0.0074147518, -0.0020289928, -0.0020289928,
-     -0.0020289928, -0.0162307252, 0.0071072903], dtype=np.precision.real_t)
+     -0.0020289928, -0.0162307252, 0.0071072903], dtype=bm.precision.real_t)
 
 feedforward_filter_TWC4 = np.array(
     [0.0048142895, 0.0035544775, 0.0011144336, 0.0011144336,
@@ -462,7 +462,7 @@ feedforward_filter_TWC4 = np.array(
      0.0040787952, 0.0034488892, 0.0022288672, 0.0022288672,
      0.0022288672, 0.0090417593, 0.0146881621, 0.0062036196,
      -0.0011144336, -0.0011144336, -0.0011144336, -0.0036802064,
-     -0.0046675309], dtype=np.precision.real_t)
+     -0.0046675309], dtype=bm.precision.real_t)
 
 feedforward_filter_TWC5 = np.array(
     [0.0189205535, -0.0105637125, 0.0007262783, 0.0007262783,
@@ -475,4 +475,4 @@ feedforward_filter_TWC5 = np.array(
      0.0010894175, 0.0010894175, 0.0010894175, 0.0105496942,
      -0.0041924387, 0.0014525567, 0.0014525567, 0.0013063535,
      0.0114011487, 0.0104579343, -0.0007262783, -0.0007262783,
-     -0.0007262783, 0.0104756312, -0.018823192], dtype=np.precision.real_t)
+     -0.0007262783, 0.0104756312, -0.018823192], dtype=bm.precision.real_t)

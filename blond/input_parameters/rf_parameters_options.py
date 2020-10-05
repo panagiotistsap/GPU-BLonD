@@ -165,7 +165,7 @@ class RFStationOptions(object):
                                             s=self.smoothing)
                     output_data.append(splev(interp_time, interp_funtion))
 
-            output_data = np.array(output_data, ndmin=2, dtype=np.precision.real_t)
+            output_data = np.array(output_data, ndmin=2, dtype=bm.precision.real_t)
 
             # Plot original and interpolated data
             if self.plot:
