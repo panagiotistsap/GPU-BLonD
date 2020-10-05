@@ -134,27 +134,27 @@ set_zero_float = ElementwiseKernel(
     "x[i] = 0",
     "set_zero_float")
 
-# set_zero_double = ElementwiseKernel(
-#     f"double *x",
-#     "x[i] = 0",
-#     "set_zero_double")
+set_zero_double = ElementwiseKernel(
+    f"double *x",
+    "x[i] = 0",
+    "set_zero_double")
 
 set_zero_int = ElementwiseKernel(
     "int *x",
     "x[i] = 0",
     "set_zero_int")
 
-set_zero_complex = ElementwiseKernel(
+set_zero_complex64 = ElementwiseKernel(
     f"pycuda::complex<{bm.precision.str}> *x",
     "x[i] = 0",
     "set_zero_complex",
     preamble="#include <pycuda-complex.hpp>")
 
-# set_zero_complex128 = ElementwiseKernel(
-#     f"pycuda::complex<double> *x",
-#     "x[i] = 0",
-#     "set_zero_complex128",
-#     preamble="#include <pycuda-complex.hpp>")
+set_zero_complex128 = ElementwiseKernel(
+    f"pycuda::complex<double> *x",
+    "x[i] = 0",
+    "set_zero_complex128",
+    preamble="#include <pycuda-complex.hpp>")
 
 
 increase_by_value = ElementwiseKernel(
