@@ -318,8 +318,11 @@ scale_double = ElementwiseKernel(
 def _get_scale_kernel(dtype):
     if (dtype==np.float64):
         return scale_double
-    else:
+    elif dtype==np.float32:
+        return scale_float
+    elif dtype in [np.int, np.int32]:
         return scale_int
+        
 fft._get_scale_kernel = _get_scale_kernel
 
 def find_plan(my_size):
