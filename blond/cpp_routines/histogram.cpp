@@ -11,10 +11,11 @@
 // Optimised C++ routine that calculates the histogram
 // Author: Danilo Quartullo, Alexandre Lasheen, Konstantinos Iliakis
 
-#include <cstring>     // memset()
-#include <cstdlib>     // mmalloc()
-#include <cmath>
-#include "openmp.h"
+#include <string.h>     // memset()
+#include <stdlib.h>     // mmalloc()
+#include <math.h>
+#include "common.h"
+
 
 extern "C" void histogram(const double *__restrict__ input,
                           double *__restrict__ output, const double cut_left,
@@ -26,10 +27,19 @@ extern "C" void histogram(const double *__restrict__ input,
     const double inv_bin_width = n_slices / (cut_right - cut_left);
 
     // allocate memory for the thread_private histogram
-    double **histo = (double **) malloc(omp_get_max_threads() * sizeof(double *));
-    histo[0] = (double *) malloc (omp_get_max_threads() * n_slices * sizeof(double));
-    for (int i = 0; i < omp_get_max_threads(); i++)
-        histo[i] = (*histo + n_slices * i);
+    // double **histo = (double **) malloc(omp_get_max_threads() * sizeof(double *));
+    // histo[0] = (double *) malloc (omp_get_max_threads() * n_slices * sizeof(double));
+    // for (int i = 0; i < omp_get_max_threads(); i++)
+    //     histo[i] = (*histo + n_slices * i);
+
+    static double **histo = nullptr;
+
+    if (!histo) {
+        histo = (double **) malloc(omp_get_max_threads() * sizeof(double *));
+        histo[0] = (double *) malloc (omp_get_max_threads() * n_slices * sizeof(double));
+        for (int i = 0; i < omp_get_max_threads(); i++)
+            histo[i] = (*histo + n_slices * i);
+    }
 
     #pragma omp parallel
     {
@@ -65,8 +75,8 @@ extern "C" void histogram(const double *__restrict__ input,
     }
 
     // free memory
-    free(histo[0]);
-    free(histo);
+    // free(histo[0]);
+    // free(histo);
 }
 
 extern "C" void smooth_histogram(const double *__restrict__ input,
@@ -113,36 +123,101 @@ extern "C" void smooth_histogram(const double *__restrict__ input,
 
 
 
-/***** serial histogram
-
-extern "C" void histogram(const double *__restrict__ input,
-                          double *__restrict__ output,
-                          const double cut_left, const double cut_right,
-                          const int n_slices, const int n_macroparticles)
+extern "C" void histogramf(const float *__restrict__ input,
+                           float *__restrict__ output, const float cut_left,
+                           const float cut_right, const int n_slices,
+                           const int n_macroparticles)
 {
     // Number of Iterations of the inner loop
     const int STEP = 16;
-    const double inv_bin_width = n_slices / (cut_right - cut_left);
-    float fbin[STEP];
+    const float inv_bin_width = n_slices / (cut_right - cut_left);
 
-    memset(output, 0., n_slices * sizeof(double));
-    for (int i = 0; i < n_macroparticles; i += STEP) {
+    // allocate memory for the thread_private histogram
+    static float **histo = nullptr;
 
-        const int loop_count = n_macroparticles - i > STEP ?
-                               STEP : n_macroparticles - i;
+    if (!histo) {
+        histo = (float **) malloc(omp_get_max_threads() * sizeof(float *));
+        histo[0] = (float *) malloc (omp_get_max_threads() * n_slices * sizeof(float));
+        for (int i = 0; i < omp_get_max_threads(); i++)
+            histo[i] = (*histo + n_slices * i);
+    }
 
-        // First calculate the index to update
-        for (int j = 0; j < loop_count; j++) {
-            fbin[j] = floor((input[i + j] - cut_left) * inv_bin_width);
+    #pragma omp parallel
+    {
+        const int id = omp_get_thread_num();
+        const int threads = omp_get_num_threads();
+        memset(histo[id], 0., n_slices * sizeof(float));
+        float fbin[STEP];
+        #pragma omp for
+        for (int i = 0; i < n_macroparticles; i += STEP) {
+
+            const int loop_count = n_macroparticles - i > STEP ?
+                                   STEP : n_macroparticles - i;
+
+            // First calculate the index to update
+            for (int j = 0; j < loop_count; j++) {
+                fbin[j] = floor((input[i + j] - cut_left) * inv_bin_width);
+            }
+            // Then update the corresponding bins
+            for (int j = 0; j < loop_count; j++) {
+                const int bin  = (int) fbin[j];
+                if (bin < 0 || bin >= n_slices) continue;
+                histo[id][bin] += 1.;
+            }
         }
-        // Then update the corresponding bins
-        for (int j = 0; j < loop_count; j++) {
-            const int bin  = (int) fbin[j];
-            if (bin < 0 || bin >= n_slices) continue;
-            output[bin] += 1.;
+
+        // Reduce to a single histogram
+        #pragma omp for
+        for (int i = 0; i < n_slices; i++) {
+            output[i] = 0.;
+            for (int t = 0; t < threads; t++)
+                output[i] += histo[t][i];
         }
     }
 
+    // free memory
+    // free(histo[0]);
+    // free(histo);
 }
 
-*******/
+extern "C" void smooth_histogramf(const float *__restrict__ input,
+                                  float *__restrict__ output, const float cut_left,
+                                  const float cut_right, const int n_slices,
+                                  const int n_macroparticles)
+{
+
+    int i;
+    float a;
+    float fbin;
+    float ratioffbin;
+    float ratiofffbin;
+    float distToCenter;
+    int ffbin;
+    int fffbin;
+    const float inv_bin_width = n_slices / (cut_right - cut_left);
+    const float bin_width = (cut_right - cut_left) / n_slices;
+
+    for (i = 0; i < n_slices; i++) {
+        output[i] = 0.0;
+    }
+
+    for (i = 0; i < n_macroparticles; i++) {
+        a = input[i];
+        if ((a < (cut_left + bin_width * 0.5))
+                || (a > (cut_right - bin_width * 0.5)))
+            continue;
+        fbin = (a - cut_left) * inv_bin_width;
+        ffbin = (int)(fbin);
+        distToCenter = fbin - (float)(ffbin);
+        if (distToCenter > 0.5)
+            fffbin = (int)(fbin + 1.0);
+        ratioffbin = 1.5 - distToCenter;
+        ratiofffbin = 1 - ratioffbin;
+        if (distToCenter < 0.5)
+            fffbin = (int)(fbin - 1.0);
+        ratioffbin = 0.5 - distToCenter;
+        ratiofffbin = 1 - ratioffbin;
+        output[ffbin] = output[ffbin] + ratioffbin;
+        output[fffbin] = output[fffbin] + ratiofffbin;
+    }
+}

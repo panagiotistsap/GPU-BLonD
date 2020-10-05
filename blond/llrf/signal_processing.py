@@ -18,7 +18,7 @@ import numpy as np
 from scipy.constants import e
 from scipy import signal as sgn
 import matplotlib.pyplot as plt
-
+from ..utils import bmath as bm
 # Set up logging
 import logging
 logger = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ def modulator(signal, omega_i, omega_f, T_sampling):
         #TypeError
         raise RuntimeError("ERROR in filters.py/demodulator: signal should" +
                            " be an array!")
-    delta_phi = (omega_i - omega_f)*T_sampling * np.arange(len(signal))
+    delta_phi = (omega_i - omega_f)*T_sampling * np.arange(len(signal), dtype=bm.precision.real_t)
     # Pre compute sine and cosine for speed up
     cs = np.cos(delta_phi)
     sn = np.sin(delta_phi)
@@ -195,7 +195,7 @@ def rf_beam_current(Profile, omega_c, T_rev, lpf=True, downsample=None):
         indices = np.where((ind_fine[1:] - ind_fine[:-1]) == 1)[0]
 
         # Pick total current within one coarse grid
-        charges_coarse = np.zeros(n_points, dtype=np.complex) #+ 1j*np.zeros(n_points)
+        charges_coarse = np.zeros(n_points, dtype=bm.precision.complex_t) #+ 1j*np.zeros(n_points)
         charges_coarse[0] = np.sum(charges_fine[np.arange(indices[0])])
         for i in range(1, len(indices)):
             charges_coarse[i] = np.sum(charges_fine[np.arange(indices[i-1],
@@ -320,23 +320,23 @@ def feedforward_filter(TWC, T_s, debug=False, taps=None,
     logger.debug("Fitting samples: %d", n_fit)
 
     # Even-symmetric feed-forward filter matrix
-    even = np.zeros(shape=(n_taps,n_taps_2), dtype=np.float64)
+    even = np.zeros(shape=(n_taps,n_taps_2), dtype=bm.precision.real_t)
     for i in range(n_taps):
         even[i,abs(n_taps_2-i-1)] = 1
 
     # Odd-symmetric feed-forward filter matrix
-    odd = np.zeros(shape=(n_taps, n_taps_2-1), dtype=np.float64)
+    odd = np.zeros(shape=(n_taps, n_taps_2-1), dtype=bm.precision.real_t)
     for i in range(n_taps_2-1):
         odd[i,abs(n_taps_2-i-2)] = -1
         odd[n_taps-i-1, abs(n_taps_2 - i - 2)] = 1
 
     # Generator-cavity response matrix: non-zero during filling time
-    resp = np.zeros(shape=(n_fit, n_fit+n_filling-1), dtype=np.float64)
+    resp = np.zeros(shape=(n_fit, n_fit+n_filling-1), dtype=bm.precision.real_t)
     for i in range(n_fit):
         resp[i,i:i+n_filling] = 1
 
     # Convolution with beam step current
-    conv = np.zeros(shape=(n_fit+n_filling-1, n_taps), dtype=np.float64)
+    conv = np.zeros(shape=(n_fit+n_filling-1, n_taps), dtype=bm.precision.real_t)
     for i in range(n_taps):
         conv[i+n_filling, 0:i] = 1
     conv[n_taps+n_filling:, :] = 1
@@ -354,13 +354,13 @@ def feedforward_filter(TWC, T_s, debug=False, taps=None,
         print("\n\n")
 
     # Impulse response from cavity towards beam
-    time_array = np.linspace(0, n_fit*T_s, num=n_fit) - TWC.tau/2
+    time_array = np.linspace(0, n_fit*T_s, num=n_fit, dtype=bm.precision.real_t) - TWC.tau/2
     TWC.impulse_response_beam(TWC.omega_r, time_array)
     h_beam_real = TWC.h_beam.real/TWC.R_beam*TWC.tau
 
     # Even and odd parts of impulse response
-    h_beam_even = np.zeros(n_fit)
-    h_beam_odd = np.zeros(n_fit)
+    h_beam_even = np.zeros(n_fit, dtype=bm.precision.real_t)
+    h_beam_odd = np.zeros(n_fit, dtype=bm.precision.real_t)
     if n_filling % 2 == 0:
         n_c = int((n_fit-1)*0.5)
         h_beam_even[n_c] = h_beam_real[0]
@@ -377,7 +377,7 @@ def feedforward_filter(TWC, T_s, debug=False, taps=None,
         h_beam_odd[:n_c] = 0.5*(-h_beam_real[1:n_c+1])[::-1]
 
     # Beam current step for step response
-    I_beam_step = np.ones(n_fit)
+    I_beam_step = np.ones(n_fit, dtype=bm.precision.real_t)
     I_beam_step[0] = 0
     I_beam_step[1] = 0.5
 
@@ -450,7 +450,7 @@ feedforward_filter_TWC3 = np.array(
       0.0030434892, 0.0030434892, -0.0004807475, 0.011136476,
       0.0040579856, 0.0040579856, 0.0040579856, 0.0132511086,
       0.019651364, 0.0074147518, -0.0020289928, -0.0020289928,
-     -0.0020289928, -0.0162307252, 0.0071072903])
+     -0.0020289928, -0.0162307252, 0.0071072903], dtype=bm.precision.real_t)
 
 feedforward_filter_TWC4 = np.array(
     [0.0048142895, 0.0035544775, 0.0011144336, 0.0011144336,
@@ -462,7 +462,7 @@ feedforward_filter_TWC4 = np.array(
      0.0040787952, 0.0034488892, 0.0022288672, 0.0022288672,
      0.0022288672, 0.0090417593, 0.0146881621, 0.0062036196,
      -0.0011144336, -0.0011144336, -0.0011144336, -0.0036802064,
-     -0.0046675309])
+     -0.0046675309], dtype=bm.precision.real_t)
 
 feedforward_filter_TWC5 = np.array(
     [0.0189205535, -0.0105637125, 0.0007262783, 0.0007262783,
@@ -475,4 +475,4 @@ feedforward_filter_TWC5 = np.array(
      0.0010894175, 0.0010894175, 0.0010894175, 0.0105496942,
      -0.0041924387, 0.0014525567, 0.0014525567, 0.0013063535,
      0.0114011487, 0.0104579343, -0.0007262783, -0.0007262783,
-     -0.0007262783, 0.0104756312, -0.018823192])
+     -0.0007262783, 0.0104756312, -0.018823192], dtype=bm.precision.real_t)

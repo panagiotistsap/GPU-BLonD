@@ -3,19 +3,30 @@ from pycuda import gpuarray
 from ..utils import bmath as bm
 
 def fill(self, value):
-    from .gpu_butils_wrap import set_zero_int, set_zero_double, set_zero_complex
+    from ..gpu import gpu_butils_wrap as gpu_utils
     if (self.dtype in [np.int, np.int32]):
-        set_zero_int(self)
+        gpu_utils.set_zero_int(self)
     elif (self.dtype in [np.float, np.float64]):
-        set_zero_double(self)
+        gpu_utils.set_zero_double(self)
+    elif self.dtype in [np.float32]:
+        gpu_utils.set_zero_float(self)
+    elif self.dtype in [np.complex64]:
+        gpu_utils.set_zero_complex64(self)
+    elif self.dtype in [np.complex128]:
+        gpu_utils.set_zero_complex128(self)
     else:
-        set_zero_complex(self)
+        print(f'[cucache::fill] invalid data type: {self.dtype}')
+        exit(-1)
+
 
    
 gpuarray.GPUArray.fill = fill
 
 dtype_to_bytes_dict = {np.float64: 64,
-                       np.float32: 32, np.complex128: 128, np.int32: 32}
+                       np.float32: 32, 
+                       np.complex64: 64, 
+                       np.complex128: 128, 
+                       np.int32: 32}
 
 
 class gpuarray_cache:

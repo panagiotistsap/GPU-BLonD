@@ -145,16 +145,24 @@ class Beam(object):
         self.gamma = Ring.gamma[0][0]
         self.energy = Ring.energy[0][0]
         self.momentum = Ring.momentum[0][0]
-        self.dt = np.zeros([int(n_macroparticles)])
-        self.dE = np.zeros([int(n_macroparticles)])
+        self.dt = np.zeros([int(n_macroparticles)], dtype=bm.precision.real_t)
+        self.dE = np.zeros([int(n_macroparticles)], dtype=bm.precision.real_t)
+
         self.mean_dt = 0.
-        self.mean_dE = 0.
         self.sigma_dt = 0.
+        self.min_dt = 0.
+        self.max_dt = 0.
+
+        self.mean_dE = 0.
         self.sigma_dE = 0.
+        self.min_dE = 0.
+        self.max_dE = 0.
+
         self.intensity = float(intensity)
         self.n_macroparticles = int(n_macroparticles)
         self.ratio = self.intensity/self.n_macroparticles
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
+
         # For MPI
         self.n_total_macroparticles_lost = 0
         self.n_total_macroparticles = n_macroparticles
@@ -179,7 +187,7 @@ class Beam(object):
             self.dt_obj = CGA(self.dt)
 
             # id to gpu
-            self.id_obj = CGA(self.id, dtype2=np.float64)
+            self.id_obj = CGA(self.id, dtype2=bm.precision.real_t)
             self.__class__ = gb.gpu_Beam
 
     @property
@@ -212,8 +220,10 @@ class Beam(object):
         """
         indexalive = np.where(self.id == 0)[0]
         if len(indexalive) < self.n_macroparticles:
-            self.dt = np.ascontiguousarray(self._beam.dt[indexalive])
-            self.dE = np.ascontiguousarray(self._beam.dE[indexalive])
+            self.dt = np.ascontiguousarray(
+                self.beam.dt[indexalive], dtype=bm.precision.real_t, order='C')
+            self.dE = np.ascontiguousarray(
+                self.beam.dE[indexalive], dtype=bm.precision.real_t, order='C')
             self.n_macroparticles = len(self.beam.dt)
         else:
             # AllParticlesLost

@@ -216,7 +216,7 @@ class SPSCavityFeedback(object):
 
         if debug:
             cmap = plt.get_cmap('jet')
-            colors = cmap(np.linspace(0,1, self.turns))
+            colors = cmap(np.linspace(0,1, self.turns, dtype=bm.precision.real_t))
             plt.figure('Pre-tracking without beam')
             ax = plt.axes([0.18, 0.1, 0.8, 0.8])
             ax.grid()
@@ -397,13 +397,13 @@ class SPSOneTurnFeedback(object):
         self.update_variables()
 
         # Initialise bunch-by-bunch voltage array with LENGTH OF PROFILE
-        self.V_fine_tot = np.zeros(self.profile.n_slices, dtype=complex)
+        self.V_fine_tot = np.zeros(self.profile.n_slices, dtype=bm.precision.complex_t)
         # Array to hold the bucket-by-bucket voltage with LENGTH OF LLRF
-        self.V_coarse_tot = np.zeros(self.n_coarse, dtype=complex)
+        self.V_coarse_tot = np.zeros(self.n_coarse, dtype=bm.precision.complex_t)
         self.logger.debug("Length of arrays on coarse grid %d", self.n_coarse)
 
         # Initialise comb filter
-        self.dV_comb_out_prev = np.zeros(self.n_coarse, dtype=complex)
+        self.dV_comb_out_prev = np.zeros(self.n_coarse, dtype=bm.precision.complex_t)
         self.a_comb = float(a_comb)
 
         # Initialise cavity filter (moving average)
@@ -413,18 +413,18 @@ class SPSOneTurnFeedback(object):
         if self.n_mov_av < 2:
             raise RuntimeError("ERROR in SPSOneTurnFeedback: profile has to" +
                                " have at least 12.5 ns resolution!")
-        self.dV_ma_in_prev = np.zeros(self.n_coarse, dtype=complex)
+        self.dV_ma_in_prev = np.zeros(self.n_coarse, dtype=bm.precision.complex_t)
         # Initialise generator-induced voltage
-        self.I_gen_prev = np.zeros(self.n_mov_av, dtype=complex)
+        self.I_gen_prev = np.zeros(self.n_mov_av, dtype=bm.precision.complex_t)
         self.logger.info("Class initialized")
 
         # Initialise feed-forward; sampled every 5 buckets
         if self.open_FF == 1:
             self.logger.debug("Feed-forward active")
             self.n_coarse_FF = int(self.n_coarse/5)
-            self.I_beam_coarse_prev = np.zeros(self.n_coarse_FF, dtype=complex)
-            self.I_ff_corr = np.zeros(self.n_coarse_FF, dtype=complex)
-            self.V_ff_corr = np.zeros(self.n_coarse_FF, dtype=complex)
+            self.I_beam_coarse_prev = np.zeros(self.n_coarse_FF, dtype=bm.precision.complex_t)
+            self.I_ff_corr = np.zeros(self.n_coarse_FF, dtype=bm.precision.complex_t)
+            self.V_ff_corr = np.zeros(self.n_coarse_FF, dtype=bm.precision.complex_t)
 
     def beam_induced_voltage(self, lpf=False):
         """Calculates the beam-induced voltage
@@ -476,7 +476,7 @@ class SPSOneTurnFeedback(object):
 
             # Compensate for FIR filter delay
             self.dV_ff = np.concatenate((self.V_ff_corr[self.n_FF_delay:],
-                np.zeros(self.n_FF_delay, dtype=np.complex)))
+                np.zeros(self.n_FF_delay, dtype=bm.precision.complex_t)))
 
             # Interpolate to finer grids
             self.V_ff_corr_coarse = np.interp(self.rf_centers,
@@ -498,7 +498,7 @@ class SPSOneTurnFeedback(object):
         signal = np.ascontiguousarray(signal)
         kernel = np.ascontiguousarray(kernel)
 
-        result = np.zeros(len(kernel) + len(signal) - 1)
+        result = np.zeros(len(kernel) + len(signal) - 1, dtype=bm.precision.real_t)
         bm.convolve(signal, kernel, result)
 
         return result
@@ -611,7 +611,7 @@ class SPSOneTurnFeedback(object):
             0.5*np.pi - self.rf.phi_rf[0, self.counter])
 
         # Convert to array
-        self.V_set *= np.ones(self.n_coarse)
+        self.V_set *= np.ones(self.n_coarse, dtype=bm.precision.real_t)
 
         # Difference of set point and actual voltage
         self.dV_gen = self.V_set - self.open_loop*self.V_coarse_tot
@@ -718,7 +718,7 @@ class SPSOneTurnFeedback(object):
         # Present sampling time
         self.T_s = self.rf.t_rf[0,self.counter]
         # Present coarse grid
-        self.rf_centers = (np.arange(self.n_coarse) + 0.5) * self.T_s
+        self.rf_centers = (np.arange(self.n_coarse, dtype=bm.precision.real_t) + 0.5) * self.T_s
         # Check number of samples required per turn
         n_coarse = int(self.rf.t_rev[self.counter]/self.T_s)
         if self.n_coarse != n_coarse:

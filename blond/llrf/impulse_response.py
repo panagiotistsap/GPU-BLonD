@@ -16,11 +16,11 @@
 from __future__ import division
 import numpy as np
 from scipy.constants import c
+from ..utils import bmath as bm
 
 # Set up logging
 import logging
 logger = logging.getLogger(__name__)
-
 
 def rectangle(t, tau):
     r"""Rectangular function of time
@@ -58,10 +58,10 @@ def rectangle(t, tau):
         raise RuntimeError("ERROR in impulse_response.rectangle(): time" +
                            " array has multiple falling edges!")
     logger.debug("In rectangle(), index of rising edge is %d" % llimit[0])
-    y = np.zeros(len(t))
+    y = np.zeros(len(t), dtype=bm.precision.real_t)
     y[llimit[0]] = 0.5
     if len(ulimit) == 1:
-        y[llimit[0]+1:ulimit[0]] = np.ones(ulimit[0] - llimit[0] - 1)
+        y[llimit[0]+1:ulimit[0]] = np.ones(ulimit[0] - llimit[0] - 1, dtype=bm.precision.real_t)
         y[ulimit[0]] = 0.5
     else:
         y[llimit[0]+1:] = 1
@@ -100,7 +100,7 @@ def triangle(t, tau):
         #ImpulseError
         raise RuntimeError("ERROR in impulse_response.triangle(): time" +
                            " array doesn't start at rising edge!")
-    y = np.zeros(len(t))
+    y = np.zeros(len(t), dtype=bm.precision.real_t)
     y[llimit[0]] = 0.5
     y[llimit[0]+1:] = 1 - t[llimit[0]+1:]/tau
     y[np.where(y < 0)[0]] = 0
@@ -277,7 +277,7 @@ class TravellingWaveCavity(object):
 
         # Impulse response if on carrier frequency
         self.h_gen = (self.R_gen / self.tau *
-                      rectangle(t_gen, self.tau)).astype(np.complex128)
+                      rectangle(t_gen, self.tau)).astype(bm.precision.complex_t)
 
         # Impulse response if not on carrier frequency
         if np.fabs((self.d_omega)/self.omega_r) > 1e-12:
@@ -326,7 +326,7 @@ class TravellingWaveCavity(object):
 
         # Impulse response if on carrier frequency
         self.h_beam = (2*self.R_beam/self.tau*
-                       triangle(t_beam, self.tau)).astype(np.complex128)
+                       triangle(t_beam, self.tau)).astype(bm.precision.complex_t)
 
         # Impulse response if not on carrier frequency
         if np.fabs((self.d_omega)/self.omega_r) > 1e-12:
@@ -339,7 +339,7 @@ class TravellingWaveCavity(object):
 
             # Impulse response if on carrier frequency
             self.h_beam_coarse = (2*self.R_beam/self.tau*
-                                  triangle(t_beam, self.tau)).astype(np.complex128)
+                                  triangle(t_beam, self.tau)).astype(bm.precision.complex_t)
 
             # Impulse response if not on carrier frequency
             if np.fabs((self.d_omega)/self.omega_r) > 1e-12:

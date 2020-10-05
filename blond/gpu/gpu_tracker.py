@@ -160,7 +160,7 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
                 if self.interpolation:
                     with timing.timed_region('comp:LIKick'):
                         self.dev_total_voltage = get_gpuarray(
-                            (self.dev_rf_voltage.size, np.float64, id(self), "dtv"))
+                            (self.dev_rf_voltage.size, bm.precision.real_t, id(self), "dtv"))
                         if self.totalInducedVoltage is not None:
                             add_kernel(self.dev_total_voltage, self.dev_rf_voltage,
                                        self.totalInducedVoltage.dev_induced_voltage)
@@ -203,20 +203,21 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
         """
 
         dev_voltages = get_gpuarray(
-            (self.rf_params.n_rf, np.float64, id(self), "v"))
+            (self.rf_params.n_rf, bm.precision.real_t, id(self), "v"))
         dev_omega_rf = get_gpuarray(
-            (self.rf_params.n_rf, np.float64, id(self), "omega"))
+            (self.rf_params.n_rf, bm.precision.real_t, id(self), "omega"))
         dev_phi_rf = get_gpuarray(
-            (self.rf_params.n_rf, np.float64, id(self), "phi"))
+            (self.rf_params.n_rf, bm.precision.real_t, id(self), "phi"))
         n_turns = self.rf_params.n_turns+1
 
-        sz = self.n_rf
+        # sz = self.n_rf
         my_end = self.rf_params.dev_voltage.size
         gpu_rf_voltage_calc_mem_ops(dev_voltages, dev_omega_rf, dev_phi_rf,
                                     self.rf_params.dev_voltage, self.rf_params.dev_omega_rf,
-                                    self.rf_params.dev_phi_rf, np.int32(
-                                        self.counter[0]),
-                                    np.int32(my_end), np.int32(n_turns), block=(32, 1, 1), grid=(1, 1, 1))
+                                    self.rf_params.dev_phi_rf, 
+                                    np.int32(self.counter[0]),
+                                    np.int32(my_end), np.int32(n_turns), 
+                                    block=(32, 1, 1), grid=(1, 1, 1))
 
         self.dev_rf_voltage = get_gpuarray(
             (self.profile.dev_bin_centers.size, np.float64, id(self), "rf_v"))
@@ -253,11 +254,11 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
         """
 
         dev_voltage = get_gpuarray(
-            (self.rf_params.n_rf, np.float64, id(self), "v"))
+            (self.rf_params.n_rf, bm.precision.real_t, id(self), "v"))
         dev_omega_rf = get_gpuarray(
-            (self.rf_params.n_rf, np.float64, id(self), "omega"))
+            (self.rf_params.n_rf, bm.precision.real_t, id(self), "omega"))
         dev_phi_rf = get_gpuarray(
-            (self.rf_params.n_rf, np.float64, id(self), "phi"))
+            (self.rf_params.n_rf, bm.precision.real_t, id(self), "phi"))
 
         my_end = self.rf_params.dev_voltage.size
 
@@ -266,7 +267,8 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
         dev_phi_rf[:] = self.rf_params.dev_phi_rf[index:my_end:self.rf_params.n_turns+1]
 
         bm.kick(dev_voltage, dev_omega_rf, dev_phi_rf,
-                self.charge, self.n_rf, self.acceleration_kick[index], self.beam)
+                self.charge, self.n_rf, 
+                self.acceleration_kick[index], self.beam)
         # self.beam.dE_obj.invalidate_cpu()
 
     @timing.timeit(key='comp:drift')

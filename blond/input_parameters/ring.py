@@ -18,7 +18,7 @@ import numpy as np
 import warnings
 from scipy.constants import c
 from ..input_parameters.ring_options import RingOptions
-
+from ..utils import bmath as bm
 
 class Ring(object):
     r""" Class containing the general properties of the synchrotron that are
@@ -192,7 +192,7 @@ class Ring(object):
         self.n_sections = int(n_sections)
 
         # Ring length and checks
-        self.ring_length = np.array(ring_length, ndmin=1, dtype=float)
+        self.ring_length = np.array(ring_length, ndmin=1, dtype=bm.precision.real_t)
         self.ring_circumference = np.sum(self.ring_length)
         self.ring_radius = self.ring_circumference/(2*np.pi)
 
@@ -224,6 +224,7 @@ class Ring(object):
             charge=self.Particle.charge,
             circumference=self.ring_circumference,
             bending_radius=self.bending_radius)
+        self.momentum = self.momentum.astype(dtype=bm.precision.real_t, order='C', copy=False)
 
         # Updating the number of turns in case it was changed after ramp
         # interpolation
@@ -278,7 +279,7 @@ class Ring(object):
             # This can be removed when the BLonD assembler is in place
             # to avoid high order momentum compaction programs filled
             # with zeros (should be propagated in RFStation.__init__())
-            self.alpha_2 = np.zeros(self.alpha_0.shape)
+            self.alpha_2 = np.zeros(self.alpha_0.shape, dtype=bm.precision.real_t)
 
         # Slippage factor derived from alpha, beta, gamma
         self.eta_generation()
@@ -303,19 +304,19 @@ class Ring(object):
         # with zeros (should be propagated in RFStation.__init__())
         for i in range(self.alpha_order+1, 3):
             setattr(self, "eta_%s" % i, np.zeros([self.n_sections,
-                                                  self.n_turns+1]))
+                                                  self.n_turns+1], dtype=bm.precision.real_t))
 
     def _eta0(self):
         """ Function to calculate the zeroth order slippage factor eta_0 """
 
-        self.eta_0 = np.empty([self.n_sections, self.n_turns+1])
+        self.eta_0 = np.empty([self.n_sections, self.n_turns+1], dtype=bm.precision.real_t)
         for i in range(0, self.n_sections):
             self.eta_0[i] = self.alpha_0[i] - self.gamma[i]**(-2.)
 
     def _eta1(self):
         """ Function to calculate the first order slippage factor eta_1 """
 
-        self.eta_1 = np.empty([self.n_sections, self.n_turns+1])
+        self.eta_1 = np.empty([self.n_sections, self.n_turns+1], dtype=bm.precision.real_t)
         for i in range(0, self.n_sections):
             self.eta_1[i] = 3*self.beta[i]**2/(2*self.gamma[i]**2) + \
                 self.alpha_1[i] - self.alpha_0[i]*self.eta_0[i]
@@ -323,7 +324,7 @@ class Ring(object):
     def _eta2(self):
         """ Function to calculate the second order slippage factor eta_2 """
 
-        self.eta_2 = np.empty([self.n_sections, self.n_turns+1])
+        self.eta_2 = np.empty([self.n_sections, self.n_turns+1], dtype=bm.precision.real_t)
         for i in range(0, self.n_sections):
             self.eta_2[i] = - self.beta[i]**2*(5*self.beta[i]**2 - 1) / \
                 (2*self.gamma[i]**2) + self.alpha_2[i] - 2*self.alpha_0[i] *\

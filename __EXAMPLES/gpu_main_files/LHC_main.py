@@ -31,7 +31,6 @@ from blond.utils.mpi_config import worker, mpiprint
 from blond.utils.input_parser import parse
 from blond.utils import bmath as bm
 
-bm.use_fftw()
 
 REAL_RAMP = True    # track full ramp
 MONITORING = False   # turn off plots and monitors
@@ -89,6 +88,8 @@ precision = args['precision']
 bm.use_precision(precision)
 
 bm.use_mpi()
+bm.use_fftw()
+
 worker.assignGPUs(num_gpus=args['gpu'])
 
 worker.greet()

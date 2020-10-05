@@ -366,7 +366,7 @@ class RingAndRFTracker(object):
 
         bm.kick(beam_dt, beam_dE, self.voltage[:, index],
                 self.omega_rf[:,index], self.phi_rf[:, index],
-                self.charge, self.n_rf, self.acceleration_kick[index], self.beam)
+                self.charge, self.n_rf, self.acceleration_kick[index])
 
     @timing.timeit(key='comp:drift')
     def drift(self, beam_dt, beam_dE, index):

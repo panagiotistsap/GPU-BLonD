@@ -7,21 +7,19 @@ BLonD math and physics core functions
 
 import numpy as np
 from ..utils import butils_wrap
-from ..utils import bphysics_wrap
-from numpy import fft
 import os
 
 precision = butils_wrap.precision
 
-__exec_mode = 'single_node' # can also be multi-node, when mpi is on
+__exec_mode = 'single_node'  # can also be multi-node, when mpi is on
 __gpu_dev = None
 __gpu_id = -1
 
 # dictionary storing the CPU versions of the desired functions #
 _CPU_func_dict = {
-    'rfft': fft.rfft,
-    'irfft': fft.irfft,
-    'rfftfreq': fft.rfftfreq,
+    'rfft': np.fft.rfft,
+    'irfft': np.fft.irfft,
+    'rfftfreq': np.fft.rfftfreq,
     'irfft_packed': butils_wrap.irfft_packed,
     'sin': butils_wrap.sin,
     'cos': butils_wrap.cos,
@@ -42,25 +40,28 @@ _CPU_func_dict = {
     'sort': butils_wrap.sort,
     'add': butils_wrap.add,
     'mul': butils_wrap.mul,
-    'beam_phase': bphysics_wrap.beam_phase,
-    'fast_resonator': bphysics_wrap.fast_resonator,
-    'kick': bphysics_wrap.kick,
-    'rf_volt_comp': bphysics_wrap.rf_volt_comp,
-    'drift': bphysics_wrap.drift,
-    'linear_interp_kick': bphysics_wrap.linear_interp_kick,
-    'LIKick_n_drift': bphysics_wrap.linear_interp_kick_n_drift,
-    'synchrotron_radiation': bphysics_wrap.synchrotron_radiation,
-    'synchrotron_radiation_full': bphysics_wrap.synchrotron_radiation_full,
-    # 'linear_interp_time_translation': bphysics_wrap.linear_interp_time_translation,
-    'slice': bphysics_wrap.slice,
-    'slice_smooth': bphysics_wrap.slice_smooth,
-    'music_track': bphysics_wrap.music_track,
-    'music_track_multiturn': bphysics_wrap.music_track_multiturn,
+
+    'beam_phase': butils_wrap.beam_phase,
+    'kick': butils_wrap.kick,
+    'rf_volt_comp': butils_wrap.rf_volt_comp,
+    'drift': butils_wrap.drift,
+    'linear_interp_kick': butils_wrap.linear_interp_kick,
+    'fast_resonator': butils_wrap.fast_resonator,
+    'LIKick_n_drift': butils_wrap.linear_interp_kick_n_drift,
+    'synchrotron_radiation': butils_wrap.synchrotron_radiation,
+    'synchrotron_radiation_full': butils_wrap.synchrotron_radiation_full,
+    # 'linear_interp_time_translation': butils_wrap.linear_interp_time_translation,
+    'slice': butils_wrap.slice,
+    'slice_smooth': butils_wrap.slice_smooth,
+    'music_track': butils_wrap.music_track,
+    'music_track_multiturn': butils_wrap.music_track_multiturn,
+
     'diff': np.diff,
     'cumsum': np.cumsum,
     'cumprod': np.cumprod,
     'gradient': np.gradient,
     'sqrt': np.sqrt,
+
     'device': 'CPU'
 }
 
@@ -74,6 +75,7 @@ _MPI_func_dict = {
 
 }
 
+
 def use_fftw():
     '''
     Replace the existing rfft and irfft implementations
@@ -85,10 +87,13 @@ def use_fftw():
 # precision can be single or double
 def use_precision(_precision='double'):
     global precision
-    if _precision == 'single':
-        print('WARNING: Only double precision supported')
-        _precision = 'double'
-    butils_wrap.precision = butils_wrap.Precision(_precision)
+    if _precision in ['single', 's', '32', 'float32', 'float', 'f']:
+        butils_wrap.precision = butils_wrap.Precision('float')
+    elif _precision in ['double', 'd', '64', 'float64']:
+        butils_wrap.precision = butils_wrap.Precision('double')
+    else:
+        print(f'WARNING: {_precision} is not a valid floating point precision, please select one of: float, double. Using double precision')
+        butils_wrap.precision = butils_wrap.Precision('double')
     precision = butils_wrap.precision
 
 
@@ -105,6 +110,7 @@ def mpiMode():
     global __exec_mode
     return __exec_mode == 'multi_node'
 
+
 def gpuMode():
     return globals()['device'] == 'GPU'
 
@@ -115,17 +121,21 @@ def enable_gpucache():
 
 
 def disable_gpucache():
-    from  ..gpu import cucache as cc
+    from ..gpu import cucache as cc
     cc.disable_cache()
+
 
 def gpuId():
     return __gpu_dev.id
 
+
 def gpuDev():
     return __gpu_dev.dev
 
+
 def gpuCtx():
     return __gpu_dev.ctx
+
 
 def getMod():
     return __gpu_dev.my_mod()
@@ -136,6 +146,7 @@ def getMod():
 
 class GPUDev:
     __instance = None
+
     def __init__(self, _gpu_num=0):
         if GPUDev.__instance != None:
             raise Exception("The GPUDev class is a singleton!")
@@ -148,12 +159,15 @@ class GPUDev:
         self.ctx = self.dev.make_context()
         this_dir = os.path.dirname(os.path.realpath(__file__)) + "/"
 
-        self.mod = drv.module_from_file(os.path.join(this_dir, '../gpu/cuda_kernels/kernels.cubin'))
-
-
+        if precision.num == 1:
+            self.mod = drv.module_from_file(os.path.join(
+                this_dir, '../gpu/cuda_kernels/kernels_single.cubin'))
+        else:
+            self.mod = drv.module_from_file(os.path.join(
+                this_dir, '../gpu/cuda_kernels/kernels_double.cubin'))
 
     def report_attributes(self):
-        # Saves into a file all the device attributes 
+        # Saves into a file all the device attributes
         with open(f'{self.dev.name()}-attributes.txt', 'w') as f:
             for k, v in self.dev.get_attributes().items():
                 f.write(f"{k}:{v}\n")
@@ -167,14 +181,14 @@ class GPUDev:
 
     def my_mod(self):
         return self.mod
-    
 
 
 def use_gpu(comps=[], gpu_id=0):
     if gpu_id < 0:
         return
 
-    print(''.join(['#']*30) + ' Using GPU: {} '.format(gpu_id) + ''.join(['#']*30))
+    print(''.join(['#']*30) +
+          ' Using GPU: {} '.format(gpu_id) + ''.join(['#']*30))
     from pycuda import driver as drv
 
     global __gpu_dev
@@ -182,17 +196,29 @@ def use_gpu(comps=[], gpu_id=0):
     globals()['device'] = 'GPU'
     from ..gpu import gpu_physics_wrap
     from ..gpu import gpu_butils_wrap
-    
 
     for obj in comps:
         if (hasattr(obj, "use_gpu")):
             print("using gpu")
             obj.use_gpu()
-            
+
     _GPU_func_dict = {
         'rfft': gpu_butils_wrap.gpu_rfft,
         'irfft': gpu_butils_wrap.gpu_irfft,
-        'rfftfreq': fft.rfftfreq,
+        'convolve': gpu_butils_wrap.gpu_convolve,
+        'beam_phase': gpu_physics_wrap.gpu_beam_phase,
+        'kick': gpu_physics_wrap.gpu_kick,
+        'rf_volt_comp': gpu_physics_wrap.gpu_rf_volt_comp,
+        'drift': gpu_physics_wrap.gpu_drift,
+        'linear_interp_kick': gpu_physics_wrap.gpu_linear_interp_kick,
+        'LIKick_n_drift': gpu_physics_wrap.gpu_linear_interp_kick_drift,
+        'synchrotron_radiation': gpu_physics_wrap.gpu_synchrotron_radiation,
+        'synchrotron_radiation_full': gpu_physics_wrap.gpu_synchrotron_radiation_full,
+        # 'linear_interp_time_translation': butils_wrap.linear_interp_time_translation,
+        'slice': gpu_physics_wrap.gpu_slice,
+        'slice_smooth': butils_wrap.slice_smooth,
+        # 'rfftfreq': gpu_butils_wrap.gpu_rfftfreq,
+        'rfftfreq': np.fft.rfftfreq,
         'irfft_packed': butils_wrap.irfft_packed,
         'sin': butils_wrap.sin,
         'cos': butils_wrap.cos,
@@ -207,26 +233,14 @@ def use_gpu(comps=[], gpu_id=0):
         'linspace': butils_wrap.linspace,
         'argmin': butils_wrap.argmin,
         'argmax': butils_wrap.argmax,
-        'convolve': gpu_butils_wrap.gpu_convolve,
         'arange': butils_wrap.arange,
         'sum': butils_wrap.sum,
         'sort': butils_wrap.sort,
         'add': butils_wrap.add,
         'mul': butils_wrap.mul,
-        'beam_phase': gpu_physics_wrap.gpu_beam_phase,
-        'fast_resonator': bphysics_wrap.fast_resonator,
-        'kick': gpu_physics_wrap.gpu_kick,
-        'rf_volt_comp': gpu_physics_wrap.gpu_rf_volt_comp,
-        'drift' : gpu_physics_wrap.gpu_drift,
-        'linear_interp_kick': gpu_physics_wrap.gpu_linear_interp_kick,
-        'LIKick_n_drift': gpu_physics_wrap.gpu_linear_interp_kick_drift,
-        'synchrotron_radiation': gpu_physics_wrap.gpu_synchrotron_radiation,
-        'synchrotron_radiation_full': gpu_physics_wrap.gpu_synchrotron_radiation_full,
-        # 'linear_interp_time_translation': bphysics_wrap.linear_interp_time_translation,
-        'slice': gpu_physics_wrap.gpu_slice,
-        'slice_smooth': bphysics_wrap.slice_smooth,
-        'music_track': bphysics_wrap.music_track,
-        'music_track_multiturn': bphysics_wrap.music_track_multiturn,
+        'fast_resonator': butils_wrap.fast_resonator,
+        'music_track': butils_wrap.music_track,
+        'music_track_multiturn': butils_wrap.music_track_multiturn,
         'diff': np.diff,
         'cumsum': np.cumsum,
         'cumprod': np.cumprod,
@@ -265,4 +279,3 @@ def update_active_dict(new_dict):
 ################################################################################
 update_active_dict(_CPU_func_dict)
 ################################################################################
-

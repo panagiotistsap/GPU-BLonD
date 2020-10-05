@@ -21,7 +21,6 @@ from __future__ import division, print_function
 from builtins import range, object
 import numpy as np
 from scipy.constants import c, physical_constants
-import ctypes
 from ..utils import bmath as bm
 
 
@@ -325,7 +324,7 @@ class Resonators(_ImpedanceObject):
         """
 
         self.time_array = time_array
-        self.wake = np.zeros(self.time_array.shape)
+        self.wake = np.zeros(self.time_array.shape, dtype=bm.precision.real_t, order='C')
 
         for i in range(0, self.n_resonators):
 
@@ -355,7 +354,7 @@ class Resonators(_ImpedanceObject):
         """
 
         self.frequency_array = frequency_array
-        self.impedance = np.zeros(len(self.frequency_array), complex)
+        self.impedance = np.zeros(len(self.frequency_array), bm.precision.complex_t)
 
         for i in range(0, self.n_resonators):
 
@@ -452,13 +451,13 @@ class TravelingWaveCavity(_ImpedanceObject):
         _ImpedanceObject.__init__(self)
 
         # Shunt impepdance in :math:`\Omega`
-        self.R_S = np.array([R_S], dtype=float).flatten()
+        self.R_S = np.array([R_S], dtype=bm.precision.real_t).flatten()
 
         # Resonant frequency in Hz
-        self.frequency_R = np.array([frequency_R], dtype=float).flatten()
+        self.frequency_R = np.array([frequency_R], dtype=bm.precision.real_t).flatten()
 
         # Damping time a in s
-        self.a_factor = np.array([a_factor], dtype=float).flatten()
+        self.a_factor = np.array([a_factor], dtype=bm.precision.real_t).flatten()
 
         # Number of resonant modes
         self.n_twc = len(self.R_S)
@@ -481,7 +480,7 @@ class TravelingWaveCavity(_ImpedanceObject):
         """
 
         self.time_array = time_array
-        self.wake = np.zeros(self.time_array.shape)
+        self.wake = np.zeros(self.time_array.shape, dtype=bm.precision.real_t, order='C')
 
         for i in range(0, self.n_twc):
             a_tilde = self.a_factor[i] / (2 * np.pi)
@@ -510,7 +509,7 @@ class TravelingWaveCavity(_ImpedanceObject):
         """
 
         self.frequency_array = frequency_array
-        self.impedance = np.zeros(len(self.frequency_array), complex)
+        self.impedance = np.zeros(len(self.frequency_array), bm.precision.complex_t)
 
         for i in range(0, self.n_twc):
 

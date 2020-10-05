@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import splrep, splev
 from ..plots.plot import fig_folder
-
+from ..utils import bmath as bm
 
 class RFStationOptions(object):
     r""" Class to preprocess the RF data (voltage, phase, harmonic) for
@@ -165,7 +165,7 @@ class RFStationOptions(object):
                                             s=self.smoothing)
                     output_data.append(splev(interp_time, interp_funtion))
 
-            output_data = np.array(output_data, ndmin=2, dtype=float)
+            output_data = np.array(output_data, ndmin=2, dtype=bm.precision.real_t)
 
             # Plot original and interpolated data
             if self.plot:

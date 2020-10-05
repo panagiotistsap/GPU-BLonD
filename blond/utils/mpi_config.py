@@ -856,45 +856,43 @@ class Worker:
 
         self.lb_type = lbstr.split(',')[0]
 
-        if self.lb_type == 'off':
-            return self.inter_lb_turns
+        if self.lb_type != 'off':
+            assert len(lbstr.split(',')) == 5, 'Wrong number of LB arguments'
+            lb_arg, cutoff, decay, keep = lbstr.split(',')[1:]
+            if not cutoff:
+                cutoff = 0.03
+            if not decay:
+                decay = 5
+            if not keep:
+                keep = 20
 
-        assert len(lbstr.split(',')) == 5, 'Wrong number of LB arguments'
-        lb_arg, cutoff, decay, keep = lbstr.split(',')[1:]
-        if not cutoff:
-            cutoff = 0.03
-        if not decay:
-            decay = 5
-        if not keep:
-            keep = 20
+            if self.lb_type == 'times':
+                if lb_arg:
+                    intv = max(n_iter // (int(lb_arg)+1), 1)
+                else:
+                    intv = max(n_iter // (10 + 1), 1)
+                self.inter_lb_turns = np.arange(0, n_iter, intv)[1:]
 
-        if self.lb_type == 'times':
-            if lb_arg:
-                intv = max(n_iter // (int(lb_arg)+1), 1)
-            else:
-                intv = max(n_iter // (10 + 1), 1)
-            self.inter_lb_turns = np.arange(0, n_iter, intv)[1:]
-
-        elif self.lb_type == 'interval':
-            if lb_arg:
-                self.inter_lb_turns = np.arange(0, n_iter, int(lb_arg))[1:]
-            else:
-                self.inter_lb_turns = np.arange(0, n_iter, 1000)[1:]
-        elif self.lb_type == 'dynamic':
-            self.inter_lb_turns = [self.start_turn]
-        elif self.lb_type == 'reportonly':
-            if lb_arg:
-                self.inter_lb_turns = np.arange(0, n_iter, int(lb_arg))
-            else:
-                self.inter_lb_turns = np.arange(0, n_iter, 100)
-        self.dlb = {'tcomp': 0, 'tcomm': 0,
-                    'tconst': 0, 'tsync': 0,
-                    'cutoff': float(cutoff), 'decay': float(decay),
-                    'coeffs_keep': int(keep),
-                    'intra_tcomp': 0,
-                    'intra_tconst': 0,
-                    'intra_tsync': 0,
-                    'intra_tcomm': 0}
+            elif self.lb_type == 'interval':
+                if lb_arg:
+                    self.inter_lb_turns = np.arange(0, n_iter, int(lb_arg))[1:]
+                else:
+                    self.inter_lb_turns = np.arange(0, n_iter, 1000)[1:]
+            elif self.lb_type == 'dynamic':
+                self.inter_lb_turns = [self.start_turn]
+            elif self.lb_type == 'reportonly':
+                if lb_arg:
+                    self.inter_lb_turns = np.arange(0, n_iter, int(lb_arg))
+                else:
+                    self.inter_lb_turns = np.arange(0, n_iter, 100)
+            self.dlb = {'tcomp': 0, 'tcomm': 0,
+                        'tconst': 0, 'tsync': 0,
+                        'cutoff': float(cutoff), 'decay': float(decay),
+                        'coeffs_keep': int(keep),
+                        'intra_tcomp': 0,
+                        'intra_tconst': 0,
+                        'intra_tsync': 0,
+                        'intra_tcomm': 0}
         # to begin with, we make them equal
         self.intra_lb_turns = np.copy(self.inter_lb_turns)
         return self.inter_lb_turns
