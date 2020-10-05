@@ -486,7 +486,7 @@ class Profile(object):
         Constant space slicing with a constant frame.
         """
         bm.slice(self.Beam.dt, self.n_macroparticles, self.cut_left,
-                self.cut_right, self.Beam)
+                self.cut_right)
         
         # if bm.mpiMode():
             # self.reduce_histo()
