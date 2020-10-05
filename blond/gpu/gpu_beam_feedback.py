@@ -8,8 +8,8 @@ from types import MethodType
 from ..gpu.gpu_butils_wrap import gpu_copy_one, triple_kernel,\
     first_kernel_x, second_kernel_x, third_kernel_x, indexing_double, indexing_int, sincos_mul_add, mul_d, sincos_mul_add_2
 from ..gpu.cucache import get_gpuarray
-from ..utils.bphysics_wrap import beam_phase as cpu_beamphase
-import pycuda.cumath as cm
+# from ..utils.bphysics_wrap import beam_phase as cpu_beamphase
+# import pycuda.cumath as cm
 from pycuda import gpuarray
 # from ..gpu import grid_size, block_size
 # , driver as drv, tools

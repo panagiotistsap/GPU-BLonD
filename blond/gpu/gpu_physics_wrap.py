@@ -5,13 +5,12 @@ BLonD physics wrapper functions
 @date 20.10.2017
 '''
 
-import ctypes as ct
+# import ctypes as ct
 import numpy as np
 # from setup_cpp import libblondphysics as __lib
 from .. import libblond as __lib
-import numpy as np
-import pycuda.cumath as cm
-import traceback
+# import pycuda.cumath as cm
+# import traceback
 from ..gpu.cucache import get_gpuarray
 from ..gpu.gpu_butils_wrap import bm_phase_exp_times_scalar, bm_phase_mul_add, bm_sin_cos, d_multiply, d_multscalar
 from pycuda import gpuarray
