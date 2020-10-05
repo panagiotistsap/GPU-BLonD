@@ -185,7 +185,7 @@ class gpu_InducedVoltage(_InducedVoltage):
             # dev_induced_voltage = - (self.beam.Particle.charge * e * self.beam.ratio *my_res )
             self.dev_induced_voltage = get_gpuarray(
                 (self.n_induced_voltage, bm.precision.real_t, id(self), 'iv'))
-            gpu_mul(self.dev_induced_voltage, my_res, bm.precision.c_real_t(-self.beam.Particle.charge *
+            gpu_mul(self.dev_induced_voltage, my_res, bm.precision.real_t(-self.beam.Particle.charge *
                                                             e * self.beam.ratio), slice=slice(0, self.n_induced_voltage))
 
 

@@ -100,7 +100,7 @@ class gpu_Beam(Beam):
     def losses_longitudinal_cut(self, dt_min, dt_max):
 
         
-        gllc(self.dev_dt, self.dev_id, np.int32(self.n_macroparticles), bm.precision.c_real_t(dt_min), bm.precision.c_real_t(dt_max),
+        gllc(self.dev_dt, self.dev_id, np.int32(self.n_macroparticles), bm.precision.real_t(dt_min), bm.precision.real_t(dt_max),
             grid=grid_size, block=block_size)
         self.id_obj.invalidate_cpu()
 
@@ -108,7 +108,7 @@ class gpu_Beam(Beam):
     def losses_energy_cut(self, dE_min, dE_max):
 
         
-        glec(self.dev_dE, self.dev_id, np.int32(self.n_macroparticles), bm.precision.c_real_t(dE_min), bm.precision.c_real_t(dE_max),
+        glec(self.dev_dE, self.dev_id, np.int32(self.n_macroparticles), bm.precision.real_t(dE_min), bm.precision.real_t(dE_max),
             grid=grid_size, block=block_size)
         self.id_obj.invalidate_cpu()
 
@@ -116,7 +116,7 @@ class gpu_Beam(Beam):
     def losses_below_energy(self, dE_min):
 
         
-        glbe(self.dev_dE, self.dev_id, np.int32(self.n_macroparticles), bm.precision.c_real_t(dE_min),
+        glbe(self.dev_dE, self.dev_id, np.int32(self.n_macroparticles), bm.precision.real_t(dE_min),
             grid=grid_size, block=block_size)
         self.id_obj.invalidate_cpu()
 
@@ -125,15 +125,11 @@ class gpu_Beam(Beam):
         ones_sum = sum_non_zeros(self.dev_id).get()
         # print(self.dev_id.dtype)
         self.ones_sum = ones_sum
-        self.mean_dt = bm.precision.c_real_t(mean_non_zeros(
-            self.dev_dt, self.dev_id).get()/ones_sum)
-        self.mean_dE = bm.precision.c_real_t(mean_non_zeros(
-            self.dev_dE, self.dev_id).get()/ones_sum)
+        self.mean_dt = mean_non_zeros(self.dev_dt, self.dev_id).get()/ones_sum
+        self.mean_dE = mean_non_zeros(self.dev_dE, self.dev_id).get()/ones_sum
 
-        self.sigma_dt = bm.precision.c_real_t(
-            np.sqrt(stdKernel(self.dev_dt, self.dev_id, self.mean_dt).get()/ones_sum))
-        self.sigma_dE = bm.precision.c_real_t(
-            np.sqrt(stdKernel(self.dev_dE, self.dev_id, self.mean_dE).get()/ones_sum))
+        self.sigma_dt = np.sqrt(stdKernel(self.dev_dt, self.dev_id, self.mean_dt).get()/ones_sum)
+        self.sigma_dE = np.sqrt(stdKernel(self.dev_dE, self.dev_id, self.mean_dE).get()/ones_sum)
 
         self.epsn_rms_l = np.pi*self.sigma_dE*self.sigma_dt  # in eVs
 

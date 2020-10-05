@@ -66,7 +66,7 @@ def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_k
                 dev_omega_rf,
                 dev_phi_rf,
                 np.int32(beam.dev_dt.size),
-                bm.precision.c_real_t(acceleration_kick),
+                bm.precision.real_t(acceleration_kick),
                 block=block_size, grid=grid_size, time_kernel=True)
     beam.dE_obj.invalidate_cpu()
 
@@ -74,14 +74,14 @@ def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_k
 def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
               eta_1, eta_2, alpha_0, alpha_1, alpha_2, beta, energy, beam):
     solver = solver_utf8.decode('utf-8')
-    T = bm.precision.c_real_t(t_rev)*bm.precision.c_real_t(length_ratio)
+    T = t_rev*length_ratio
     n_macroparticles = len(beam.dev_dt)
     if (solver == "simple"):
         ##### simple solver #####
         # coeff =  np.float64(eta_0) / (np.float64(beta)* np.float64(beta)* np.float64(energy))
         # beam.dev_dt += T*coeff*beam.dev_dE
         drift_simple(beam.dev_dt, beam.dev_dE,
-                     (t_rev), bm.precision.c_real_t(length_ratio),
+                     (t_rev), bm.precision.real_t(length_ratio),
                      (eta_0), (beta),
                      (energy), np.int32(n_macroparticles),
                      grid=grid_size, block=block_size, time_kernel=True)
@@ -95,18 +95,18 @@ def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
         eta2 = eta_2 * coeff * coeff * coeff
         if (alpha_order == 0):
             drift_legacy_0(beam.dev_dt, beam.dev_dE,
-                           bm.precision.c_real_t(T), bm.precision.c_real_t(eta0),
+                           bm.precision.real_t(T), bm.precision.real_t(eta0),
                            np.int32(n_macroparticles),
                            block=block_size, grid=grid_size, time_kernel=True)
         elif (alpha_order == 1):
             drift_legacy_1(beam.dev_dt, beam.dev_dE,
-                           bm.precision.c_real_t(T), bm.precision.c_real_t(eta0),
-                           bm.precision.c_real_t(eta1), np.int32(n_macroparticles),
+                           bm.precision.real_t(T), bm.precision.real_t(eta0),
+                           bm.precision.real_t(eta1), np.int32(n_macroparticles),
                            block=block_size, grid=grid_size, time_kernel=True)
         else:
             drift_legacy_2(beam.dev_dt, beam.dev_dE,
-                           bm.precision.c_real_t(T), bm.precision.c_real_t(eta0),
-                           bm.precision.c_real_t(eta1), bm.precision.c_real_t(eta2),
+                           bm.precision.real_t(T), bm.precision.real_t(eta0),
+                           bm.precision.real_t(eta1), bm.precision.real_t(eta2),
                            np.int32(n_macroparticles),
                            block=block_size, grid=grid_size, time_kernel=True)
 
@@ -115,9 +115,9 @@ def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
         invbetasq = 1. / (beta * beta)
         invenesq = 1. / (energy * energy)
         drift_else(beam.dev_dt, beam.dev_dE,
-                   bm.precision.c_real_t(invbetasq), bm.precision.c_real_t(invenesq),
-                   bm.precision.c_real_t(T), bm.precision.c_real_t(alpha_0), bm.precision.c_real_t(alpha_1),
-                   bm.precision.c_real_t(alpha_2), bm.precision.c_real_t(energy),
+                   bm.precision.real_t(invbetasq), bm.precision.real_t(invenesq),
+                   bm.precision.real_t(T), bm.precision.real_t(alpha_0), bm.precision.real_t(alpha_1),
+                   bm.precision.real_t(alpha_2), bm.precision.real_t(energy),
                    np.int32(n_macroparticles),
                    block=block_size, grid=grid_size, time_kernel=True)
     beam.dt_obj.invalidate_cpu()
@@ -136,10 +136,10 @@ def gpu_linear_interp_kick(dev_voltage,
                                beam.dev_dE,
                                dev_voltage,
                                dev_bin_centers,
-                               bm.precision.c_real_t(charge),
+                               bm.precision.real_t(charge),
                                np.int32(slices),
                                np.int32(macros),
-                               bm.precision.c_real_t(acceleration_kick),
+                               bm.precision.real_t(acceleration_kick),
                                dev_voltageKick,
                                dev_factor,
                                grid=grid_size, block=block_size,
@@ -148,10 +148,10 @@ def gpu_linear_interp_kick(dev_voltage,
                                beam.dev_dE,
                                dev_voltage,
                                dev_bin_centers,
-                               bm.precision.c_real_t(charge),
+                               bm.precision.real_t(charge),
                                np.int32(slices),
                                np.int32(macros),
-                               bm.precision.c_real_t(acceleration_kick),
+                               bm.precision.real_t(acceleration_kick),
                                dev_voltageKick,
                                dev_factor,
                                grid=grid_size, block=block_size,
@@ -174,10 +174,10 @@ def gpu_linear_interp_kick_drift(dev_voltage,
                                beam.dev_dE,
                                dev_voltage,
                                dev_bin_centers,
-                               bm.precision.c_real_t(charge),
+                               bm.precision.real_t(charge),
                                np.int32(slices),
                                np.int32(macros),
-                               bm.precision.c_real_t(acceleration_kick),
+                               bm.precision.real_t(acceleration_kick),
                                dev_voltageKick,
                                dev_factor,
                                grid=grid_size, block=block_size,
@@ -186,17 +186,17 @@ def gpu_linear_interp_kick_drift(dev_voltage,
                                      beam.dev_dE,
                                      dev_voltage,
                                      dev_bin_centers,
-                                     bm.precision.c_real_t(charge),
+                                     bm.precision.real_t(charge),
                                      np.int32(slices),
                                      np.int32(macros),
-                                     bm.precision.c_real_t(acceleration_kick),
+                                     bm.precision.real_t(acceleration_kick),
                                      dev_voltageKick,
                                      dev_factor,
-                                     bm.precision.c_real_t(T0),
-                                     bm.precision.c_real_t(length_ratio),
-                                     bm.precision.c_real_t(eta0),
-                                     bm.precision.c_real_t(beta),
-                                     bm.precision.c_real_t(energy),
+                                     bm.precision.real_t(T0),
+                                     bm.precision.real_t(length_ratio),
+                                     bm.precision.real_t(eta0),
+                                     bm.precision.real_t(beta),
+                                     bm.precision.real_t(energy),
                                      grid=grid_size, block=block_size,
                                      time_kernel=True)
     beam.dE_obj.invalidate_cpu()
@@ -238,13 +238,13 @@ def gpu_slice(cut_left, cut_right, beam, profile):
 
 
 def gpu_synchrotron_radiation(dE, U0, n_kicks, tau_z):
-    synch_rad(dE, bm.precision.c_real_t(U0), np.int32(dE.size), bm.precision.c_real_t(tau_z),
+    synch_rad(dE, bm.precision.real_t(U0), np.int32(dE.size), bm.precision.real_t(tau_z),
               np.int32(n_kicks), block=block_size, grid=(my_gpu.MULTIPROCESSOR_COUNT, 1, 1))
 
 
 def gpu_synchrotron_radiation_full(dE, U0, n_kicks, tau_z, sigma_dE, energy):
     # print("Entering")
-    synch_rad_full(dE, bm.precision.c_real_t(U0), np.int32(dE.size), bm.precision.c_real_t(sigma_dE), bm.precision.c_real_t(energy),
+    synch_rad_full(dE, bm.precision.real_t(U0), np.int32(dE.size), bm.precision.real_t(sigma_dE), bm.precision.real_t(energy),
                    np.int32(n_kicks), np.int32(1), block=block_size, grid=grid_size)
 
 
@@ -259,8 +259,8 @@ def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size)
     dev_coeff = get_gpuarray((1, bm.precision.real_t, 0, 'co'))
 
     beam_phase_v2(bin_centers,
-                  profile, bm.precision.c_real_t(alpha), omega_rf, phi_rf, np.int32(
-                      ind), bm.precision.c_real_t(bin_size),
+                  profile, bm.precision.real_t(alpha), omega_rf, phi_rf, np.int32(
+                      ind), bm.precision.real_t(bin_size),
                   array1, array2, np.int32(n_bins),
                   block=block_size)  # , grid=grid_size)
 
