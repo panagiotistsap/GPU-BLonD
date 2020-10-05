@@ -1067,7 +1067,7 @@ __global__ void set_zero_int(int *x, long n)
 
 
 extern "C"
-__global__ void set_zero_complex(pycuda::complex<double> *x, long n)
+__global__ void set_zero_complex64(pycuda::complex<float> *x, long n)
 {
     unsigned tid = threadIdx.x;
     unsigned total_threads = gridDim.x * blockDim.x;
@@ -1081,6 +1081,21 @@ __global__ void set_zero_complex(pycuda::complex<double> *x, long n)
     ;
 }
 
+
+extern "C"
+__global__ void set_zero_complex128(pycuda::complex<double> *x, long n)
+{
+    unsigned tid = threadIdx.x;
+    unsigned total_threads = gridDim.x * blockDim.x;
+    unsigned cta_start = blockDim.x * blockIdx.x;
+    unsigned i;
+    ;
+    for (i = cta_start + tid; i < n; i += total_threads)
+    {
+        x[i] = 0;
+    }
+    ;
+}
 
 
 extern "C"
@@ -1668,6 +1683,32 @@ __global__ void gpu_diff_range(int *a, double *b, double c , long start, long st
 }
 
 
+extern "C"
+__global__ void set_zero_float_range(float *x , long start, long stop, long step)
+{
+    unsigned tid = threadIdx.x;
+    unsigned total_threads = gridDim.x * blockDim.x;
+    unsigned cta_start = blockDim.x * blockIdx.x;
+    long i;
+    ;
+    if (step < 0)
+    {
+        for (i = start + (cta_start + tid) * step;
+                i > stop; i += total_threads * step)
+        {
+            x[i] = 0;
+        }
+    }
+    else
+    {
+        for (i = start + (cta_start + tid) * step;
+                i < stop; i += total_threads * step)
+        {
+            x[i] = 0;
+        }
+    }
+    ;
+}
 
 extern "C"
 __global__ void set_zero_double_range(double *x , long start, long stop, long step)
@@ -1726,9 +1767,36 @@ __global__ void set_zero_int_range(int *x , long start, long stop, long step)
 }
 
 
+extern "C"
+__global__ void set_zero_complex64_range(pycuda::complex<float> *x , long start, long stop, long step)
+{
+    unsigned tid = threadIdx.x;
+    unsigned total_threads = gridDim.x * blockDim.x;
+    unsigned cta_start = blockDim.x * blockIdx.x;
+    long i;
+    ;
+    if (step < 0)
+    {
+        for (i = start + (cta_start + tid) * step;
+                i > stop; i += total_threads * step)
+        {
+            x[i] = 0;
+        }
+    }
+    else
+    {
+        for (i = start + (cta_start + tid) * step;
+                i < stop; i += total_threads * step)
+        {
+            x[i] = 0;
+        }
+    }
+    ;
+}
+
 
 extern "C"
-__global__ void set_zero_complex_range(pycuda::complex<double> *x , long start, long stop, long step)
+__global__ void set_zero_complex128_range(pycuda::complex<double> *x , long start, long stop, long step)
 {
     unsigned tid = threadIdx.x;
     unsigned total_threads = gridDim.x * blockDim.x;
