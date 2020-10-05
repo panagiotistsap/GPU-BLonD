@@ -14,7 +14,7 @@ from .. import libblond as __lib
 class Precision:
     def __init__(self, precision='double'):
         if precision in ['single', 's', '32', 'float32', 'float', 'f']:
-            self.str = 'single'
+            self.str = 'float'
             self.real_t = np.float32
             self.c_real_t = ct.c_float
             self.complex_t = np.complex64
