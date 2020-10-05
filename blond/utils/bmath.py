@@ -205,7 +205,8 @@ def use_gpu(comps=[], gpu_id=0):
     _GPU_func_dict = {
         'rfft': gpu_butils_wrap.gpu_rfft,
         'irfft': gpu_butils_wrap.gpu_irfft,
-        'rfftfreq': fft.rfftfreq,
+        # 'rfftfreq': gpu_butils_wrap.gpu_rfftfreq,
+        'rfftfreq': np.fft.rfftfreq,
         'irfft_packed': butils_wrap.irfft_packed,
         'sin': butils_wrap.sin,
         'cos': butils_wrap.cos,
