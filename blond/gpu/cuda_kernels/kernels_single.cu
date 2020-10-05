@@ -1083,7 +1083,7 @@ __global__ void set_zero_complex64(pycuda::complex<float> *x, long n)
 
 
 extern "C"
-__global__ void set_zero_complex128(pycuda::complex<> *x, long n)
+__global__ void set_zero_complex128(pycuda::complex<double> *x, long n)
 {
     unsigned tid = threadIdx.x;
     unsigned total_threads = gridDim.x * blockDim.x;
