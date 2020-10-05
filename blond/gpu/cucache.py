@@ -1,7 +1,7 @@
 import numpy as np
 from pycuda import gpuarray
 from ..utils import bmath as bm
-from . import gpu_butils_wrap as gpu_utils
+from ..gpu import gpu_butils_wrap as gpu_utils
 
 def fill(self, value):
     # from .gpu_butils_wrap import set_zero_int, set_zero_double, set_zero_complex, set_zero_float
