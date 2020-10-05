@@ -304,7 +304,7 @@ class Ring(object):
         # with zeros (should be propagated in RFStation.__init__())
         for i in range(self.alpha_order+1, 3):
             setattr(self, "eta_%s" % i, np.zeros([self.n_sections,
-                                                  self.n_turns+1]), dtype=bm.precision.real_t)
+                                                  self.n_turns+1], dtype=bm.precision.real_t))
 
     def _eta0(self):
         """ Function to calculate the zeroth order slippage factor eta_0 """
