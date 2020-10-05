@@ -555,7 +555,7 @@ class InducedVoltageTime(_InducedVoltage):
         Summing all the wake contributions in one total wake.
         """
 
-        self.total_wake = np.zeros(time_array.shape)
+        self.total_wake = np.zeros(time_array.shape, dtype=np.precision.real_t)
         for wake_object in self.wake_source_list:
             wake_object.wake_calc(time_array)
             self.total_wake += wake_object.wake
@@ -655,7 +655,7 @@ class InducedVoltageFreq(_InducedVoltage):
         Summing all the wake contributions in one total impedance.
         """
 
-        self.total_impedance = np.zeros(freq.shape, complex)
+        self.total_impedance = np.zeros(freq.shape, dtype=np.precision.complex_t)
 
         for i in range(len(self.impedance_source_list)):
             self.impedance_source_list[i].imped_calc(freq)

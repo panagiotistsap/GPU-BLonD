@@ -20,7 +20,7 @@ import numpy as np
 import ctypes
 # from ..setup_cpp import libblond
 from .. import libblond
-
+from ..utils import bmath as bm
 from ..beam.profile import Profile, CutOptions
 
 
@@ -62,9 +62,9 @@ class SparseSlices(object):
         # Group n_macroparticles from all objects in a single array
         # (for C++ track).
         self.n_macroparticles_array = np.zeros((self.n_filled_buckets, 
-                                                n_slices))
+                                                n_slices), dtype=np.precision.real_t)
         # Group bin_centers from all objects in a single array (for impedance)
-        self.bin_centers_array = np.zeros((self.n_filled_buckets, n_slices))
+        self.bin_centers_array = np.zeros((self.n_filled_buckets, n_slices), dtype=np.precision.real_t)
         for i in range(self.n_filled_buckets):
             # Only valid for cut_edges='edges'
                 
@@ -96,8 +96,8 @@ class SparseSlices(object):
         # RF period
         Trf = 2.0 * np.pi / self.RFParams.omega_rf[0,self.RFParams.counter[0]]
         
-        self.cut_left_array = np.zeros(self.n_filled_buckets)
-        self.cut_right_array = np.zeros(self.n_filled_buckets)
+        self.cut_left_array = np.zeros(self.n_filled_buckets, dtype=np.precision.real_t)
+        self.cut_right_array = np.zeros(self.n_filled_buckets, dtype=np.precision.real_t)
         for i in range(self.n_filled_buckets):
             bucket_index = np.where(self.filling_pattern)[0][i]
             self.cut_left_array[i] = bucket_index * Trf

@@ -62,7 +62,7 @@ class SynchrotronRadiation(object):
 
         # Initialize the random number array if quantum excitation is included
         if quantum_excitation:
-            self.random_array = np.zeros(self.beam.n_macroparticles)
+            self.random_array = np.zeros(self.beam.n_macroparticles, dtype=np.precision.real_t)
 
         # Displace the beam in phase to account for the energy loss due to
         # synchrotron radiation (temporary until bunch generation is updated)

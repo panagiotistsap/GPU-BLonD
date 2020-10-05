@@ -26,7 +26,7 @@ from ..toolbox.next_regular import next_regular
 cfwhm = np.sqrt(2./np.log(2.))
 import matplotlib.pyplot as plt
 
-
+from ..utils import bmath as bm
 
 class FlatSpectrum(object): 
     
@@ -65,10 +65,10 @@ class FlatSpectrum(object):
             self.fmax_s0 = 1.001
         self.fs = RFStation.omega_s0[self.initial_final_turns[0]:self.initial_final_turns[1]] / (2*np.pi) # synchrotron frequency in Hz
         self.n_turns = len(self.fs)-1
-        self.dphi = np.zeros(self.n_turns+1)
+        self.dphi = np.zeros(self.n_turns+1, dtype=np.precision.real_t)
         self.continuous_phase = continuous_phase
         if self.continuous_phase:
-            self.dphi2 = np.zeros(self.n_turns+1+self.corr/4)
+            self.dphi2 = np.zeros(self.n_turns+1+self.corr/4, dtype=np.precision.real_t)
         self.folder_plots = folder_plots    
         self.print_option = print_option
     
@@ -120,7 +120,7 @@ class FlatSpectrum(object):
             dPt = np.fft.ifft(dPf) # in [rad]
                     
         # Use only real part for the phase shift and normalize
-        self.t = np.linspace(0, float(nt*dt), nt) 
+        self.t = np.linspace(0, float(nt*dt), nt, dtype=np.precision.real_t) 
         self.dphi_output = dPt.real
  
     
@@ -141,7 +141,7 @@ class FlatSpectrum(object):
                 #NoiseError
                 raise RuntimeError('Error in noise generation!')
             n_points_pos_f_incl_zero = int(nt_regular/2 + 1)  
-            freq = np.linspace(0, float(f_max), n_points_pos_f_incl_zero)
+            freq = np.linspace(0, float(f_max), n_points_pos_f_incl_zero, dtype=np.precision.real_t)
             delta_f = f_max/(n_points_pos_f_incl_zero-1) 
 
             # Construct spectrum   
@@ -151,21 +151,22 @@ class FlatSpectrum(object):
             # To compensate the notch due to PL at central frequency
             if self.predistortion == 'exponential':
                 
-                spectrum = np.concatenate((np.zeros(nmin), ampl*np.exp(
-                    np.log(100.)*np.arange(0,nmax-nmin+1)/(nmax-nmin) ), 
-                                           np.zeros(n_points_pos_f_incl_zero-nmax-1) ))
+                spectrum = np.concatenate((np.zeros(nmin, dtype=np.precision.real_t), ampl*np.exp(
+                    np.log(100.)*np.arange(0,nmax-nmin+1, dtype=np.precision.real_t)/(nmax-nmin) ), 
+                                           np.zeros(n_points_pos_f_incl_zero-nmax-1, dtype=np.precision.real_t) ))
              
             elif self.predistortion == 'linear':
                 
-                spectrum = np.concatenate((np.zeros(nmin), 
-                    np.linspace(0, float(ampl), nmax-nmin+1), np.zeros(n_points_pos_f_incl_zero-nmax-1)))   
+                spectrum = np.concatenate((np.zeros(nmin, dtype=np.precision.real_t), 
+                    np.linspace(0, float(ampl), nmax-nmin+1, dtype=np.precision.real_t), 
+                    np.zeros(n_points_pos_f_incl_zero-nmax-1, dtype=np.precision.real_t)))   
                 
             elif self.predistortion == 'hyperbolic':
 
-                spectrum = np.concatenate((np.zeros(nmin), 
-                    ampl*np.ones(nmax-nmin+1)* \
-                    1/(1 + 0.99*(nmin - np.arange(nmin,nmax+1))
-                       /(nmax-nmin)), np.zeros(n_points_pos_f_incl_zero-nmax-1) ))
+                spectrum = np.concatenate((np.zeros(nmin, dtype=np.precision.real_t), 
+                    ampl*np.ones(nmax-nmin+1, dtype=np.precision.real_t)* \
+                    1/(1 + 0.99*(nmin - np.arange(nmin,nmax+1, dtype=np.precision.real_t))
+                       /(nmax-nmin)), np.zeros(n_points_pos_f_incl_zero-nmax-, dtype=np.precision.real_t1)))
 
             elif self.predistortion == 'weightfunction':
 
@@ -180,12 +181,13 @@ class FlatSpectrum(object):
                            ( gamma + np.log(8.*(1. - frel)/sigma**2) + 
                              8.*(1. - frel)/sigma**2 ) )**2
                 weight /= weight[0] # normalise to have 1 at fmin
-                spectrum = np.concatenate((np.zeros(nmin), ampl*weight, 
-                                            np.zeros(n_points_pos_f_incl_zero-nmax-1)))
+                spectrum = np.concatenate((np.zeros(nmin, dtype=np.precision.real_t), ampl*weight, 
+                                            np.zeros(n_points_pos_f_incl_zero-nmax-1, dtype=np.precision.real_t)))
 
             else:
-                spectrum = np.concatenate((np.zeros(nmin), 
-                    ampl*np.ones(nmax-nmin+1), np.zeros(n_points_pos_f_incl_zero-nmax-1)))               
+                spectrum = np.concatenate((np.zeros(nmin, dtype=np.precision.real_t), 
+                    ampl*np.ones(nmax-nmin+1, dtype=np.precision.real_t), 
+                    np.zeros(n_points_pos_f_incl_zero-nmax-1, dtype=np.precision.real_t)))               
             
             
             # Fill phase noise array
@@ -225,11 +227,11 @@ class FlatSpectrum(object):
                     %(self.t[1], i, rms_noise, rms_noise*180/np.pi))
                 
         if self.continuous_phase:
-            psi = np.arange(0, self.n_turns+1)*2*np.pi/self.corr
+            psi = np.arange(0, self.n_turns+1, dtype=np.precision.real_t)*2*np.pi/self.corr
             self.dphi = self.dphi*np.sin(psi[:self.n_turns+1]) + self.dphi2[:(self.n_turns+1)]*np.cos(psi[:self.n_turns+1])
         
         if self.initial_final_turns[0]>0 or self.initial_final_turns[1]<self.total_n_turns+1:
-            self.dphi = np.concatenate((np.zeros(self.initial_final_turns[0]), self.dphi, np.zeros(1+self.total_n_turns-self.initial_final_turns[1])))
+            self.dphi = np.concatenate((np.zeros(self.initial_final_turns[0], dtype=np.precision.real_t), self.dphi, np.zeros(1+self.total_n_turns-self.initial_final_turns[1], dtype=np.precision.real_t)))
 
 class LHCNoiseFB(object): 
     '''
@@ -277,7 +279,7 @@ class LHCNoiseFB(object):
             self.g = gain*(self.rf_params.omega_s0[0]/
                            self.rf_params.omega_s0)**2
         else:
-            self.g = gain*np.ones(self.rf_params.n_turns + 1)            
+            self.g = gain*np.ones(self.rf_params.n_turns + 1, dtype=np.precision.real_t)            
 
         #: | *Bunch pattern for multi-bunch simulations*
         self.bunch_pattern = bunch_pattern
@@ -290,7 +292,7 @@ class LHCNoiseFB(object):
             self.bl_meas_bbb = None
         else: 
             self.bunch_pattern = np.ascontiguousarray(self.bunch_pattern)
-            self.bl_meas_bbb = np.zeros(len(self.bunch_pattern))
+            self.bl_meas_bbb = np.zeros(len(self.bunch_pattern), dtype=np.precision.real_t)
             self.fwhm = fwhm_functions['multi']
         
 
