@@ -240,7 +240,7 @@ def gpu_linear_interp_kick_drift(dev_voltage,
 def gpu_slice(cut_left, cut_right, beam, profile):
 
     assert beam.dev_dt.dtype == bm.precision.real_t
-    assert profile.dev_dn_macroparticles.dtype == bm.precision.real_t
+    assert profile.dev_n_macroparticles.dtype == bm.precision.real_t
 
     n_slices = profile.dev_n_macroparticles.size
     set_zero_int(profile.dev_n_macroparticles)
