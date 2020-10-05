@@ -143,21 +143,21 @@ class gpu_Profile(Profile):
         elif mode == 'gradient':
             if (caller_id):
                 derivative = get_gpuarray(
-                    (x.size, np.float64, caller_id, 'der'), True)
+                    (x.size, bm.precision.real_t, caller_id, 'der'), True)
             else:
-                derivative = gpuarray.empty(x.size, dtype=np.float64)
-            cugradient(np.float64(dist_centers), self.dev_n_macroparticles,
+                derivative = gpuarray.empty(x.size, dtype=bm.precision.real_t)
+            cugradient(bm.precision.real_t(dist_centers), self.dev_n_macroparticles,
                     derivative, np.int32(x.size), block=block_size, grid=(16, 1, 1))
         elif mode == 'diff':
             if (caller_id):
                 derivative = get_gpuarray(
-                    (x.size, np.float64, caller_id, 'der'), True)
+                    (x.size, bm.precision.real_t, caller_id, 'der'), True)
             else:
                 derivative = gpuarray.empty(
-                    self.dev_n_macroparticles.size-1, np.float64)
+                    self.dev_n_macroparticles.size-1, bm.precision.real_t)
             gpu_diff(self.dev_n_macroparticles, derivative, dist_centers)
             diffCenters = get_gpuarray(
-                (self.dev_bin_centers.size-1, np.float64, caller_id, 'dC'))
+                (self.dev_bin_centers.size-1, bm.precision.real_t, caller_id, 'dC'))
             gpu_copy_d2d(diffCenters, self.dev_bin_centers, slice=slice(0, -1))
 
             diffCenters = diffCenters + dist_centers/2
@@ -187,7 +187,7 @@ class gpu_Profile(Profile):
 
             with timing.timed_region('serial:conversion'):
                 # with mpiprof.traced_region('serial:conversion'):
-                self.n_macroparticles = my_n_macroparticles.astype(dtype=np.float64, order='C', copy=False)
+                self.n_macroparticles = my_n_macroparticles.astype(dtype=bm.precision.real_t, order='C', copy=False)
 
 
     @timing.timeit(key='serial:scale_histo')

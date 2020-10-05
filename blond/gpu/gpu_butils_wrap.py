@@ -218,7 +218,7 @@ sincos_mul_add = ElementwiseKernel(
 
 sincos_mul_add_2 = ElementwiseKernel(
     f"{bm.precision.str} *ar, double a, double b, {bm.precision.str} *s, {bm.precision.str} *c",
-    "s[i] = cos(a*ar[i]+b -3.141592653589793238462643383279502884197169399375105820974944592307816406286/2); c[i] = cos(a*ar[i]+b)",
+    f"s[i] = cos(a*ar[i]+b-{np.pi/2}); c[i] = cos(a*ar[i]+b)",
     "sincos_mul_add_2")
 
 gpu_trapz = ReductionKernel(bm.precision.real_t, neutral="0", reduce_expr="a+b",
@@ -322,19 +322,19 @@ def _get_scale_kernel(dtype):
         return scale_float
     elif dtype in [np.int, np.int32]:
         return scale_int
-        
+
 fft._get_scale_kernel = _get_scale_kernel
 
 def find_plan(my_size):
     if (my_size not in plans_dict):
-        plans_dict[my_size] = fft.Plan(my_size, np.float64, np.complex128)
+        plans_dict[my_size] = fft.Plan(my_size, bm.precision.real_t, bm.precision.complex_t)
     return plans_dict[my_size]
 
 
 def inverse_find_plan(size):
     if (size not in inverse_plans_dict):
         inverse_plans_dict[size] = fft.Plan(
-            size, in_dtype=np.complex128, out_dtype=np.float64)
+            size, in_dtype=bm.precision.complex_t, out_dtype=bm.precision.real_t)
     return inverse_plans_dict[size]
 
 
@@ -344,9 +344,9 @@ def gpu_rfft(dev_a, n=0, result=None, caller_id=None):
     elif (n != 0) and (result == None):
         pass
     if (caller_id == None):
-        result = gpuarray.empty(n//2 + 1, np.complex128)
+        result = gpuarray.empty(n//2 + 1, bm.precision.complex_t)
     else:
-        result = get_gpuarray((n//2 + 1, np.complex128, 0, 'rfft'),zero_fills=True)
+        result = get_gpuarray((n//2 + 1, bm.precision.complex_t, 0, 'rfft'), zero_fills=True)
     outSize = n // 2 + 1
     inSize = dev_a.size
 
@@ -356,10 +356,10 @@ def gpu_rfft(dev_a, n=0, result=None, caller_id=None):
         gpu_copy = gpu_copy_d2d
 
     if (n == inSize):
-        dev_in = get_gpuarray((n, np.float64, 0, 'rfft'))
+        dev_in = get_gpuarray((n, bm.precision.real_t, 0, 'rfft'))
         gpu_copy(dev_in, dev_a, slice=slice(0, n))
     else:
-        dev_in = get_gpuarray((n, np.float64, 0, 'rfft'), zero_fills=True)
+        dev_in = get_gpuarray((n, bm.precision.real_t, 0, 'rfft'), zero_fills=True)
         if (n < inSize):
             gpu_copy(dev_in, dev_a, slice=slice(0, n))
         else:
@@ -376,9 +376,9 @@ def gpu_irfft(dev_a, n=0, result=None, caller_id=None):
         pass
 
     if (caller_id == None):
-        result = gpuarray.empty(n, dtype=np.float64)
+        result = gpuarray.empty(n, dtype=bm.precision.real_t)
     else:
-        key = (n, np.float64, caller_id, 'irfft')
+        key = (n, bm.precision.real_t, caller_id, 'irfft')
         result = get_gpuarray(key)
 
     outSize = n
@@ -391,7 +391,7 @@ def gpu_irfft(dev_a, n=0, result=None, caller_id=None):
     if (n == inSize):
         dev_in = dev_a
     else:
-        dev_in = get_gpuarray((n, np.complex128, 0, 'irfft'))
+        dev_in = get_gpuarray((n, bm.precision.complex_t, 0, 'irfft'))
         if (n < inSize):
             gpu_complex_copy(dev_in, dev_a, slice=slice(0, n))
         else:
@@ -414,11 +414,11 @@ def gpu_convolve(signal, kernel, mode='full', result=None):
         # ConvolutionError
         raise RuntimeError('[convolve] Only full mode is supported')
     if result is None:
-        result = np.empty(len(signal) + len(kernel) - 1, dtype=float)
+        result = np.empty(len(signal) + len(kernel) - 1, dtype=bm.precision.real_t)
     realSize = len(signal) + len(kernel) - 1
     complexSize = realSize // 2 + 1
-    result1 = np.empty((complexSize), dtype=np.complex128)
-    result2 = np.empty((complexSize), dtype=np.complex128)
+    result1 = np.empty((complexSize), dtype=bm.precision.complex_t)
+    result2 = np.empty((complexSize), dtype=bm.precision.complex_t)
     result1 = gpu_rfft(signal, result=result1, ret_gpu=True)
     result2 = gpu_rfft(kernel, result=result2, ret_gpu=True)
     result2 = result1*result2
