@@ -15,6 +15,9 @@ def fill(self, value):
         gpu_utils.set_zero_complex64(self)
     elif self.dtype in [np.complex128]:
         gpu_utils.set_zero_complex128(self)
+    else:
+        print(f'[cucache::fill] invalid data type: {self.dtype}')
+        exit(-1)
 
 
    
