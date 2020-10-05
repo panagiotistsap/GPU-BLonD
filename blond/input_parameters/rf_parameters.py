@@ -272,8 +272,7 @@ class RFStation(object):
                                                      self.n_turns,
                                                      self.n_rf,
                                                      Ring.cycle_time,
-                                                     Ring.RingOptions.t_start,
-                                                     dtype=bm.precision.real_t)
+                                                     Ring.RingOptions.t_start)
         self.voltage = self.voltage.astype(bm.precision.real_t, order='C', copy=False)
         # Checking if the RFStation is empty
         if np.sum(self.voltage) == 0:
