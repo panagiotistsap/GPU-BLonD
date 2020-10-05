@@ -223,13 +223,13 @@ def gpu_slice(cut_left, cut_right, beam, profile):
     # print(threads_per_block,num_of_blocks_per_sm)
     # print(my_gpu.MAX_SHARED_MEMORY_PER_BLOCK)
     if (4*n_slices < my_gpu.MAX_SHARED_MEMORY_PER_BLOCK):
-        sm_histogram(beam.dev_dt, profile.dev_n_macroparticles, bm.precision.c_real_t(cut_left),
-                     bm.precision.c_real_t(cut_right), np.uint32(n_slices),
+        sm_histogram(beam.dev_dt, profile.dev_n_macroparticles, bm.precision.real_t(cut_left),
+                     bm.precision.real_t(cut_right), np.uint32(n_slices),
                      np.uint32(beam.dev_dt.size),
                      grid=grid_size, block=block_size, shared=4*n_slices, time_kernel=True)
     else:
-        hybrid_histogram(beam.dev_dt, profile.dev_n_macroparticles, bm.precision.c_real_t(cut_left),
-                         bm.precision.c_real_t(cut_right), np.uint32(n_slices),
+        hybrid_histogram(beam.dev_dt, profile.dev_n_macroparticles, bm.precision.real_t(cut_left),
+                         bm.precision.real_t(cut_right), np.uint32(n_slices),
                          np.uint32(beam.dev_dt.size), np.int32(
                              my_gpu.MAX_SHARED_MEMORY_PER_BLOCK/4),
                          grid=grid_size, block=block_size, shared=my_gpu.MAX_SHARED_MEMORY_PER_BLOCK, time_kernel=True)
