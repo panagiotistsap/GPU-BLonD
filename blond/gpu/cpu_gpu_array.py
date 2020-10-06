@@ -2,7 +2,7 @@ import numpy as np
 from pycuda import gpuarray
 from  ..utils import bmath as bm   
 
-from pycuda import gpuarray
+# from pycuda import gpuarray
 # from  ..utils import bmath as bm   
 
 try:
@@ -16,7 +16,7 @@ class my_gpuarray(gpuarray.GPUArray):
         self.parent = parent
 
     def __setitem__(self, key, value):
-        p = self.parent
+        # p = self.parent
         self.parent.gpu_validate()
         super().__setitem__(key, value)
         self.parent.cpu_valid = False
@@ -31,7 +31,7 @@ class my_cpuarray(np.ndarray):
 
     def __new__(cls, inputarr, dtype1=None, dtype2=None):
         if (inputarr is None):
-            inputarr = np.array([],dtype=np.float64)
+            inputarr = np.array([], dtype=bm.precision.real_t)
 
         obj = np.asarray(inputarr).view(cls)
         if (dtype1==None):

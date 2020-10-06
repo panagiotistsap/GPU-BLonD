@@ -192,7 +192,7 @@ first_kernel_x = ElementwiseKernel(
     "first_kernel_x")
 
 second_kernel_x = ElementwiseKernel(
-    f"{bm.precision.str} *dphi_rf, {bm.precision.str} *harmonic, {bm.precision.str} *omega_rf, {bm.precision.str} *omega_rf_d, int size, int counter, double pi",
+    f"{bm.precision.str} *dphi_rf, {bm.precision.str} *harmonic, {bm.precision.str} *omega_rf, {bm.precision.str} *omega_rf_d, int size, int counter, {bm.precision.str} pi",
     "dphi_rf[i] +=  2.0*pi*harmonic[size*i+counter]*(omega_rf[size*i+counter]-omega_rf_d[size*i+counter])/omega_rf_d[size*i+counter]",
     "second_kernel_x")
 
@@ -212,17 +212,17 @@ indexing_int = ElementwiseKernel(
     "indexing_int")
 
 sincos_mul_add = ElementwiseKernel(
-    f"{bm.precision.str} *ar, double a, double b, {bm.precision.str} *s, {bm.precision.str} *c",
+    f"{bm.precision.str} *ar, {bm.precision.str} a, {bm.precision.str} b, {bm.precision.str} *s, {bm.precision.str} *c",
     "sincos(a*ar[i]+b, &s[i], &c[i])",
     "sincos_mul_add")
 
 sincos_mul_add_2 = ElementwiseKernel(
-    f"{bm.precision.str} *ar, double a, double b, {bm.precision.str} *s, {bm.precision.str} *c",
-    f"s[i] = cos(a*ar[i]+b-{np.pi/2}); c[i] = cos(a*ar[i]+b)",
+    f"{bm.precision.str} *ar, {bm.precision.str} a, {bm.precision.str} b, {bm.precision.str} *s, {bm.precision.str} *c",
+    "s[i] = cos(a*ar[i]+b-pi/2); c[i] = cos(a*ar[i]+b)",
     "sincos_mul_add_2")
 
 gpu_trapz = ReductionKernel(bm.precision.real_t, neutral="0", reduce_expr="a+b",
-                                   arguments=f"{bm.precision.str} *y, double x, int sz",
+                                   arguments=f"{bm.precision.str} *y, {bm.precision.str} x, int sz",
                                    map_expr="(i<sz-1) ? x*(y[i]+y[i+1])/2.0 : 0.0",
                                    name="gpu_trapz")
 
@@ -240,7 +240,7 @@ add_kernel = ElementwiseKernel(
     "add_kernel")
 
 first_kernel_tracker = ElementwiseKernel(
-    f"{bm.precision.str} *phi_rf, double x, {bm.precision.str} *phi_noise, int len, int turn",
+    f"{bm.precision.str} *phi_rf, {bm.precision.str} x, {bm.precision.str} *phi_noise, int len, int turn",
     "phi_rf[len*i + turn] += x * phi_noise[len*i + turn]",
     "first_kernel_tracker")
 
@@ -261,7 +261,7 @@ rf_voltage_calculation_kernel = ElementwiseKernel(
 
 cavityFB_case = ElementwiseKernel(
     f"{bm.precision.str} *rf_voltage, {bm.precision.str} *voltage, {bm.precision.str} *omega_rf, {bm.precision.str} *phi_rf," +
-    f"{bm.precision.str} *bin_centers, double V_corr, double phi_corr," +
+    f"{bm.precision.str} *bin_centers, {bm.precision.str} V_corr, {bm.precision.str} phi_corr," +
     "int size, int column",
     "rf_voltage[i] = voltage[0] * V_corr * sin(omega_rf[0] * bin_centers[i]+phi_rf[0]+phi_corr)",
     "cavityFB_case")
@@ -274,12 +274,12 @@ cuinterp = central_mod.get_function("cuinterp")
 
 
 bm_phase_exp_times_scalar = ElementwiseKernel(
-    f"{bm.precision.str} *a, {bm.precision.str} *b, double c, int *d",
+    f"{bm.precision.str} *a, {bm.precision.str} *b, {bm.precision.str} c, int *d",
     "a[i] = exp(c*b[i])*d[i]",
     "bm_phase_exp_times_scalar")
 
 bm_phase_mul_add = ElementwiseKernel(
-    f"{bm.precision.str} *a, double b, {bm.precision.str} *c, double d",
+    f"{bm.precision.str} *a, {bm.precision.str} b, {bm.precision.str} *c, {bm.precision.str} d",
     "a[i] = b*c[i] + d",
     "bm_phase_mul_add")
 
@@ -294,7 +294,7 @@ d_multiply = ElementwiseKernel(
     "d_multiply")
 
 d_multscalar = ElementwiseKernel(
-    f"{bm.precision.str} *a, {bm.precision.str} *b, double c",
+    f"{bm.precision.str} *a, {bm.precision.str} *b, {bm.precision.str} c",
     "a[i] = c*b[i]",
     "d_multscalar")
 
@@ -310,7 +310,7 @@ scale_int = ElementwiseKernel(
     "scale_kernel_int")
 
 scale_double = ElementwiseKernel(
-    f"double a, {bm.precision.str} *b",
+    f"{bm.precision.str} a, {bm.precision.str} *b",
     "b[i] /= a ",
     "scale_kernel_double")
 
