@@ -43,16 +43,16 @@ synch_rad_full = ker.get_function("synchrotron_radiation_full")
 
 
 def gpu_rf_volt_comp(dev_voltage, dev_omega_rf, dev_phi_rf, dev_bin_centers, dev_rf_voltage, f_rf=0):
-    assert dev_voltage == bm.precision.real_t
-    assert dev_omega_rf == bm.precision.real_t
-    assert dev_phi_rf == bm.precision.real_t
-    assert dev_bin_centers == bm.precision.real_t
-    assert dev_rf_voltage == bm.precision.real_t
+    assert dev_voltage.dtype == bm.precision.real_t
+    assert dev_omega_rf.dtype == bm.precision.real_t
+    assert dev_phi_rf.dtype == bm.precision.real_t
+    assert dev_bin_centers.dtype == bm.precision.real_t
+    assert dev_rf_voltage.dtype == bm.precision.real_t
 
     rvc(dev_voltage, dev_omega_rf, dev_phi_rf, dev_bin_centers,
         np.int32(dev_voltage.size), np.int32(
             dev_bin_centers.size), np.int32(f_rf), dev_rf_voltage,
-        block=block_size, grid=grid_size, shared=3*dev_voltage.size*64, time_kernel=True)
+        block=block_size, grid=grid_size, shared=3*dev_voltage.size*32, time_kernel=True)
 
 
 def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_kick, beam):
@@ -88,16 +88,16 @@ def gpu_drift(solver_utf8, t_rev, length_ratio, alpha_order, eta_0,
         solver=np.int32(1)
     else:
         solver=np.int32(2)
-
+   
     drift(beam.dev_dt,
         beam.dev_dE,
         solver,
-        np.float64(t_rev),  np.float64(length_ratio),
-        np.float64(alpha_order), np.float64(eta_0),
-        np.float64(eta_1),  np.float64(eta_2),
-        np.float64(alpha_0),  np.float64(alpha_1),
-        np.float64(alpha_2),
-        np.float64(beta),  np.float64(energy),
+        bm.precision.real_t(t_rev),  bm.precision.real_t(length_ratio),
+        bm.precision.real_t(alpha_order), bm.precision.real_t(eta_0),
+        bm.precision.real_t(eta_1),  bm.precision.real_t(eta_2),
+        bm.precision.real_t(alpha_0),  bm.precision.real_t(alpha_1),
+        bm.precision.real_t(alpha_2),
+        bm.precision.real_t(beta),  bm.precision.real_t(energy),
         np.int32(beam.dev_dt.size),
         block=block_size, grid=grid_size, time_kernel=True)
    
@@ -199,7 +199,7 @@ def gpu_linear_interp_kick_drift(dev_voltage,
 def gpu_slice(cut_left, cut_right, beam, profile):
 
     assert beam.dev_dt.dtype == bm.precision.real_t
-    assert profile.dev_n_macroparticles.dtype == bm.precision.real_t
+    # assert profile.dev_n_macroparticles.dtype == bm.precision.real_t
 
     n_slices = profile.dev_n_macroparticles.size
     set_zero_int(profile.dev_n_macroparticles)
@@ -250,10 +250,10 @@ def gpu_synchrotron_radiation_full(dE, U0, n_kicks, tau_z, sigma_dE, energy):
 
 def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size):
 
-    assert bin_centers == bm.precision.real_t
-    assert profile == bm.precision.real_t
-    assert omega_rf == bm.precision.real_t
-    assert phi_rf == bm.precision.real_t
+    assert bin_centers.dtype == bm.precision.real_t
+    # assert profile.dtype == bm.precision.real_t
+    assert omega_rf.dtype == bm.precision.real_t
+    assert phi_rf.dtype == bm.precision.real_t
 
     n_bins = bin_centers.size
 

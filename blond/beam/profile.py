@@ -441,8 +441,8 @@ class Profile(object):
             self.bin_centers_obj = CGA(self.bin_centers)
 
             # n_macroparticles to gpu
-            # self.n_macroparticles_obj = CGA(self.n_macroparticles, dtype2=np.int32)
-            self.n_macroparticles_obj = CGA(self.n_macroparticles)
+            self.n_macroparticles_obj = CGA(self.n_macroparticles, dtype2=np.int32)
+            # self.n_macroparticles_obj = CGA(self.n_macroparticles)
 
             # beam_spectrum to gpu
             self.beam_spectrum_obj = CGA(self.beam_spectrum)

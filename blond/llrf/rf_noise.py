@@ -166,7 +166,7 @@ class FlatSpectrum(object):
                 spectrum = np.concatenate((np.zeros(nmin, dtype=bm.precision.real_t), 
                     ampl*np.ones(nmax-nmin+1, dtype=bm.precision.real_t)* \
                     1/(1 + 0.99*(nmin - np.arange(nmin,nmax+1, dtype=bm.precision.real_t))
-                       /(nmax-nmin)), np.zeros(n_points_pos_f_incl_zero-nmax-, dtype=bm.precision.real_t1)))
+                       /(nmax-nmin)), np.zeros(n_points_pos_f_incl_zero-nmax-1, dtype=bm.precision.real_t1)))
 
             elif self.predistortion == 'weightfunction':
 

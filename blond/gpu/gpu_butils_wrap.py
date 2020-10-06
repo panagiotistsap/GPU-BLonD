@@ -314,6 +314,12 @@ scale_double = ElementwiseKernel(
     "b[i] /= a ",
     "scale_kernel_double")
 
+scale_float = ElementwiseKernel(
+    f"{bm.precision.str} a, {bm.precision.str} *b",
+    "b[i] /= a ",
+    "scale_kernel_float")
+
+
 
 def _get_scale_kernel(dtype):
     if (dtype==np.float64):

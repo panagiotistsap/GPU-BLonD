@@ -655,7 +655,7 @@ class InducedVoltageFreq(_InducedVoltage):
         Summing all the wake contributions in one total impedance.
         """
 
-        self.total_impedance = np.zeros(freq.shape, dtype=np.precision.complex_t)
+        self.total_impedance = np.zeros(freq.shape, dtype=bm.precision.complex_t)
 
         for i in range(len(self.impedance_source_list)):
             self.impedance_source_list[i].imped_calc(freq)

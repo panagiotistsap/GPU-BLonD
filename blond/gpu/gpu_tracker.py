@@ -106,57 +106,11 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
 
         if self.periodicity:
 
-            # Distinguish the particles inside the frame from the particles on
-            # the right-hand side of the frame.
-            self.indices_right_outside = \
-                np.where(self.beam.dt > self.t_rev[turn + 1])[0]
-            self.indices_inside_frame = \
-                np.where(self.beam.dt < self.t_rev[turn + 1])[0]
-
-            if len(self.indices_right_outside) > 0:
-                # Change reference of all the particles on the right of the
-                # current frame; these particles skip one kick and drift
-                self.beam.dt[self.indices_right_outside] -= \
-                    self.t_rev[turn + 1]
-                # Synchronize the bunch with the particles that are on the
-                # RHS of the current frame applying kick and drift to the
-                # bunch
-                # After that all the particles are in the new updated frame
-                self.insiders_dt = np.ascontiguousarray(
-                    self.beam.dt[self.indices_inside_frame])
-                self.insiders_dE = np.ascontiguousarray(
-                    self.beam.dE[self.indices_inside_frame])
-                self.kick(self.insiders_dt, self.insiders_dE, turn)
-                self.drift(self.insiders_dt, self.insiders_dE, turn+1)
-                self.beam.dt[self.indices_inside_frame] = self.insiders_dt
-                self.beam.dE[self.indices_inside_frame] = self.insiders_dE
-                # Check all the particles on the left of the just updated
-                # frame and apply a second kick and drift to them with the
-                # previous wave after having changed reference.
-                self.indices_left_outside = np.where(self.beam.dt < 0)[0]
-
-            else:
-                self.kick(self.beam.dt, self.beam.dE, turn)
-                self.drift(self.beam.dt, self.beam.dE, turn + 1)
-                # Check all the particles on the left of the just updated
-                # frame and apply a second kick and drift to them with the
-                # previous wave after having changed reference.
-                self.indices_left_outside = np.where(self.beam.dt < 0)[0]
-
-            if len(self.indices_left_outside) > 0:
-                left_outsiders_dt = np.ascontiguousarray(
-                    self.beam.dt[self.indices_left_outside])
-                left_outsiders_dE = np.ascontiguousarray(
-                    self.beam.dE[self.indices_left_outside])
-                left_outsiders_dt += self.t_rev[turn+1]
-                self.kick(left_outsiders_dt, left_outsiders_dE, turn)
-                self.drift(left_outsiders_dt, left_outsiders_dE, turn+1)
-                self.beam.dt[self.indices_left_outside] = left_outsiders_dt
-                self.beam.dE[self.indices_left_outside] = left_outsiders_dE
+            pass
 
         else:
             if self.rf_params.empty is False:
-
+                
                 if self.interpolation:
                     with timing.timed_region('comp:LIKick'):
                         self.dev_total_voltage = get_gpuarray(
@@ -166,7 +120,6 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
                                        self.totalInducedVoltage.dev_induced_voltage)
                         else:
                             self.dev_total_voltage = self.dev_rf_voltage
-
                         bm.linear_interp_kick(dev_voltage=self.dev_total_voltage,
                                               dev_bin_centers=self.profile.dev_bin_centers,
                                               charge=self.beam.Particle.charge,
@@ -220,7 +173,7 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
                                     block=(32, 1, 1), grid=(1, 1, 1))
 
         self.dev_rf_voltage = get_gpuarray(
-            (self.profile.dev_bin_centers.size, np.float64, id(self), "rf_v"))
+            (self.profile.dev_bin_centers.size, bm.precision.real_t, id(self), "rf_v"))
 
         # TODO: test with multiple harmonics, think about 800 MHz OTFB
 
