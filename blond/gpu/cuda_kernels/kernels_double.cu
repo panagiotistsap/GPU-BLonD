@@ -1235,20 +1235,20 @@ __global__ void indexing_double(double *out, double *in, int *ind, long n)
     ;
 }
 
-extern "C"
-__global__ void indexing_float(float *out, float *in, int *ind, long n)
-{
-    unsigned tid = threadIdx.x;
-    unsigned total_threads = gridDim.x * blockDim.x;
-    unsigned cta_start = blockDim.x * blockIdx.x;
-    unsigned i;
-    ;
-    for (i = cta_start + tid; i < n; i += total_threads)
-    {
-        out[i] = in[ind[i]];
-    }
-    ;
-}
+// extern "C"
+// __global__ void indexing_float(float *out, float *in, int *ind, long n)
+// {
+//     unsigned tid = threadIdx.x;
+//     unsigned total_threads = gridDim.x * blockDim.x;
+//     unsigned cta_start = blockDim.x * blockIdx.x;
+//     unsigned i;
+//     ;
+//     for (i = cta_start + tid; i < n; i += total_threads)
+//     {
+//         out[i] = in[ind[i]];
+//     }
+//     ;
+// }
 
 
 extern "C"
