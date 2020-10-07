@@ -104,21 +104,27 @@ class gpu_BeamFeedback(BeamFeedback):
 
         # Update the RF frequency of all systems for the next turn
         counter = self.rf_station.counter[0] + 1
-        # assert self.rf_station.dev_omega_rf.dtype == bm.precision.real_t
-        # assert self.rf_station.dev_harmonic.dtype == bm.precision.real_t
-        # assert self.rf_station.dev_dphi_rf.dtype == bm.precision.real_t
-        # assert self.rf_station.dev_omega_rf_d.dtype == bm.precision.real_t
-        # assert self.rf_station.dev_phi_rf.dtype == bm.precision.real_t
+        assert self.rf_station.dev_omega_rf.dtype == bm.precision.real_t
+        assert self.rf_station.dev_harmonic.dtype == bm.precision.real_t
+        assert self.rf_station.dev_dphi_rf.dtype == bm.precision.real_t
+        assert self.rf_station.dev_omega_rf_d.dtype == bm.precision.real_t
+        assert self.rf_station.dev_phi_rf.dtype == bm.precision.real_t
+
+        print("omega_rf: {}, harmonic:{}, dphi_rf:{}, omega_rf_d:{}, phi_rf:{}, domega_rf:{}".format(
+            self.rf_station.dev_omega_rf, self.rf_station.dev_harmonic,
+            self.rf_station.dev_dphi_rf, self.rf_station.dev_omega_rf_d,
+            self.rf_station.dev_phi_rf,
+            self.domega_rf))
 
         # first_elementwise_kernel,
-        # triple_kernel(self.rf_station.dev_omega_rf, self.rf_station.dev_harmonic,
-        #               self.rf_station.dev_dphi_rf, self.rf_station.dev_omega_rf_d,
-        #               self.rf_station.dev_phi_rf,
-        #               # bm.precision.real_t(np.pi),
-        #               bm.precision.real_t(self.domega_rf),
-        #               np.int32(self.rf_station.n_turns+1),
-        #               np.int32(counter), np.int32(self.rf_station.n_rf),
-        #               block=(32, 1, 1), grid=(1, 1, 1))
+        triple_kernel(self.rf_station.dev_omega_rf, self.rf_station.dev_harmonic,
+                      self.rf_station.dev_dphi_rf, self.rf_station.dev_omega_rf_d,
+                      self.rf_station.dev_phi_rf,
+                      # bm.precision.real_t(np.pi),
+                      bm.precision.real_t(self.domega_rf),
+                      np.int32(self.rf_station.n_turns+1),
+                      np.int32(counter), np.int32(self.rf_station.n_rf),
+                      block=(32, 1, 1), grid=(1, 1, 1))
 
         # CPU CODE
         # self.rf_station.omega_rf[:, counter] += self.domega_rf * \
