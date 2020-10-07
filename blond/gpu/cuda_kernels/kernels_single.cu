@@ -504,8 +504,11 @@ __global__ void beam_phase_v2(
         a = omega_rf * bin_centers[i] + phi_rf;
         sincosf(a, &sin_res, &cos_res);
         b = expf(alpha * bin_centers[i]) * profile[i];
-        array1[i] = b * sin_res;
-        array2[i] = b * cos_res;
+        // array1[i] = b * sin_res;
+        // array2[i] = b * cos_res;
+        array1[i] = a;
+        array2[i] = b;
+
     }
 } 
 

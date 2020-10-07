@@ -251,7 +251,7 @@ def gpu_synchrotron_radiation_full(dE, U0, n_kicks, tau_z, sigma_dE, energy):
 def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size):
 
     assert bin_centers.dtype == bm.precision.real_t
-    # assert profile.dtype == bm.precision.real_t
+    assert profile.dtype == np.int32
     assert omega_rf.dtype == bm.precision.real_t
     assert phi_rf.dtype == bm.precision.real_t
 
