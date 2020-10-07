@@ -254,10 +254,6 @@ def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size)
     assert profile.dtype == np.int32
     assert omega_rf.dtype == bm.precision.real_t
     assert phi_rf.dtype == bm.precision.real_t
-    print(f'bin_centers size: {bin_centers.size}, omega_rf size: {omega_rf.size}, phi_rf size: {phi_rf.size}')
-    # assert bin_centers.size == omega_rf.size
-    # assert bin_centers.size == phi_rf.size
-
 
     array1 = get_gpuarray((bin_centers.size, bm.precision.real_t, 0, 'ar1'))
     array2 = get_gpuarray((bin_centers.size, bm.precision.real_t, 0, 'ar2'))
@@ -265,7 +261,7 @@ def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size)
     dev_scoeff = get_gpuarray((1, bm.precision.real_t, 0, 'sc'))
     dev_coeff = get_gpuarray((1, bm.precision.real_t, 0, 'co'))
 
-    print(f"bin_centers:{array1[0].get()}, alpha: {array2[0].get()}, omega_rf: {omega_rf[0].get()}, phi_rf: {phi_rf[0].get()}, bin_size: {bin_size[0].get()}")
+    print(f"bin_centers:{bin_centers[0].get()}, alpha: {alpha}, omega_rf: {omega_rf[0].get()}, phi_rf: {phi_rf[0].get()}, bin_size: {bin_size}")
 
     beam_phase_v2(bin_centers, profile,
                   bm.precision.real_t(alpha), omega_rf, phi_rf,
