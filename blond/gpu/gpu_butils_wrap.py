@@ -139,6 +139,11 @@ set_zero_double = ElementwiseKernel(
     "x[i] = 0",
     "set_zero_double")
 
+if bm.precision.num == 1:
+    set_zero_real = set_zero_float
+else:
+    set_zero_real = set_zero_double
+
 set_zero_int = ElementwiseKernel(
     "int *x",
     "x[i] = 0",

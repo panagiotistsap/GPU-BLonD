@@ -10,7 +10,7 @@ import numpy as np
 import copy
 import matplotlib.pyplot as plt
 from scipy.integrate import cumtrapz
-
+from  ..utils import bmath as bm
 from ..beam.beam import Beam
 from ..beam.distributions import matched_from_distribution_function,\
                            matched_from_line_density, populate_bunch,\
