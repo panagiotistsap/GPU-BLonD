@@ -301,7 +301,7 @@ class RFStation(object):
                 Ring.cycle_time,
                 Ring.RingOptions.t_start)
         self.omega_rf_d = self.omega_rf_d.astype(bm.precision.real_t, order='C', copy=False)
-        print("omega_rf_d[0]: {}".format(self.omega_rf_d[0]))
+        # print("omega_rf_d[0]: {}".format(self.omega_rf_d[0]))
 
 
         # Reshape phase noise
@@ -405,7 +405,7 @@ class RFStation(object):
 
         # omega_rf_d to gpu
         self.omega_rf_d_obj = CGA(self.omega_rf_d)
-        assert self.omega_rf_d.dtype == bm.precision.real_t
+        # assert self.omega_rf_d.dtype == bm.precision.real_t
 
         # harmonic to gpu
         self.harmonic_obj = CGA(self.harmonic)
