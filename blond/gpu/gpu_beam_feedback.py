@@ -104,7 +104,11 @@ class gpu_BeamFeedback(BeamFeedback):
 
         # Update the RF frequency of all systems for the next turn
         counter = self.rf_station.counter[0] + 1
-
+        assert self.rf_station.dev_omega_rf.dtype == bm.precision.real_t
+        assert self.rf_station.dev_harmonic.dtype == bm.precision.real_t
+        assert self.rf_station.dev_dphi_rf.dtype == bm.precision.real_t
+        assert self.rf_station.dev_omega_rf_d.dtype == bm.precision.real_t
+        assert self.rf_station.dev_phi_rf.dtype == bm.precision.real_t
         # first_elementwise_kernel,
         triple_kernel(self.rf_station.dev_omega_rf, self.rf_station.dev_harmonic,
                       self.rf_station.dev_dphi_rf, self.rf_station.dev_omega_rf_d,
