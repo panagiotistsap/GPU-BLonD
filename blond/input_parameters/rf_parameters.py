@@ -298,7 +298,8 @@ class RFStation(object):
                 self.n_rf,
                 Ring.cycle_time,
                 Ring.RingOptions.t_start)
-            self.omega_rf_d = self.omega_rf_d.astype(bm.precision.real_t, order='C', copy=False)
+            
+        self.omega_rf_d = self.omega_rf_d.astype(bm.precision.real_t, order='C', copy=False)
 
 
         # Reshape phase noise
