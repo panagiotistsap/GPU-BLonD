@@ -255,7 +255,7 @@ def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size)
     assert omega_rf.dtype == bm.precision.real_t
     assert phi_rf.dtype == bm.precision.real_t
 
-    n_bins = bin_centers.size
+    assert bin_centers.size == omega_rf.size and bin_centers.size == phi_rf.size
 
     array1 = get_gpuarray((bin_centers.size, bm.precision.real_t, 0, 'ar1'))
     array2 = get_gpuarray((bin_centers.size, bm.precision.real_t, 0, 'ar2'))
@@ -263,14 +263,16 @@ def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size)
     dev_scoeff = get_gpuarray((1, bm.precision.real_t, 0, 'sc'))
     dev_coeff = get_gpuarray((1, bm.precision.real_t, 0, 'co'))
 
+    print(f"bin_centers:{array1[0].get()}, alpha: {array2[0].get()}, omega_rf: {omega_rf[0].get()}, phi_rf: {phi_rf[0].get()}, bin_size: {bin_size[0].get()}")
+
     beam_phase_v2(bin_centers, profile,
                   bm.precision.real_t(alpha), omega_rf, phi_rf,
                   np.int32(ind), bm.precision.real_t(bin_size),
-                  array1, array2, np.int32(n_bins),
+                  array1, array2, np.int32(bin_centers.size),
                   block=block_size)  # , grid=grid_size)
 
     beam_phase_sum(array1, array2, dev_scoeff, dev_coeff,
-                   np.int32(n_bins), block=block_size,
+                   np.int32(bin_centers.size), block=block_size,
                    grid=(1, 1, 1), time_kernel=True)
     # to_ret = dev_scoeff[0].get()
     # to_ret = array1[0].get()
