@@ -272,8 +272,8 @@ def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size)
     beam_phase_sum(array1, array2, dev_scoeff, dev_coeff,
                    np.int32(bin_centers.size), block=block_size,
                    grid=(1, 1, 1), time_kernel=True)
-    # to_ret = dev_scoeff[0].get()
+    to_ret = dev_scoeff[0].get()
     # to_ret = array1[0].get()
-    to_ret = 0
+    # to_ret = 0
     print(f"Array1:{array1[0].get()} , array2: {array2[0].get()}")
     return to_ret
