@@ -247,6 +247,8 @@ class RFStation(object):
         self.alpha_order = Ring.alpha_order
         self.charge = self.Particle.charge
 
+
+
         # The order alpha_order used here can be replaced by Ring.alpha_order
         # when the assembler can differentiate the cases 'simple' and 'exact'
         # for the drift
@@ -298,7 +300,7 @@ class RFStation(object):
                 self.n_rf,
                 Ring.cycle_time,
                 Ring.RingOptions.t_start)
-            
+        print("omega_rf_d[0]: {}".format(self.omega_rf_d[0]))
         self.omega_rf_d = self.omega_rf_d.astype(bm.precision.real_t, order='C', copy=False)
 
 

@@ -117,7 +117,7 @@ class RFStationOptions(object):
 
         # If single float, expands the value to match the input number of turns
         # and rf harmonics
-        if isinstance(input_data, float) or isinstance(input_data, int):
+        if isinstance(input_data, np.float32) or isinstance(input_data, np.float64) or isinstance(input_data, int):
             output_data = input_data * np.ones((n_rf, n_turns+1))
 
         # If tuple, separate time and synchronous data and check data
@@ -202,8 +202,8 @@ class RFStationOptions(object):
         elif isinstance(input_data, np.ndarray) or \
                 isinstance(input_data, list):
 
-            input_data = np.array(input_data, ndmin=2, dtype=float)
-            output_data = np.zeros((n_rf, n_turns+1), dtype=float)
+            input_data = np.array(input_data, ndmin=2, dtype=bm.precision.real_t)
+            output_data = np.zeros((n_rf, n_turns+1), dtype=bm.precision.real_t)
 
             # If the number of points is exactly the same as n_rf, this means
             # that the rf program for each harmonic is constant, reshaping
@@ -220,11 +220,11 @@ class RFStationOptions(object):
             for index_rf in range(len(input_data)):
                 if len(input_data[index_rf]) == 1:
                     output_data[index_rf] = input_data[index_rf] * \
-                                                np.ones(n_turns+1)
+                                                np.ones(n_turns+1, dtype=bm.precision.real_t)
 
                 elif len(input_data[index_rf]) == (n_turns+1):
                     output_data[index_rf] = np.array(
-                        input_data[index_rf])
+                        input_data[index_rf], dtype=bm.precision.real_t)
 
                 else:
                     #InputDataError
@@ -476,7 +476,7 @@ def combine_rf_functions(function_list, merge_type='linear', resolution=1e-3,
             #InputDataError
             raise RuntimeError("ERROR: merge_type not recognised")
 
-    returnFunction = np.zeros([2, len(fullTime)])
+    returnFunction = np.zeros([2, len(fullTime)], dtype=bm.precision.real_t)
     returnFunction[0] = fullTime
     returnFunction[1] = fullFunction
 
