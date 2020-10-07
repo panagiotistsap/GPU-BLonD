@@ -405,7 +405,7 @@ class RFStation(object):
 
         # omega_rf_d to gpu
         self.omega_rf_d_obj = CGA(self.omega_rf_d)
-        assert self.dev_omega_rf_d.dtype == self.omega_rf_d.dtype and self.omega_rf_d.dtype == bm.precision.real_t
+        assert self.omega_rf_d.dtype == bm.precision.real_t
 
         # harmonic to gpu
         self.harmonic_obj = CGA(self.harmonic)
