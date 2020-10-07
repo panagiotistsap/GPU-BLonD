@@ -254,8 +254,10 @@ def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size)
     assert profile.dtype == np.int32
     assert omega_rf.dtype == bm.precision.real_t
     assert phi_rf.dtype == bm.precision.real_t
+    print(f'bin_centers size: {bin_centers.size}, omega_rf size: {omega_rf.size}, phi_rf size: {phi_rf.size}')
+    # assert bin_centers.size == omega_rf.size
+    # assert bin_centers.size == phi_rf.size
 
-    assert bin_centers.size == omega_rf.size and bin_centers.size == phi_rf.size
 
     array1 = get_gpuarray((bin_centers.size, bm.precision.real_t, 0, 'ar1'))
     array2 = get_gpuarray((bin_centers.size, bm.precision.real_t, 0, 'ar2'))
