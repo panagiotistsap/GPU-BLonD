@@ -261,7 +261,7 @@ def gpu_beam_phase(bin_centers, profile, alpha, omega_rf, phi_rf, ind, bin_size)
     dev_scoeff = get_gpuarray((1, bm.precision.real_t, 0, 'sc'))
     dev_coeff = get_gpuarray((1, bm.precision.real_t, 0, 'co'))
 
-    print(f"bin_centers:{bin_centers[0].get()}, alpha: {alpha}, omega_rf: {omega_rf[0].get()}, phi_rf: {phi_rf[0].get()}, bin_size: {bin_size}")
+    print(f"bin_centers:{bin_centers[0].get()}, omega_rf: {omega_rf[ind].get()}, phi_rf: {phi_rf[ind].get()}")
 
     beam_phase_v2(bin_centers, profile,
                   bm.precision.real_t(alpha), omega_rf, phi_rf,
