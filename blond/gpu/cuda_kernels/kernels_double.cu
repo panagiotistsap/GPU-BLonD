@@ -145,7 +145,7 @@ __global__ void gpu_beam_fb_track_other(double *omega_rf,
                                         double *dphi_rf,
                                         double *omega_rf_d,
                                         double *phi_rf,
-                                        double pi,
+                                        // double pi,
                                         double domega_rf,
                                         int size,
                                         int counter,
@@ -154,7 +154,7 @@ __global__ void gpu_beam_fb_track_other(double *omega_rf,
     double a, b, c;
     for (int i = threadIdx.x; i < n_rf; i += blockDim.x) {
         a = domega_rf * harmonic[i * size + counter] / harmonic[counter];
-        b =  2.0 * pi * harmonic[size * i + counter] * (a + omega_rf[i * size + counter] - omega_rf_d[size * i + counter]) / omega_rf_d[size * i + counter];
+        b =  2.0 * PI * harmonic[size * i + counter] * (a + omega_rf[i * size + counter] - omega_rf_d[size * i + counter]) / omega_rf_d[size * i + counter];
         c = dphi_rf[i] +  b;
         omega_rf[i * size + counter] += a;
         dphi_rf[i] +=  b;
