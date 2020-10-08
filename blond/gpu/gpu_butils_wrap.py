@@ -130,7 +130,7 @@ gpu_diff = ElementwiseKernel(f"int *a, {bm.precision.str} *b, {bm.precision.str}
 # impedances
 
 set_zero_float = ElementwiseKernel(
-    f"{bm.precision.str} *x",
+    f"float *x",
     "x[i] = 0",
     "set_zero_float")
 
@@ -150,7 +150,7 @@ set_zero_int = ElementwiseKernel(
     "set_zero_int")
 
 set_zero_complex64 = ElementwiseKernel(
-    f"pycuda::complex<{bm.precision.str}> *x",
+    f"pycuda::complex<float> *x",
     "x[i] = 0",
     "set_zero_complex",
     preamble="#include <pycuda-complex.hpp>")
