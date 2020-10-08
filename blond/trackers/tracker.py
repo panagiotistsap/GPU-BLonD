@@ -428,7 +428,7 @@ class RingAndRFTracker(object):
         else:
             self.rf_voltage = bm.rf_volt_comp(voltages, omega_rf, phi_rf,
                                               self.profile.bin_centers)
-        #print("rf voltage mean, std", np.mean(self.rf_voltage), np.std(self.rf_voltage))
+        print("rf voltage mean, std", np.mean(self.rf_voltage), np.std(self.rf_voltage))
 
     def pre_track(self):
         """Tracking method for the section. Applies first the kick, then the 

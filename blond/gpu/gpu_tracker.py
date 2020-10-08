@@ -190,7 +190,7 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
         else:
             bm.rf_volt_comp(dev_voltages, dev_omega_rf, dev_phi_rf,
                             self.profile.dev_bin_centers, self.dev_rf_voltage)
-        #print("rf voltage mean, std", np.mean(self.dev_rf_voltage.get()), np.std(self.dev_rf_voltage.get()))
+        print("rf voltage mean, std", np.mean(self.dev_rf_voltage.get()), np.std(self.dev_rf_voltage.get()))
 
     @timing.timeit(key='comp:kick')
     def kick(self, index):

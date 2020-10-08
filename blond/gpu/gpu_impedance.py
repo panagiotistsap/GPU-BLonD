@@ -85,7 +85,7 @@ class gpu_TotalInducedVoltage(TotalInducedVoltage):
             add_array(self.dev_induced_voltage, induced_voltage_object.dev_induced_voltage,
                       slice=slice(0, self.profile.n_slices))
 
-        print("total induced_voltage: {} {}".format(np.mean(self.dev_induced_voltage.get()), np.std(self.dev_induced_voltage.get())))
+        # print("total induced_voltage: {} {}".format(np.mean(self.dev_induced_voltage.get()), np.std(self.dev_induced_voltage.get())))
 
 def iv_update_funcs(obj, is_ii=False):
     if (bm.gpuMode()):
@@ -167,7 +167,7 @@ class gpu_InducedVoltage(_InducedVoltage):
             beam_spectrum_dict[self.n_fft] = self.profile.dev_beam_spectrum
         # self.profile.beam_spectrum_generation(self.n_fft)
         beam_spectrum = beam_spectrum_dict[self.n_fft]
-        print("beam_spectrum: {} {}".format(np.mean(beam_spectrum.get()), np.std(beam_spectrum.get())))
+        # print("beam_spectrum: {} {}".format(np.mean(beam_spectrum.get()), np.std(beam_spectrum.get())))
         with timing.timed_region('serial:indVolt1Turn'):
 
             inp = get_gpuarray((beam_spectrum.size, bm.precision.complex_t,
@@ -181,7 +181,7 @@ class gpu_InducedVoltage(_InducedVoltage):
                 (self.n_induced_voltage, bm.precision.real_t, id(self), 'iv'))
             gpu_mul(self.dev_induced_voltage, my_res, bm.precision.real_t(-self.beam.Particle.charge *
                                                                           e * self.beam.ratio), slice=slice(0, self.n_induced_voltage))
-            print("induced_voltage: {} {}".format(np.mean(self.dev_induced_voltage.get()), np.std(self.dev_induced_voltage.get())))
+            # print("induced_voltage: {} {}".format(np.mean(self.dev_induced_voltage.get()), np.std(self.dev_induced_voltage.get())))
 
     def induced_voltage_mtw(self, beam_spectrum_dict={}):
         """
