@@ -14,9 +14,9 @@
           **Alexandre Lasheen**, **Markus Schwarz**
 '''
 
+from __future__ import division, print_function
 from pycuda import gpuarray
 import pycuda.cumath as cm
-from __future__ import division, print_function
 from builtins import range, object
 import numpy as np
 from scipy.constants import e
