@@ -110,7 +110,7 @@ class gpu_BeamFeedback(BeamFeedback):
         # assert self.rf_station.dev_omega_rf_d.dtype == bm.precision.real_t
         # assert self.rf_station.dev_phi_rf.dtype == bm.precision.real_t
         # print("omega_rf_d size: {}".format(self.rf_station.dev_omega_rf_d.size))
-        print("omega_rf_d:{}".format(self.rf_station.dev_omega_rf_d))
+        # print("omega_rf_d:{}".format(self.rf_station.dev_omega_rf_d))
 
         # first_elementwise_kernel,
         triple_kernel(self.rf_station.dev_omega_rf, self.rf_station.dev_harmonic,
