@@ -164,15 +164,14 @@ class gpu_InducedVoltage(_InducedVoltage):
         if self.n_fft not in beam_spectrum_dict:
             self.profile.beam_spectrum_generation(self.n_fft)
             beam_spectrum_dict[self.n_fft] = self.profile.dev_beam_spectrum
-        self.profile.beam_spectrum_generation(self.n_fft)
-        # beam_spectrum = beam_spectrum_dict[self.n_fft]
-            # beam_spectrum_dict[self.n_fft] = self.profile.dev_beam_spectrum
+        # self.profile.beam_spectrum_generation(self.n_fft)
+        beam_spectrum = beam_spectrum_dict[self.n_fft]
 
         with timing.timed_region('serial:indVolt1Turn'):
 
-            inp = get_gpuarray((self.profile.dev_beam_spectrum.size, bm.precision.complex_t,
+            inp = get_gpuarray((beam_spectrum.size, bm.precision.complex_t,
                                 id(self), 'inp'))
-            complex_mul(self.dev_total_impedance, self.profile.dev_beam_spectrum, inp)
+            complex_mul(self.dev_total_impedance, beam_spectrum, inp)
             # inp = self.dev_total_impedance * self.profile.dev_beam_spectrum
             my_res = bm.irfft(inp, caller_id=id(self))
 
