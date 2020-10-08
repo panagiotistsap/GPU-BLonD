@@ -22,6 +22,7 @@ from scipy.interpolate import splrep, splev
 from ..plots.plot import fig_folder
 from ..utils import bmath as bm
 
+
 class RFStationOptions(object):
     r""" Class to preprocess the RF data (voltage, phase, harmonic) for
     RFStation, interpolating it to every turn.
@@ -51,7 +52,7 @@ class RFStationOptions(object):
         if interpolation in ['linear', 'cubic']:
             self.interpolation = str(interpolation)
         else:
-            #InterpolationError
+            # InterpolationError
             raise RuntimeError(
                 "ERROR: Interpolation scheme in" +
                 " RFStationOptions not recognised. Aborting...")
@@ -61,17 +62,17 @@ class RFStationOptions(object):
         if isinstance(plot, bool):
             self.plot = bool(plot)
         else:
-            #TypeError
+            # TypeError
             raise RuntimeError("ERROR: plot value in PreprocessRamp" +
                                " not recognised. Aborting...")
 
         self.figdir = str(figdir)
-        self.figname = figname #str(figname)
+        self.figname = figname  # str(figname)
 
         if sampling > 0:
             self.sampling = int(sampling)
         else:
-            #TypeError
+            # TypeError
             raise RuntimeError("ERROR: sampling value in PreprocessRamp" +
                                " not recognised. Aborting...")
 
@@ -117,15 +118,19 @@ class RFStationOptions(object):
 
         # If single float, expands the value to match the input number of turns
         # and rf harmonics
-        if isinstance(input_data, np.float32) or isinstance(input_data, np.float64) or isinstance(input_data, int):
-            output_data = input_data * np.ones((n_rf, n_turns+1))
+        if isinstance(input_data, np.float32) or \
+                isinstance(input_data, np.float64) or \
+                isinstance(input_data, int) or \
+                isinstance(input_data, float):
+            output_data = input_data * \
+                np.ones((n_rf, n_turns+1), dtype=bm.precision.real_t)
 
         # If tuple, separate time and synchronous data and check data
         elif isinstance(input_data, tuple):
 
             output_data = []
 
-            #Hot fix to safely treat t_start 
+            # Hot fix to safely treat t_start
             if t_start is None:
                 t_start = 0
 
@@ -139,7 +144,7 @@ class RFStationOptions(object):
                 input_data = (input_data, )
 
             if len(input_data) != n_rf:
-                #InputDataError
+                # InputDataError
                 raise RuntimeError("ERROR in RFStation: the input data " +
                                    "does not match the number of rf harmonics")
 
@@ -152,7 +157,7 @@ class RFStationOptions(object):
 
                 if len(input_data_values) \
                         != len(input_data_time):
-                    #InputDataError
+                    # InputDataError
                     raise RuntimeError("ERROR in RFStation: synchronous " +
                                        "data does not match the time data")
 
@@ -165,7 +170,8 @@ class RFStationOptions(object):
                                             s=self.smoothing)
                     output_data.append(splev(interp_time, interp_funtion))
 
-            output_data = np.array(output_data, ndmin=2, dtype=bm.precision.real_t)
+            output_data = np.array(output_data, ndmin=2,
+                                   dtype=bm.precision.real_t)
 
             # Plot original and interpolated data
             if self.plot:
@@ -202,7 +208,8 @@ class RFStationOptions(object):
         elif isinstance(input_data, np.ndarray) or \
                 isinstance(input_data, list):
 
-            input_data = np.array(input_data, ndmin=2, dtype=bm.precision.real_t)
+            input_data = np.array(input_data, ndmin=2,
+                                  dtype=bm.precision.real_t)
             output_data = np.zeros((n_rf, n_turns+1), dtype=bm.precision.real_t)
 
             # If the number of points is exactly the same as n_rf, this means
@@ -213,21 +220,21 @@ class RFStationOptions(object):
                 input_data = input_data.reshape((n_rf, 1))
 
             if len(input_data) != n_rf:
-                #InputDataError
+                # InputDataError
                 raise RuntimeError("ERROR in RFStation: the input data " +
                                    "does not match the number of rf harmonics")
 
             for index_rf in range(len(input_data)):
                 if len(input_data[index_rf]) == 1:
                     output_data[index_rf] = input_data[index_rf] * \
-                                                np.ones(n_turns+1, dtype=bm.precision.real_t)
+                        np.ones(n_turns+1, dtype=bm.precision.real_t)
 
                 elif len(input_data[index_rf]) == (n_turns+1):
                     output_data[index_rf] = np.array(
                         input_data[index_rf], dtype=bm.precision.real_t)
 
                 else:
-                    #InputDataError
+                    # InputDataError
                     raise RuntimeError("ERROR in Ring: The input data " +
                                        "does not match the proper length " +
                                        "(n_turns+1)")
@@ -274,17 +281,17 @@ def combine_rf_functions(function_list, merge_type='linear', resolution=1e-3,
         resolution = (nFunctions-1)*[resolution]
 
     if len(merge_type) != nFunctions:
-        #InputDataError
+        # InputDataError
         raise RuntimeError("ERROR: merge_type list wrong length")
     if len(resolution) != nFunctions:
-        #InputDataError
+        # InputDataError
         raise RuntimeError("ERROR: resolution list wrong length")
 
     timePoints = []
     for i in range(nFunctions):
         timePoints += function_list[i][1]
     if not np.all(np.diff(timePoints)) > 0:
-        #InputDataError
+        # InputDataError
         raise RuntimeError("ERROR: in combine_rf_functions, times are not" +
                            " monotonically increasing!")
 
@@ -370,7 +377,8 @@ def combine_rf_functions(function_list, merge_type='linear', resolution=1e-3,
                 k = (1./tDur)*(1-(1.*Vinit/Vfin)**0.5)
 
                 nSteps = int(tDur/resolution[i-1])
-                time = np.linspace(float(fullTime[-1]), float(funcTime[0]), nSteps)
+                time = np.linspace(
+                    float(fullTime[-1]), float(funcTime[0]), nSteps)
                 volts = Vinit/((1-k*(time-time[0]))**2)
 
                 fullFunction += volts.tolist() + funcProg.tolist()
@@ -405,7 +413,8 @@ def combine_rf_functions(function_list, merge_type='linear', resolution=1e-3,
                 nSteps = int(tDur/resolution[i-1])
                 time = np.linspace(float(fullTime[-1]), float(function_list[i][1][0]),
                                    nSteps)
-                tuneInterp = np.linspace(float(initTune), float(finalTune), nSteps)
+                tuneInterp = np.linspace(
+                    float(initTune), float(finalTune), nSteps)
 
                 mergePars = Ring.parameters_at_time(time)
 
@@ -435,7 +444,8 @@ def combine_rf_functions(function_list, merge_type='linear', resolution=1e-3,
 
                 tDur = funcTime[0] - fullTime[-1]
                 nSteps = int(tDur/resolution[i-1])
-                time = np.linspace(float(fullTime[-1]), float(funcTime[0]), nSteps)
+                time = np.linspace(
+                    float(fullTime[-1]), float(funcTime[0]), nSteps)
 
                 initPars = Ring.parameters_at_time(fullTime[-1])
                 finalPars = Ring.parameters_at_time(funcTime[0])
@@ -457,7 +467,8 @@ def combine_rf_functions(function_list, merge_type='linear', resolution=1e-3,
                      np.sqrt(1 - (finalPars['delta_E']/vFin)**2)) /
                     (finalPars['beta']**2 * finalPars['energy']))
 
-                tuneInterp = np.linspace(float(initTune), float(finalTune), nSteps)
+                tuneInterp = np.linspace(
+                    float(initTune), float(finalTune), nSteps)
 
                 mergePars = Ring.parameters_at_time(time)
 
@@ -473,7 +484,7 @@ def combine_rf_functions(function_list, merge_type='linear', resolution=1e-3,
                 fullTime += time.tolist() + funcTime
 
         else:
-            #InputDataError
+            # InputDataError
             raise RuntimeError("ERROR: merge_type not recognised")
 
     returnFunction = np.zeros([2, len(fullTime)], dtype=bm.precision.real_t)
