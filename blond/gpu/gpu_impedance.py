@@ -22,7 +22,7 @@ from ..utils import bmath as bm
 from types import MethodType
 from ..gpu.cucache import get_gpuarray
 from ..gpu.gpu_butils_wrap import gpu_copy_d2d, \
-    increase_by_value, add_array, complex_mul, gpu_mul, gpu_interp, set_zero_double, d_multscalar
+    increase_by_value, add_array, complex_mul, gpu_mul, gpu_interp, set_zero_real, d_multscalar
 
 # import pycuda.reduction as reduce
 import pycuda.cumath as cm
@@ -76,7 +76,7 @@ class gpu_TotalInducedVoltage(TotalInducedVoltage):
         beam_spectrum_dict = {}
         self.dev_induced_voltage = get_gpuarray(
             (self.profile.n_slices, bm.precision.real_t, id(self), 'iv'))
-        set_zero_double(self.dev_induced_voltage)
+        set_zero_real(self.dev_induced_voltage)
         for induced_voltage_object in self.induced_voltage_list:
             induced_voltage_object.induced_voltage_generation(
                 beam_spectrum_dict)
@@ -206,7 +206,7 @@ class gpu_InducedVoltage(_InducedVoltage):
         # self.dev_induced_voltage[self.n_induced_voltage -
         #                     self.front_wake_buffer:] = 0
 
-        set_zero_double(self.dev_induced_voltage, slice=slice(
+        set_zero_real(self.dev_induced_voltage, slice=slice(
             self.n_induced_voltage - self.front_wake_buffer, self.dev_induced_voltage.size))
         # Add the induced voltage of the current turn to the memory from
         # previous turns
@@ -237,7 +237,7 @@ class gpu_InducedVoltage(_InducedVoltage):
             (self.n_mtw_memory, bm.precision.real_t, id(self), 'mtw_m'))
         dummy = bm.irfft(dev_induced_voltage_f, caller_id=self(id))
         gpu_copy_d2d(self.dev_mtw_memory, dummy, range=range(0, self.n_mtw_memory))
-        set_zero_double(self.dev_mtw_memory, slice=slice(-int(self.buffer_size), None, None))
+        set_zero_real(self.dev_mtw_memory, slice=slice(-int(self.buffer_size), None, None))
 
 
     @timing.timeit(key='serial:shift_trev_time')

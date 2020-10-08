@@ -163,6 +163,7 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
             (self.rf_params.n_rf, bm.precision.real_t, id(self), "phi"))
         n_turns = self.rf_params.n_turns+1
 
+        
         # sz = self.n_rf
         my_end = self.rf_params.dev_voltage.size
         gpu_rf_voltage_calc_mem_ops(dev_voltages, dev_omega_rf, dev_phi_rf,
@@ -171,7 +172,7 @@ class gpu_RingAndRFTracker(RingAndRFTracker):
                                     np.int32(self.counter[0]),
                                     np.int32(my_end), np.int32(n_turns), 
                                     block=(32, 1, 1), grid=(1, 1, 1))
-
+       
         self.dev_rf_voltage = get_gpuarray(
             (self.profile.dev_bin_centers.size, bm.precision.real_t, id(self), "rf_v"))
 
