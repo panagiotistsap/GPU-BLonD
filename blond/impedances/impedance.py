@@ -125,7 +125,7 @@ class TotalInducedVoltage(object):
 
         self.induced_voltage = temp_induced_voltage.astype(
             dtype=bm.precision.real_t, order='C', copy=False)
-
+        print("total induced_voltage: {} {}".format(np.mean(self.induced_voltage), np.std(self.induced_voltage)))
 
     # Can be faster than the normal induced voltage sum
     def induced_voltage_sum_packed(self):
@@ -394,6 +394,7 @@ class _InducedVoltage(object):
         # print('After beam spectrum')
 
         beam_spectrum = beam_spectrum_dict[self.n_fft]
+        print("beam_spectrum: {} {}".format(np.mean(beam_spectrum, np.std(beam_spectrum))))
 
         with timing.timed_region('serial:indVolt1Turn'):
             # with mpiprof.traced_region('serial:indVolt1Turn'):
@@ -403,6 +404,7 @@ class _InducedVoltage(object):
         self.induced_voltage = induced_voltage[:self.n_induced_voltage].astype(
             dtype=bm.precision.real_t, order='C', copy=False)
 
+        print("induced_voltage: {} {}".format(np.mean(self.induced_voltage, np.std(self.induced_voltage))))
 
 
     def induced_voltage_mtw(self, beam_spectrum_dict={}):
