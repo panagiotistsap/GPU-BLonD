@@ -49,10 +49,11 @@ def gpu_rf_volt_comp(dev_voltage, dev_omega_rf, dev_phi_rf, dev_bin_centers, dev
     assert dev_bin_centers.dtype == bm.precision.real_t
     assert dev_rf_voltage.dtype == bm.precision.real_t
 
+    print("bin_centers mean, std", np.mean(dev_bin_centers.get()), np.std(dev_bin_centers.get()))
     rvc(dev_voltage, dev_omega_rf, dev_phi_rf, dev_bin_centers,
         np.int32(dev_voltage.size), np.int32(
             dev_bin_centers.size), np.int32(f_rf), dev_rf_voltage,
-        block=block_size, grid=grid_size, shared=3*dev_voltage.size*32, time_kernel=True)
+        block=block_size, grid=grid_size, time_kernel=True)
 
 
 def gpu_kick(dev_voltage, dev_omega_rf, dev_phi_rf, charge, n_rf, acceleration_kick, beam):
